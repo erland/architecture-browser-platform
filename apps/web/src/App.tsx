@@ -14,6 +14,8 @@ type TriggerType = "MANUAL" | "SCHEDULED" | "IMPORT_ONLY" | "SYSTEM";
 type RunStatus = "REQUESTED" | "RUNNING" | "IMPORTING" | "COMPLETED" | "FAILED" | "CANCELED";
 type RunOutcome = "SUCCESS" | "PARTIAL" | "FAILED" | null;
 type StubRunResult = "SUCCESS" | "FAILURE";
+type SnapshotStatus = "READY" | "FAILED";
+type CompletenessStatus = "COMPLETE" | "PARTIAL" | "FAILED";
 
 type Workspace = {
   id: string;
@@ -68,6 +70,77 @@ type RunRecord = {
   indexerVersion: string | null;
   errorSummary: string | null;
   metadataJson: string | null;
+};
+
+type SnapshotSummary = {
+  id: string;
+  workspaceId: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  runId: string | null;
+  snapshotKey: string;
+  status: SnapshotStatus;
+  completenessStatus: CompletenessStatus;
+  derivedRunOutcome: Exclude<RunOutcome, null>;
+  schemaVersion: string;
+  indexerVersion: string;
+  sourceRevision: string | null;
+  sourceBranch: string | null;
+  importedAt: string;
+  scopeCount: number;
+  entityCount: number;
+  relationshipCount: number;
+  diagnosticCount: number;
+  indexedFileCount: number;
+  totalFileCount: number;
+  degradedFileCount: number;
+};
+
+type KindCount = { key: string; count: number };
+type NameCount = { externalId: string; name: string; count: number };
+type DiagnosticSummary = {
+  externalId: string;
+  code: string;
+  severity: string;
+  message: string;
+  filePath: string | null;
+  entityId: string | null;
+  scopeId: string | null;
+};
+
+type SnapshotOverview = {
+  snapshot: SnapshotSummary;
+  source: {
+    repositoryId: string | null;
+    acquisitionType: string | null;
+    path: string | null;
+    remoteUrl: string | null;
+    branch: string | null;
+    revision: string | null;
+    acquiredAt: string | null;
+  };
+  run: {
+    startedAt: string | null;
+    completedAt: string | null;
+    outcome: string | null;
+    detectedTechnologies: string[];
+  };
+  completeness: {
+    status: string;
+    indexedFileCount: number;
+    totalFileCount: number;
+    degradedFileCount: number;
+    omittedPaths: string[];
+    notes: string[];
+  };
+  scopeKinds: KindCount[];
+  entityKinds: KindCount[];
+  relationshipKinds: KindCount[];
+  diagnosticCodes: KindCount[];
+  topScopes: NameCount[];
+  recentDiagnostics: DiagnosticSummary[];
+  warnings: string[];
 };
 
 type ApiError = {
@@ -132,12 +205,19 @@ function formatDateTime(value: string | null) {
   return new Date(value).toLocaleString();
 }
 
+function summarizeCounts(items: KindCount[]) {
+  return items.slice(0, 4).map((item) => `${item.key} (${item.count})`).join(", ") || "—";
+}
+
 export function App() {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [recentRuns, setRecentRuns] = useState<RunRecord[]>([]);
+  const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
+  const [snapshotOverview, setSnapshotOverview] = useState<SnapshotOverview | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -157,6 +237,11 @@ export function App() {
   const selectedWorkspace = useMemo(
     () => workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null,
     [selectedWorkspaceId, workspaces],
+  );
+
+  const selectedSnapshot = useMemo(
+    () => snapshots.find((snapshot) => snapshot.id === selectedSnapshotId) ?? null,
+    [selectedSnapshotId, snapshots],
   );
 
   const latestRunByRepository = useMemo(() => {
@@ -185,18 +270,28 @@ export function App() {
       setRepositories([]);
       setAuditEvents([]);
       setRecentRuns([]);
+      setSnapshots([]);
+      setSelectedSnapshotId(null);
+      setSnapshotOverview(null);
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
   }, [selectedWorkspaceId, selectedWorkspace]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId) {
+      void loadSnapshotOverview(selectedWorkspaceId, selectedSnapshotId);
+    } else {
+      setSnapshotOverview(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId]);
 
   async function loadHealth() {
     try {
       const payload = await fetchJson<ApiHealth>("/api/health", { method: "GET" });
       setHealth(payload);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Unknown error";
-      setError(message);
+      setError(caught instanceof Error ? caught.message : "Unknown error");
     }
   }
 
@@ -212,32 +307,43 @@ export function App() {
       });
       setError(null);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Unknown error";
-      setError(message);
+      setError(caught instanceof Error ? caught.message : "Unknown error");
     }
   }
 
   async function loadWorkspaceDetail(workspaceId: string) {
     try {
-      const [repositoryPayload, auditPayload, runPayload] = await Promise.all([
+      const [repositoryPayload, auditPayload, runPayload, snapshotPayload] = await Promise.all([
         fetchJson<Repository[]>(`/api/workspaces/${workspaceId}/repositories`, { method: "GET" }),
         fetchJson<AuditEvent[]>(`/api/workspaces/${workspaceId}/audit-events`, { method: "GET" }),
         fetchJson<RunRecord[]>(`/api/workspaces/${workspaceId}/runs/recent`, { method: "GET" }),
+        fetchJson<SnapshotSummary[]>(`/api/workspaces/${workspaceId}/snapshots`, { method: "GET" }),
       ]);
       setRepositories(repositoryPayload);
       setAuditEvents(auditPayload);
       setRecentRuns(runPayload);
-      setRepositoryEditor((current) => (current.id ? current : {
+      setSnapshots(snapshotPayload);
+      setSelectedSnapshotId((current) => current && snapshotPayload.some((item) => item.id === current) ? current : (snapshotPayload[0]?.id ?? null));
+      setRepositoryEditor((current) => current.id ? current : {
         id: null,
         name: "",
         localPath: "",
         remoteUrl: "",
         defaultBranch: "main",
         metadataJson: "",
-      }));
+      });
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Unknown error";
-      setError(message);
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadSnapshotOverview(workspaceId: string, snapshotId: string) {
+    try {
+      const payload = await fetchJson<SnapshotOverview>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overview`, { method: "GET" });
+      setSnapshotOverview(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
     }
   }
 
@@ -328,10 +434,6 @@ export function App() {
     if (!selectedWorkspaceId || !repositoryEditor.id) {
       return;
     }
-    const existing = repositories.find((item) => item.id === repositoryEditor.id);
-    if (!existing) {
-      return;
-    }
     setBusyMessage("Updating repository registration…");
     try {
       await fetchJson<Repository>(`/api/workspaces/${selectedWorkspaceId}/repositories/${repositoryEditor.id}`, {
@@ -411,10 +513,10 @@ export function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">Architecture Browser Platform</p>
-        <h1>Index-run orchestration and status tracking</h1>
+        <h1>Snapshot catalog and overview pages</h1>
         <p className="lead">
-          Step 4 adds run request APIs, persisted run history, status transitions, and a stub indexer adapter so the platform can request
-          repository indexing runs and surface their current and recent outcomes in the UI.
+          Step 6 adds a browsable snapshot catalog and a per-snapshot overview so architects can inspect imported repository views,
+          completeness state, source provenance, technology hints, and high-level architectural counts before deeper navigation is built.
         </p>
       </section>
 
@@ -422,22 +524,10 @@ export function App() {
         <article className="card">
           <h2>API health</h2>
           <dl className="kv">
-            <div>
-              <dt>Status</dt>
-              <dd>{health.status}</dd>
-            </div>
-            <div>
-              <dt>Service</dt>
-              <dd>{health.service}</dd>
-            </div>
-            <div>
-              <dt>Version</dt>
-              <dd>{health.version}</dd>
-            </div>
-            <div>
-              <dt>Time</dt>
-              <dd>{health.time || "—"}</dd>
-            </div>
+            <div><dt>Status</dt><dd>{health.status}</dd></div>
+            <div><dt>Service</dt><dd>{health.service}</dd></div>
+            <div><dt>Version</dt><dd>{health.version}</dd></div>
+            <div><dt>Time</dt><dd>{health.time || "—"}</dd></div>
           </dl>
           {busyMessage ? <p className="notice">{busyMessage}</p> : null}
           {error ? <p className="error">{error}</p> : null}
@@ -508,7 +598,7 @@ export function App() {
                 </div>
               </form>
             ) : (
-              <p className="muted">Select a workspace to manage repositories, runs, and audit history.</p>
+              <p className="muted">Select a workspace to manage repositories, runs, snapshots, and audit history.</p>
             )}
           </article>
 
@@ -522,14 +612,8 @@ export function App() {
                 <div className="split-grid">
                   <form className="form" onSubmit={handleCreateRepository}>
                     <h3>Create</h3>
-                    <label>
-                      <span>Repository key</span>
-                      <input value={repositoryForm.repositoryKey} onChange={(event) => setRepositoryForm((current) => ({ ...current, repositoryKey: event.target.value }))} placeholder="backend-api" />
-                    </label>
-                    <label>
-                      <span>Name</span>
-                      <input value={repositoryForm.name} onChange={(event) => setRepositoryForm((current) => ({ ...current, name: event.target.value }))} placeholder="Backend API" />
-                    </label>
+                    <label><span>Repository key</span><input value={repositoryForm.repositoryKey} onChange={(event) => setRepositoryForm((current) => ({ ...current, repositoryKey: event.target.value }))} placeholder="backend-api" /></label>
+                    <label><span>Name</span><input value={repositoryForm.name} onChange={(event) => setRepositoryForm((current) => ({ ...current, name: event.target.value }))} placeholder="Backend API" /></label>
                     <label>
                       <span>Source type</span>
                       <select value={repositoryForm.sourceType} onChange={(event) => setRepositoryForm((current) => ({ ...current, sourceType: event.target.value as RepositorySourceType }))}>
@@ -537,22 +621,10 @@ export function App() {
                         <option value="GIT">GIT</option>
                       </select>
                     </label>
-                    <label>
-                      <span>Local path</span>
-                      <input value={repositoryForm.localPath} onChange={(event) => setRepositoryForm((current) => ({ ...current, localPath: event.target.value }))} placeholder="/repos/backend-api" />
-                    </label>
-                    <label>
-                      <span>Remote URL</span>
-                      <input value={repositoryForm.remoteUrl} onChange={(event) => setRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))} placeholder="https://github.com/erland/backend-api" />
-                    </label>
-                    <label>
-                      <span>Default branch</span>
-                      <input value={repositoryForm.defaultBranch} onChange={(event) => setRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))} />
-                    </label>
-                    <label>
-                      <span>Metadata JSON</span>
-                      <textarea value={repositoryForm.metadataJson} onChange={(event) => setRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))} placeholder='{"owner":"architecture"}' />
-                    </label>
+                    <label><span>Local path</span><input value={repositoryForm.localPath} onChange={(event) => setRepositoryForm((current) => ({ ...current, localPath: event.target.value }))} placeholder="/repos/backend-api" /></label>
+                    <label><span>Remote URL</span><input value={repositoryForm.remoteUrl} onChange={(event) => setRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))} placeholder="https://github.com/erland/backend-api" /></label>
+                    <label><span>Default branch</span><input value={repositoryForm.defaultBranch} onChange={(event) => setRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))} /></label>
+                    <label><span>Metadata JSON</span><textarea value={repositoryForm.metadataJson} onChange={(event) => setRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))} placeholder='{"owner":"architecture"}' /></label>
                     <button type="submit">Create repository</button>
                   </form>
 
@@ -560,31 +632,14 @@ export function App() {
                     <h3>Edit selected</h3>
                     {repositoryEditor.id ? (
                       <>
-                        <label>
-                          <span>Name</span>
-                          <input value={repositoryEditor.name} onChange={(event) => setRepositoryEditor((current) => ({ ...current, name: event.target.value }))} />
-                        </label>
-                        <label>
-                          <span>Local path</span>
-                          <input value={repositoryEditor.localPath} onChange={(event) => setRepositoryEditor((current) => ({ ...current, localPath: event.target.value }))} />
-                        </label>
-                        <label>
-                          <span>Remote URL</span>
-                          <input value={repositoryEditor.remoteUrl} onChange={(event) => setRepositoryEditor((current) => ({ ...current, remoteUrl: event.target.value }))} />
-                        </label>
-                        <label>
-                          <span>Default branch</span>
-                          <input value={repositoryEditor.defaultBranch} onChange={(event) => setRepositoryEditor((current) => ({ ...current, defaultBranch: event.target.value }))} />
-                        </label>
-                        <label>
-                          <span>Metadata JSON</span>
-                          <textarea value={repositoryEditor.metadataJson} onChange={(event) => setRepositoryEditor((current) => ({ ...current, metadataJson: event.target.value }))} />
-                        </label>
+                        <label><span>Name</span><input value={repositoryEditor.name} onChange={(event) => setRepositoryEditor((current) => ({ ...current, name: event.target.value }))} /></label>
+                        <label><span>Local path</span><input value={repositoryEditor.localPath} onChange={(event) => setRepositoryEditor((current) => ({ ...current, localPath: event.target.value }))} /></label>
+                        <label><span>Remote URL</span><input value={repositoryEditor.remoteUrl} onChange={(event) => setRepositoryEditor((current) => ({ ...current, remoteUrl: event.target.value }))} /></label>
+                        <label><span>Default branch</span><input value={repositoryEditor.defaultBranch} onChange={(event) => setRepositoryEditor((current) => ({ ...current, defaultBranch: event.target.value }))} /></label>
+                        <label><span>Metadata JSON</span><textarea value={repositoryEditor.metadataJson} onChange={(event) => setRepositoryEditor((current) => ({ ...current, metadataJson: event.target.value }))} /></label>
                         <button type="submit">Save repository</button>
                       </>
-                    ) : (
-                      <p className="muted">Pick a repository from the list below to edit it.</p>
-                    )}
+                    ) : <p className="muted">Pick a repository from the list below to edit it.</p>}
                   </form>
                 </div>
 
@@ -594,33 +649,14 @@ export function App() {
                     <span className="badge">Step 4</span>
                   </div>
                   <div className="split-grid split-grid--compact">
-                    <label>
-                      <span>Trigger type</span>
-                      <select value={runRequestForm.triggerType} onChange={(event) => setRunRequestForm((current) => ({ ...current, triggerType: event.target.value as TriggerType }))}>
-                        <option value="MANUAL">MANUAL</option>
-                        <option value="SCHEDULED">SCHEDULED</option>
-                        <option value="IMPORT_ONLY">IMPORT_ONLY</option>
-                        <option value="SYSTEM">SYSTEM</option>
-                      </select>
-                    </label>
-                    <label>
-                      <span>Schema version</span>
-                      <input value={runRequestForm.requestedSchemaVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedSchemaVersion: event.target.value }))} />
-                    </label>
-                    <label>
-                      <span>Indexer version</span>
-                      <input value={runRequestForm.requestedIndexerVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedIndexerVersion: event.target.value }))} />
-                    </label>
-                    <label>
-                      <span>Metadata JSON</span>
-                      <textarea value={runRequestForm.metadataJson} onChange={(event) => setRunRequestForm((current) => ({ ...current, metadataJson: event.target.value }))} />
-                    </label>
+                    <label><span>Trigger type</span><select value={runRequestForm.triggerType} onChange={(event) => setRunRequestForm((current) => ({ ...current, triggerType: event.target.value as TriggerType }))}><option value="MANUAL">MANUAL</option><option value="SCHEDULED">SCHEDULED</option><option value="IMPORT_ONLY">IMPORT_ONLY</option><option value="SYSTEM">SYSTEM</option></select></label>
+                    <label><span>Schema version</span><input value={runRequestForm.requestedSchemaVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedSchemaVersion: event.target.value }))} /></label>
+                    <label><span>Indexer version</span><input value={runRequestForm.requestedIndexerVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedIndexerVersion: event.target.value }))} /></label>
+                    <label><span>Metadata JSON</span><textarea value={runRequestForm.metadataJson} onChange={(event) => setRunRequestForm((current) => ({ ...current, metadataJson: event.target.value }))} /></label>
                   </div>
                 </div>
               </>
-            ) : (
-              <p className="muted">Select a workspace to manage repository registrations.</p>
-            )}
+            ) : <p className="muted">Select a workspace to manage repository registrations.</p>}
 
             <div className="table-list">
               {repositories.map((repository) => {
@@ -630,15 +666,7 @@ export function App() {
                     <div>
                       <strong>{repository.name}</strong>
                       <p>{repository.repositoryKey} · {repository.sourceType} · {repository.status}</p>
-                      {latestRun ? (
-                        <p>
-                          Latest run: {latestRun.status}
-                          {latestRun.outcome ? ` · ${latestRun.outcome}` : ""}
-                          {latestRun.completedAt ? ` · ${formatDateTime(latestRun.completedAt)}` : ""}
-                        </p>
-                      ) : (
-                        <p>No runs requested yet.</p>
-                      )}
+                      {latestRun ? <p>Latest run: {latestRun.status}{latestRun.outcome ? ` · ${latestRun.outcome}` : ""}{latestRun.completedAt ? ` · ${formatDateTime(latestRun.completedAt)}` : ""}</p> : <p>No runs requested yet.</p>}
                     </div>
                     <div className="actions actions--inline actions--wrap">
                       <button type="button" className="button-secondary" onClick={() => selectRepositoryForEdit(repository)}>Edit</button>
@@ -655,9 +683,86 @@ export function App() {
 
           <article className="card">
             <div className="section-heading">
-              <h2>Current and recent runs</h2>
-              <span className="badge">{recentRuns.length}</span>
+              <h2>Snapshot catalog</h2>
+              <span className="badge">{snapshots.length}</span>
             </div>
+            {selectedWorkspace ? (
+              <div className="split-grid split-grid--wide">
+                <div className="stack stack--compact">
+                  {snapshots.map((snapshot) => (
+                    <button key={snapshot.id} type="button" className={`list-item ${snapshot.id === selectedSnapshotId ? "list-item--active" : ""}`} onClick={() => setSelectedSnapshotId(snapshot.id)}>
+                      <strong>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</strong>
+                      <span>{snapshot.snapshotKey}</span>
+                      <span>{snapshot.completenessStatus} · {snapshot.importedAt ? formatDateTime(snapshot.importedAt) : "—"}</span>
+                      <span>{snapshot.entityCount} entities · {snapshot.relationshipCount} relationships · {snapshot.diagnosticCount} diagnostics</span>
+                    </button>
+                  ))}
+                  {!snapshots.length ? <p className="muted">No snapshots imported yet.</p> : null}
+                </div>
+
+                <div className="stack stack--compact">
+                  {selectedSnapshot && snapshotOverview ? (
+                    <>
+                      <div className="card card--nested">
+                        <div className="section-heading">
+                          <h3>Overview</h3>
+                          <span className={`badge ${selectedSnapshot.completenessStatus === "PARTIAL" ? "badge--warning" : "badge--status"}`}>{selectedSnapshot.completenessStatus}</span>
+                        </div>
+                        <dl className="kv kv--compact">
+                          <div><dt>Repository</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? "—"}</dd></div>
+                          <div><dt>Imported</dt><dd>{formatDateTime(selectedSnapshot.importedAt)}</dd></div>
+                          <div><dt>Revision</dt><dd>{snapshotOverview.source.revision ?? "—"}</dd></div>
+                          <div><dt>Branch</dt><dd>{snapshotOverview.source.branch ?? "—"}</dd></div>
+                          <div><dt>Schema / Indexer</dt><dd>{selectedSnapshot.schemaVersion} / {selectedSnapshot.indexerVersion}</dd></div>
+                          <div><dt>Run outcome</dt><dd>{selectedSnapshot.derivedRunOutcome}</dd></div>
+                          <div><dt>Technologies</dt><dd>{snapshotOverview.run.detectedTechnologies.join(", ") || "—"}</dd></div>
+                          <div><dt>Files</dt><dd>{snapshotOverview.completeness.indexedFileCount}/{snapshotOverview.completeness.totalFileCount} indexed · {snapshotOverview.completeness.degradedFileCount} degraded</dd></div>
+                        </dl>
+                        {snapshotOverview.warnings.length ? (
+                          <div className="stack stack--compact top-gap">
+                            {snapshotOverview.warnings.map((warning) => <p key={warning} className="warning">{warning}</p>)}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="split-grid split-grid--compact">
+                        <div className="card card--nested"><h3>Scope kinds</h3><p>{summarizeCounts(snapshotOverview.scopeKinds)}</p></div>
+                        <div className="card card--nested"><h3>Entity kinds</h3><p>{summarizeCounts(snapshotOverview.entityKinds)}</p></div>
+                        <div className="card card--nested"><h3>Relationship kinds</h3><p>{summarizeCounts(snapshotOverview.relationshipKinds)}</p></div>
+                        <div className="card card--nested"><h3>Diagnostics</h3><p>{summarizeCounts(snapshotOverview.diagnosticCodes)}</p></div>
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Top scopes</h3><span className="badge">{snapshotOverview.topScopes.length}</span></div>
+                        <div className="stack stack--compact">
+                          {snapshotOverview.topScopes.map((scope) => <div key={scope.externalId} className="summary-row"><strong>{scope.name}</strong><span>{scope.count} facts</span></div>)}
+                          {!snapshotOverview.topScopes.length ? <p className="muted">No scope breakdown available.</p> : null}
+                        </div>
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Recent diagnostics</h3><span className="badge">{snapshotOverview.recentDiagnostics.length}</span></div>
+                        <div className="stack stack--compact">
+                          {snapshotOverview.recentDiagnostics.map((diagnostic) => (
+                            <div key={diagnostic.externalId} className="audit-item">
+                              <strong>{diagnostic.code}</strong>
+                              <span>{diagnostic.severity}</span>
+                              <span>{diagnostic.message}</span>
+                              <span>{diagnostic.filePath ?? diagnostic.scopeId ?? diagnostic.entityId ?? "—"}</span>
+                            </div>
+                          ))}
+                          {!snapshotOverview.recentDiagnostics.length ? <p className="muted">No diagnostics recorded for this snapshot.</p> : null}
+                        </div>
+                      </div>
+                    </>
+                  ) : <p className="muted">Select a snapshot to inspect its overview.</p>}
+                </div>
+              </div>
+            ) : <p className="muted">Select a workspace to browse imported snapshots.</p>}
+          </article>
+
+          <article className="card">
+            <div className="section-heading"><h2>Current and recent runs</h2><span className="badge">{recentRuns.length}</span></div>
             <div className="stack stack--compact">
               {recentRuns.map((run) => (
                 <div key={run.id} className="run-item">
@@ -678,19 +783,13 @@ export function App() {
           </article>
 
           <article className="card">
-            <div className="section-heading">
-              <h2>Audit trail</h2>
-              <span className="badge">{auditEvents.length}</span>
-            </div>
+            <div className="section-heading"><h2>Audit trail</h2><span className="badge">{auditEvents.length}</span></div>
             <div className="stack">
               {auditEvents.map((event) => (
                 <div key={event.id} className="audit-item">
                   <strong>{event.eventType}</strong>
                   <span>{new Date(event.happenedAt).toLocaleString()}</span>
-                  <span>
-                    {event.actorType}{event.actorId ? ` · ${event.actorId}` : ""}
-                    {event.runId ? ` · run ${event.runId}` : ""}
-                  </span>
+                  <span>{event.actorType}{event.actorId ? ` · ${event.actorId}` : ""}{event.runId ? ` · run ${event.runId}` : ""}</span>
                   {event.detailsJson ? <code>{event.detailsJson}</code> : null}
                 </div>
               ))}
