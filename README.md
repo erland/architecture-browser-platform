@@ -4,49 +4,44 @@ Architecture Browser Platform monorepo baseline for the user-facing self-hosted 
 
 ## Repository layout
 
-- `apps/web` — React + TypeScript web UI baseline
+- `apps/web` — React + TypeScript web UI
 - `apps/api` — Quarkus 3.31 backend with JPA + Flyway
 - `libs/contracts` — shared import-contract notes and TypeScript contract/domain types
-- `libs/view-models` — placeholder shared view-model module for later steps
-- `deploy/docker-compose` — Docker Compose baseline for local/dev installation
-- `docs` — product docs, ERD/import notes, and IR analysis
-- `scripts` — helper scripts for starting/stopping the baseline environment
-
-## Step 4 status
-
-This step extends the baseline with the first run orchestration slice:
-
-- CRUD APIs for workspaces
-- CRUD APIs for repository registrations inside workspaces
-- run request and run-history APIs
-- persisted run state transitions and audit events
-- a stub indexer adapter for simulated success/failure outcomes
-- a thin web UI for management and run-status tracking
-
-## Prerequisites
-
-- Node.js 20+
-- npm 10+
-- Java 25
-- Maven 3.9+
-- Docker and Docker Compose plugin
-
+- `libs/view-models` — shared pure helpers used by stable frontend tests
+- `deploy/docker-compose` — dev/test Docker Compose files
+- `deploy/env` — example environment files for image-based test deployment
+- `docs` — product docs, ERD/import notes, and step-by-step implementation notes
+- `scripts` — helper scripts for dev/test lifecycle and smoke checks
 
 ## Runtime baseline
 
-The API now targets **Java 25** on **Quarkus 3.31.4**. This is intentional:
+The API targets **Java 25** on **Quarkus 3.31.4**. This is intentional:
 
 - the separate `architecture-browser-indexer` line already needs a post-Java-21 baseline
 - Quarkus 3.31 adds full Java 25 support
 - Quarkus 3.31 requires Maven 3.9+
 
-The `apps/api` Maven build now fails fast with a clear enforcer message if Java 25 or Maven 3.9+ is not being used.
+## Prerequisites
 
-## Local development
+For local source development:
 
-### Start infrastructure and services
+- Docker with Compose plugin
+- Node.js 20+
+- npm 10+
+- Java 25
+- Maven 3.9+
 
-From the repository root:
+For remote test deployment:
+
+- Docker with Compose plugin
+- cloned `architecture-browser-platform` repository
+- published platform API and web images
+
+## Development install
+
+Development is optimized for a local checkout where `architecture-browser-platform` and `architecture-browser-indexer` are sibling directories. The current MVP still uses the stub indexer adapter, so the platform dev stack does not yet need the indexer container to run.
+
+Start the dev stack:
 
 ```bash
 ./scripts/dev-up.sh
@@ -55,123 +50,125 @@ From the repository root:
 This starts:
 
 - PostgreSQL on `localhost:5432`
-- Quarkus API on `http://localhost:8080`
-- React web app on `http://localhost:5173`
+- Quarkus dev mode on `http://localhost:8080`
+- Vite dev server on `http://localhost:5173`
 
-Stop the stack with:
+Stop it with:
 
 ```bash
 ./scripts/dev-down.sh
 ```
 
-### Run services individually
-
-#### Web
-
-From the repository root:
-
-```bash
-npm install
-npm run build:web
-npm run dev:web
-```
-
-Or from the app directory:
-
-```bash
-cd apps/web
-npm install
-npm run build
-npm run dev
-```
-
-#### API
-
-```bash
-cd apps/api
-mvn test
-mvn package
-```
-
-
-### Database and migrations
-
-Flyway runs automatically on API startup. Migration scripts live under:
+The underlying compose file is:
 
 ```text
-apps/api/src/main/resources/db/migration
+deploy/docker-compose/docker-compose.dev.yml
 ```
 
-There is no manual top-level migration workflow in this step.
+This dev mode does **not** require pushing images to GHCR.
 
-## Useful URLs
+## Test / remote install
 
-- Web UI: `http://localhost:5173`
-- API health: `http://localhost:8080/api/health`
-- API baseline info: `http://localhost:8080/api/baseline`
-- API domain model summary: `http://localhost:8080/api/domain-model`
-- API current IR contract notes: `http://localhost:8080/api/contracts/indexer-ir`
-- Workspaces: `GET/POST http://localhost:8080/api/workspaces`
-- Workspace detail/update: `GET/PUT http://localhost:8080/api/workspaces/{workspaceId}`
-- Workspace archive: `POST http://localhost:8080/api/workspaces/{workspaceId}/archive`
-- Workspace audit trail: `GET http://localhost:8080/api/workspaces/{workspaceId}/audit-events`
-- Repositories in workspace: `GET/POST http://localhost:8080/api/workspaces/{workspaceId}/repositories`
-- Repository detail/update: `GET/PUT http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}`
-- Repository archive: `POST http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/archive`
-- Request repository run: `POST http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/runs`
-- Repository run history: `GET http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/runs`
-- Recent workspace runs: `GET http://localhost:8080/api/workspaces/{workspaceId}/runs/recent`
-- Contract validation: `POST http://localhost:8080/api/imports/indexer-ir/validate`
-- Stub import storage: `POST http://localhost:8080/api/imports/indexer-ir/stub-store`
+Test deployment is image-based so the remote server can clone this repository only for configuration and lifecycle scripts, without rebuilding the whole stack.
 
-## Verification sequence
+1. Copy the example environment file:
+
+```bash
+cp deploy/env/platform-test.env.example deploy/env/platform-test.env
+```
+
+2. Edit:
+
+- `POSTGRES_PASSWORD`
+- `PLATFORM_API_IMAGE`
+- `PLATFORM_WEB_IMAGE`
+
+3. Start the stack:
+
+```bash
+./scripts/test-up.sh
+```
+
+This starts:
+
+- PostgreSQL on `localhost:5432`
+- API on `http://localhost:8080`
+- Web UI on `http://localhost:8081`
+
+The web container serves the built SPA and proxies `/api/*` to the API container.
+
+4. Run a smoke test:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+5. Stop the stack:
+
+```bash
+./scripts/test-down.sh
+```
+
+The underlying compose file is:
+
+```text
+deploy/docker-compose/docker-compose.test.yml
+```
+
+## Building publishable images
+
+### API image
 
 From the repository root:
 
 ```bash
-docker compose -f deploy/docker-compose/docker-compose.yml config
+docker build -f apps/api/src/main/docker/Dockerfile.jvm -t architecture-browser-platform-api:local .
+```
+
+### Web image
+
+From the repository root:
+
+```bash
+docker build -f apps/web/Dockerfile -t architecture-browser-platform-web:local .
+```
+
+## Local verification
+
+From the repository root:
+
+```bash
+npm ci
+npm run test:web
 npm run build:web
 cd apps/api && mvn test && mvn package
 ```
 
-To exercise the management APIs after the API is running:
+Validate the compose files:
 
 ```bash
-curl -X POST   -H 'Content-Type: application/json'   --data '{"workspaceKey":"customs-core","name":"Swedish Customs Core"}'   http://localhost:8080/api/workspaces
+docker compose -f deploy/docker-compose/docker-compose.dev.yml config
+cp deploy/env/platform-test.env.example deploy/env/platform-test.env
+sed -i.bak 's#ghcr.io/example/architecture-browser-platform-api:latest#architecture-browser-platform-api:local#' deploy/env/platform-test.env
+sed -i.bak 's#ghcr.io/example/architecture-browser-platform-web:latest#architecture-browser-platform-web:local#' deploy/env/platform-test.env
+docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml config
 ```
 
-Then create a repository registration inside that workspace:
+## Useful URLs
 
-```bash
-curl -X POST   -H 'Content-Type: application/json'   --data '{"repositoryKey":"platform-api","name":"Platform API","sourceType":"GIT","remoteUrl":"https://github.com/erland/architecture-browser-platform"}'   http://localhost:8080/api/workspaces/<workspaceId>/repositories
-```
+### Dev
+
+- Web UI: `http://localhost:5173`
+- API health: `http://localhost:8080/api/health`
+
+### Test
+
+- Web UI: `http://localhost:8081`
+- API health: `http://localhost:8080/api/health`
 
 ## Notes
 
-- The platform remains a single repository for MVP because backend, frontend, install packaging, persistence, and import-contract evolution are tightly coupled.
-- The indexer remains a separate repository so parsing/extraction logic stays isolated from the platform product lifecycle.
-- The imported-fact projection from Step 2 is still intentionally generic so browse-specialized schemas can be added in later steps without reworking the management APIs.
-
-
-To exercise stub run orchestration after creating a repository registration:
-
-```bash
-curl -X POST \
-  -H 'Content-Type: application/json' \
-  --data '{"triggerType":"MANUAL","requestedSchemaVersion":"indexer-ir-v1","requestedIndexerVersion":"step4-stub","requestedResult":"SUCCESS"}' \
-  http://localhost:8080/api/workspaces/<workspaceId>/repositories/<repositoryId>/runs
-```
-
-
-## Step 5 verification
-
-From `apps/api`:
-
-```bash
-mvn test
-```
-
-Useful import endpoints:
-
-- `POST /api/workspaces/{workspaceId}/repositories/{repositoryId}/imports/indexer-ir`
-- `POST /api/workspaces/{workspaceId}/repositories/{repositoryId}/runs/{runId}/imports/indexer-ir`
+- Dev and test now have separate Docker Compose files.
+- Dev is optimized for source-mounted iteration and does not require published images.
+- Test is optimized for remote deployment from published images and does not require rebuilding the whole stack on the server.
+- The platform still uses the stub indexer adapter at MVP stage, so full external indexer container orchestration can be added later without reworking the new packaging split.

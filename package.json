@@ -13,6 +13,10 @@
     "lint:web": "npm run lint --workspace @architecture-browser-platform/web",
     "typecheck:web": "npm run typecheck --workspace @architecture-browser-platform/web",
     "test:web": "npm run test --workspace @architecture-browser-platform/web",
-    "dev:stack": "docker compose -f deploy/docker-compose/docker-compose.yml up --build"
+    "dev:stack": "docker compose -f deploy/docker-compose/docker-compose.dev.yml up --build",
+    "dev:stack:down": "docker compose -f deploy/docker-compose/docker-compose.dev.yml down",
+    "test:stack": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml up -d",
+    "test:stack:down": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml down",
+    "smoke:test": "./scripts/smoke-test.sh"
   }
 }

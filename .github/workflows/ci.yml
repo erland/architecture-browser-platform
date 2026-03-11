@@ -12,12 +12,12 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
       - name: Run API tests
         working-directory: apps/api
         run: mvn test
 
-  web-build:
+  web-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,19 @@ jobs:
           node-version: '20'
           cache: npm
       - name: Install workspace dependencies
-        run: npm install
+        run: npm ci
+      - name: Run frontend tests
+        run: npm run test:web
       - name: Build web app
         run: npm run build:web
+
+  packaging-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate dev compose
+        run: docker compose -f deploy/docker-compose/docker-compose.dev.yml config >/dev/null
+      - name: Prepare example test env
+        run: cp deploy/env/platform-test.env.example deploy/env/platform-test.env
+      - name: Validate test compose
+        run: docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml config >/dev/null
