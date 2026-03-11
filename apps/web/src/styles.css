@@ -393,3 +393,13 @@ dd {
     position: static;
   }
 }
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grid-span-2 {
+  grid-column: span 2;
+}

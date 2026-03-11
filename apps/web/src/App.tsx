@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { summarizeDependencyKinds, toDependencyEntityOptions } from "./dependencyViewModel";
 import { summarizeEntryKinds, toEntryPointItemOptions } from "./entryPointViewModel";
 import { summarizeMatchReasons, toSearchResultOptions } from "./searchViewModel";
+import { buildSavedViewRequest, parseSavedViewJson, toSavedViewStateLabel } from "./savedViewModel";
 
 type ApiHealth = {
   status: string;
@@ -431,6 +432,42 @@ type EntityDetail = {
   metadataJson: string | null;
 };
 
+
+
+type OverlayKind = "TAG_SET" | "HEATMAP" | "ANNOTATION" | "HIGHLIGHT";
+
+type OverlayRecord = {
+  id: string;
+  workspaceId: string;
+  snapshotId: string | null;
+  name: string;
+  kind: OverlayKind;
+  targetEntityCount: number;
+  targetScopeCount: number;
+  note: string | null;
+  definitionJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SavedViewRecord = {
+  id: string;
+  workspaceId: string;
+  snapshotId: string | null;
+  name: string;
+  viewType: string;
+  queryJson: string | null;
+  layoutJson: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CustomizationOverview = {
+  snapshot: SnapshotSummary;
+  overlays: OverlayRecord[];
+  savedViews: SavedViewRecord[];
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -497,6 +534,21 @@ function summarizeCounts(items: KindCount[]) {
   return items.slice(0, 4).map((item) => `${item.key} (${item.count})`).join(", ") || "—";
 }
 
+async function fetchNoContent(input: RequestInfo, init?: RequestInit): Promise<void> {
+  const response = await fetch(input, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiError | null;
+    const details = payload?.details?.length ? ` ${payload.details.join(" ")}` : "";
+    throw new Error(`${payload?.message ?? `Request failed with status ${response.status}`}.${details}`.trim());
+  }
+}
+
 function containsScope(nodes: LayoutNode[], scopeId: string): boolean {
   return nodes.some((node) => node.externalId === scopeId || containsScope(node.children, scopeId));
 }
@@ -534,6 +586,13 @@ export function App() {
   const [searchView, setSearchView] = useState<SearchView | null>(null);
   const [selectedSearchEntityId, setSelectedSearchEntityId] = useState<string>("");
   const [entityDetail, setEntityDetail] = useState<EntityDetail | null>(null);
+  const [customizationOverview, setCustomizationOverview] = useState<CustomizationOverview | null>(null);
+  const [overlayName, setOverlayName] = useState<string>("");
+  const [overlayKind, setOverlayKind] = useState<OverlayKind>("ANNOTATION");
+  const [overlayNote, setOverlayNote] = useState<string>("");
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string>("");
+  const [savedViewName, setSavedViewName] = useState<string>("");
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>("");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -611,6 +670,13 @@ export function App() {
       setSearchView(null);
       setSelectedSearchEntityId("");
       setEntityDetail(null);
+      setCustomizationOverview(null);
+      setOverlayName("");
+      setOverlayKind("ANNOTATION");
+      setOverlayNote("");
+      setSelectedOverlayId("");
+      setSavedViewName("");
+      setSelectedSavedViewId("");
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -620,6 +686,7 @@ export function App() {
     if (selectedWorkspaceId && selectedSnapshotId) {
       void loadSnapshotOverview(selectedWorkspaceId, selectedSnapshotId);
       void loadLayoutTree(selectedWorkspaceId, selectedSnapshotId);
+      void loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
     } else {
       setSnapshotOverview(null);
       setLayoutTree(null);
@@ -636,6 +703,13 @@ export function App() {
       setSearchView(null);
       setSelectedSearchEntityId("");
       setEntityDetail(null);
+      setCustomizationOverview(null);
+      setOverlayName("");
+      setOverlayKind("ANNOTATION");
+      setOverlayNote("");
+      setSelectedOverlayId("");
+      setSavedViewName("");
+      setSelectedSavedViewId("");
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -828,6 +902,137 @@ export function App() {
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadCustomizationOverview(workspaceId: string, snapshotId: string) {
+    try {
+      const payload = await fetchJson<CustomizationOverview>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/customizations`, { method: "GET" });
+      setCustomizationOverview(payload);
+      setSelectedOverlayId((current) => current && payload.overlays.some((item) => item.id === current) ? current : "");
+      setSelectedSavedViewId((current) => current && payload.savedViews.some((item) => item.id === current) ? current : "");
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function handleCreateOverlay(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedWorkspaceId || !selectedSnapshotId) return;
+    setBusyMessage("Creating overlay…");
+    try {
+      const targetEntityIds = selectedSearchEntityId ? [selectedSearchEntityId] : [];
+      const targetScopeIds = selectedSearchScopeId ? [selectedSearchScopeId] : (selectedLayoutScopeId ? [selectedLayoutScopeId] : []);
+      await fetchJson<OverlayRecord>(`/api/workspaces/${selectedWorkspaceId}/snapshots/${selectedSnapshotId}/overlays`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: overlayName,
+          kind: overlayKind,
+          targetEntityIds,
+          targetScopeIds,
+          note: overlayNote,
+          attributes: {},
+        }),
+      });
+      setOverlayName("");
+      setOverlayNote("");
+      await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
+  async function handleDeleteOverlay(overlayId: string) {
+    if (!selectedWorkspaceId || !selectedSnapshotId) return;
+    setBusyMessage("Deleting overlay…");
+    try {
+      await fetchNoContent(`/api/workspaces/${selectedWorkspaceId}/snapshots/${selectedSnapshotId}/overlays/${overlayId}`, { method: "DELETE" });
+      await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
+  async function handleSaveCurrentView(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedWorkspaceId || !selectedSnapshotId) return;
+    setBusyMessage("Saving view…");
+    try {
+      await fetchJson<SavedViewRecord>(`/api/workspaces/${selectedWorkspaceId}/snapshots/${selectedSnapshotId}/saved-views`, {
+        method: "POST",
+        body: JSON.stringify(buildSavedViewRequest(savedViewName, {
+          selectedSearchScopeId,
+          searchQuery,
+          selectedSearchEntityId,
+          selectedLayoutScopeId: selectedLayoutScopeId ?? "",
+          selectedDependencyScopeId,
+          dependencyDirection,
+          focusedDependencyEntityId,
+          selectedEntryPointScopeId,
+          entryCategory,
+          focusedEntryPointId,
+        })),
+      });
+      setSavedViewName("");
+      await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
+  async function handleApplySavedView(savedViewId: string) {
+    const savedView = customizationOverview?.savedViews.find((item) => item.id === savedViewId);
+    if (!savedView) return;
+    const queryState = parseSavedViewJson<Record<string, string>>(savedView.queryJson) ?? {};
+    const layoutState = parseSavedViewJson<Record<string, string>>(savedView.layoutJson) ?? {};
+    setSelectedSearchScopeId(queryState.selectedSearchScopeId ?? "");
+    setSearchQuery(queryState.searchQuery ?? "");
+    setSelectedSearchEntityId(queryState.selectedSearchEntityId ?? "");
+    setSelectedEntryPointScopeId(queryState.selectedEntryPointScopeId ?? "");
+    setEntryCategory((queryState.entryCategory as EntryCategory | undefined) ?? "ALL");
+    setFocusedEntryPointId(queryState.focusedEntryPointId ?? "");
+    setSelectedLayoutScopeId(layoutState.selectedLayoutScopeId || null);
+    setSelectedDependencyScopeId(layoutState.selectedDependencyScopeId ?? "");
+    setDependencyDirection((layoutState.dependencyDirection as DependencyDirection | undefined) ?? "ALL");
+    setFocusedDependencyEntityId(layoutState.focusedDependencyEntityId ?? "");
+    setSelectedSavedViewId(savedViewId);
+  }
+
+  async function handleDuplicateSavedView(savedViewId: string) {
+    if (!selectedWorkspaceId || !selectedSnapshotId) return;
+    setBusyMessage("Duplicating saved view…");
+    try {
+      await fetchJson<SavedViewRecord>(`/api/workspaces/${selectedWorkspaceId}/snapshots/${selectedSnapshotId}/saved-views/${savedViewId}/duplicate`, { method: "POST", body: JSON.stringify({}) });
+      await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
+  async function handleDeleteSavedView(savedViewId: string) {
+    if (!selectedWorkspaceId || !selectedSnapshotId) return;
+    setBusyMessage("Deleting saved view…");
+    try {
+      await fetchNoContent(`/api/workspaces/${selectedWorkspaceId}/snapshots/${selectedSnapshotId}/saved-views/${savedViewId}`, { method: "DELETE" });
+      await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
     }
   }
 
@@ -1642,6 +1847,91 @@ export function App() {
                             ) : null}
                           </div>
                         ) : <p className="muted">Search and entity detail view will appear when a snapshot is available.</p>}
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Overlays, notes, and saved views</h3><span className="badge">Step 11</span></div>
+                        {customizationOverview ? (
+                          <div className="stack stack--compact">
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Overlays</h4><p>{customizationOverview.overlays.length}</p></div>
+                              <div className="card card--nested"><h4>Saved views</h4><p>{customizationOverview.savedViews.length}</p></div>
+                              <div className="card card--nested"><h4>Focused entity</h4><p>{selectedSearchEntityId || "—"}</p></div>
+                              <div className="card card--nested"><h4>Focused scope</h4><p>{selectedSearchScopeId || selectedLayoutScopeId || "—"}</p></div>
+                            </div>
+
+                            <form className="split-grid split-grid--compact" onSubmit={handleCreateOverlay}>
+                              <label>
+                                <span>Overlay name</span>
+                                <input value={overlayName} onChange={(event) => setOverlayName(event.target.value)} placeholder="Review notes" />
+                              </label>
+                              <label>
+                                <span>Kind</span>
+                                <select value={overlayKind} onChange={(event) => setOverlayKind(event.target.value as OverlayKind)}>
+                                  <option value="ANNOTATION">Annotation/note</option>
+                                  <option value="TAG_SET">Tag set</option>
+                                  <option value="HIGHLIGHT">Highlight</option>
+                                  <option value="HEATMAP">Heatmap</option>
+                                </select>
+                              </label>
+                              <label className="grid-span-2">
+                                <span>Note</span>
+                                <input value={overlayNote} onChange={(event) => setOverlayNote(event.target.value)} placeholder="Stored separately from imported facts" />
+                              </label>
+                              <div className="grid-span-2">
+                                <button type="submit" disabled={!overlayName.trim()}>Create overlay from current focus</button>
+                              </div>
+                            </form>
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Stored overlays</h4><span className="badge">{customizationOverview.overlays.length}</span></div>
+                              <div className="stack stack--compact">
+                                {customizationOverview.overlays.map((overlay) => (
+                                  <div key={overlay.id} className={`list-item ${overlay.id === selectedOverlayId ? "list-item--active" : ""}`}>
+                                    <strong>{overlay.name}</strong>
+                                    <span>{overlay.kind} · {overlay.targetEntityCount} entities · {overlay.targetScopeCount} scopes</span>
+                                    <span>{overlay.note || "No note"}</span>
+                                    <div className="button-row">
+                                      <button type="button" onClick={() => setSelectedOverlayId(overlay.id)}>Inspect</button>
+                                      <button type="button" onClick={() => handleDeleteOverlay(overlay.id)}>Delete</button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {!customizationOverview.overlays.length ? <p className="muted">No overlays or notes stored for this snapshot yet.</p> : null}
+                              </div>
+                              {selectedOverlayId ? <pre>{customizationOverview.overlays.find((overlay) => overlay.id === selectedOverlayId)?.definitionJson}</pre> : null}
+                            </div>
+
+                            <form className="split-grid split-grid--compact" onSubmit={handleSaveCurrentView}>
+                              <label className="grid-span-2">
+                                <span>Saved view name</span>
+                                <input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} placeholder="Backend orders focus" />
+                              </label>
+                              <div className="grid-span-2">
+                                <button type="submit" disabled={!savedViewName.trim()}>Save current filters and focus</button>
+                              </div>
+                            </form>
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Saved views</h4><span className="badge">{customizationOverview.savedViews.length}</span></div>
+                              <div className="stack stack--compact">
+                                {customizationOverview.savedViews.map((savedView) => (
+                                  <div key={savedView.id} className={`list-item ${savedView.id === selectedSavedViewId ? "list-item--active" : ""}`}>
+                                    <strong>{toSavedViewStateLabel(savedView.name, savedView.viewType, selectedSnapshot?.snapshotKey ?? null)}</strong>
+                                    <span>Updated {formatDateTime(savedView.updatedAt)}</span>
+                                    <span>{savedView.queryJson ? "Query state saved" : "No query state"} · {savedView.layoutJson ? "Layout state saved" : "No layout state"}</span>
+                                    <div className="button-row">
+                                      <button type="button" onClick={() => void handleApplySavedView(savedView.id)}>Open</button>
+                                      <button type="button" onClick={() => void handleDuplicateSavedView(savedView.id)}>Duplicate</button>
+                                      <button type="button" onClick={() => void handleDeleteSavedView(savedView.id)}>Delete</button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {!customizationOverview.savedViews.length ? <p className="muted">No saved views for this snapshot yet.</p> : null}
+                              </div>
+                            </div>
+                          </div>
+                        ) : <p className="muted">Customization view will appear when a snapshot is available.</p>}
                       </div>
 
                       <div className="card card--nested">
