@@ -3,6 +3,7 @@ import { summarizeDependencyKinds, toDependencyEntityOptions } from "./dependenc
 import { summarizeEntryKinds, toEntryPointItemOptions } from "./entryPointViewModel";
 import { summarizeMatchReasons, toSearchResultOptions } from "./searchViewModel";
 import { buildSavedViewRequest, parseSavedViewJson, toSavedViewStateLabel } from "./savedViewModel";
+import { comparisonSnapshotOptions, summarizeComparisonHeadline } from "./compareViewModel";
 
 type ApiHealth = {
   status: string;
@@ -468,6 +469,61 @@ type CustomizationOverview = {
   savedViews: SavedViewRecord[];
 };
 
+
+
+type ComparisonScopeChange = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string;
+  path: string;
+};
+
+type ComparisonEntityChange = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string;
+  scopePath: string;
+};
+
+type ComparisonRelationshipChange = {
+  externalId: string;
+  kind: string;
+  label: string;
+  fromEntityId: string;
+  fromDisplayName: string;
+  fromScopePath: string;
+  toEntityId: string;
+  toDisplayName: string;
+  toScopePath: string;
+};
+
+type SnapshotComparison = {
+  baseSnapshot: SnapshotSummary;
+  targetSnapshot: SnapshotSummary;
+  summary: {
+    addedScopeCount: number;
+    removedScopeCount: number;
+    addedEntityCount: number;
+    removedEntityCount: number;
+    addedRelationshipCount: number;
+    removedRelationshipCount: number;
+    addedEntryPointCount: number;
+    removedEntryPointCount: number;
+    changedIntegrationAndPersistenceCount: number;
+  };
+  addedScopes: ComparisonScopeChange[];
+  removedScopes: ComparisonScopeChange[];
+  addedEntities: ComparisonEntityChange[];
+  removedEntities: ComparisonEntityChange[];
+  addedEntryPoints: ComparisonEntityChange[];
+  removedEntryPoints: ComparisonEntityChange[];
+  changedIntegrationAndPersistence: ComparisonEntityChange[];
+  addedDependencies: ComparisonRelationshipChange[];
+  removedDependencies: ComparisonRelationshipChange[];
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -593,6 +649,8 @@ export function App() {
   const [selectedOverlayId, setSelectedOverlayId] = useState<string>("");
   const [savedViewName, setSavedViewName] = useState<string>("");
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>("");
+  const [comparisonSnapshotId, setComparisonSnapshotId] = useState<string>("");
+  const [snapshotComparison, setSnapshotComparison] = useState<SnapshotComparison | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -624,6 +682,8 @@ export function App() {
   const dependencyEntityOptions = useMemo(() => toDependencyEntityOptions(dependencyView?.entities ?? []), [dependencyView]);
   const entryPointOptions = useMemo(() => toEntryPointItemOptions(entryPointView?.items ?? []), [entryPointView]);
   const searchResultOptions = useMemo(() => toSearchResultOptions(searchView?.results ?? []), [searchView]);
+
+  const comparisonOptions = useMemo(() => comparisonSnapshotOptions(snapshots, selectedSnapshotId), [snapshots, selectedSnapshotId]);
 
   const latestRunByRepository = useMemo(() => {
     const result = new Map<string, RunRecord>();
@@ -677,6 +737,8 @@ export function App() {
       setSelectedOverlayId("");
       setSavedViewName("");
       setSelectedSavedViewId("");
+      setComparisonSnapshotId("");
+      setSnapshotComparison(null);
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -710,6 +772,8 @@ export function App() {
       setSelectedOverlayId("");
       setSavedViewName("");
       setSelectedSavedViewId("");
+      setComparisonSnapshotId("");
+      setSnapshotComparison(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -752,6 +816,14 @@ export function App() {
       setEntityDetail(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId, selectedSearchEntityId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId && comparisonSnapshotId) {
+      void loadSnapshotComparison(selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId);
+    } else {
+      setSnapshotComparison(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId]);
 
   async function loadHealth() {
     try {
@@ -911,6 +983,16 @@ export function App() {
       setCustomizationOverview(payload);
       setSelectedOverlayId((current) => current && payload.overlays.some((item) => item.id === current) ? current : "");
       setSelectedSavedViewId((current) => current && payload.savedViews.some((item) => item.id === current) ? current : "");
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadSnapshotComparison(workspaceId: string, snapshotId: string, otherSnapshotId: string) {
+    try {
+      const payload = await fetchJson<SnapshotComparison>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/compare?otherSnapshotId=${encodeURIComponent(otherSnapshotId)}`, { method: "GET" });
+      setSnapshotComparison(payload);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
@@ -1932,6 +2014,102 @@ export function App() {
                             </div>
                           </div>
                         ) : <p className="muted">Customization view will appear when a snapshot is available.</p>}
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Snapshot comparison summary</h3><span className="badge">Step 12</span></div>
+                        <div className="split-grid split-grid--compact">
+                          <label>
+                            <span>Compare current snapshot to</span>
+                            <select value={comparisonSnapshotId} onChange={(event) => setComparisonSnapshotId(event.target.value)}>
+                              <option value="">Select another snapshot</option>
+                              {comparisonOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {snapshotComparison ? (
+                          <div className="stack stack--compact">
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Headline</h4><span className="badge">{snapshotComparison.targetSnapshot.snapshotKey}</span></div>
+                              <p>{summarizeComparisonHeadline(snapshotComparison.summary)}</p>
+                              <p className="muted">Base {snapshotComparison.baseSnapshot.snapshotKey} → Target {snapshotComparison.targetSnapshot.snapshotKey}</p>
+                            </div>
+
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Added scopes</h4><p>{snapshotComparison.summary.addedScopeCount}</p></div>
+                              <div className="card card--nested"><h4>Removed scopes</h4><p>{snapshotComparison.summary.removedScopeCount}</p></div>
+                              <div className="card card--nested"><h4>Added entities</h4><p>{snapshotComparison.summary.addedEntityCount}</p></div>
+                              <div className="card card--nested"><h4>Removed entities</h4><p>{snapshotComparison.summary.removedEntityCount}</p></div>
+                            </div>
+
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Added relationships</h4><p>{snapshotComparison.summary.addedRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Removed relationships</h4><p>{snapshotComparison.summary.removedRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Added entry points</h4><p>{snapshotComparison.summary.addedEntryPointCount}</p></div>
+                              <div className="card card--nested"><h4>Changed integration/persistence</h4><p>{snapshotComparison.summary.changedIntegrationAndPersistenceCount}</p></div>
+                            </div>
+
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested">
+                                <div className="section-heading"><h4>Added entry points</h4><span className="badge">{snapshotComparison.addedEntryPoints.length}</span></div>
+                                <div className="stack stack--compact">
+                                  {snapshotComparison.addedEntryPoints.map((item) => (
+                                    <div key={item.externalId} className="audit-item">
+                                      <strong>{item.displayName}</strong>
+                                      <span>{item.kind} · {item.scopePath}</span>
+                                    </div>
+                                  ))}
+                                  {!snapshotComparison.addedEntryPoints.length ? <p className="muted">No added entry points.</p> : null}
+                                </div>
+                              </div>
+                              <div className="card card--nested">
+                                <div className="section-heading"><h4>Integration/persistence changes</h4><span className="badge">{snapshotComparison.changedIntegrationAndPersistence.length}</span></div>
+                                <div className="stack stack--compact">
+                                  {snapshotComparison.changedIntegrationAndPersistence.map((item) => (
+                                    <div key={item.externalId} className="audit-item">
+                                      <strong>{item.displayName}</strong>
+                                      <span>{item.kind} · {item.scopePath}</span>
+                                    </div>
+                                  ))}
+                                  {!snapshotComparison.changedIntegrationAndPersistence.length ? <p className="muted">No notable integration or persistence changes.</p> : null}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested">
+                                <div className="section-heading"><h4>Added dependencies</h4><span className="badge">{snapshotComparison.addedDependencies.length}</span></div>
+                                <div className="stack stack--compact">
+                                  {snapshotComparison.addedDependencies.map((change) => (
+                                    <div key={change.externalId} className="audit-item">
+                                      <strong>{change.label}</strong>
+                                      <span>{change.kind}</span>
+                                      <span>{change.fromDisplayName} → {change.toDisplayName}</span>
+                                    </div>
+                                  ))}
+                                  {!snapshotComparison.addedDependencies.length ? <p className="muted">No added dependency changes in preview.</p> : null}
+                                </div>
+                              </div>
+                              <div className="card card--nested">
+                                <div className="section-heading"><h4>Removed dependencies</h4><span className="badge">{snapshotComparison.removedDependencies.length}</span></div>
+                                <div className="stack stack--compact">
+                                  {snapshotComparison.removedDependencies.map((change) => (
+                                    <div key={change.externalId} className="audit-item">
+                                      <strong>{change.label}</strong>
+                                      <span>{change.kind}</span>
+                                      <span>{change.fromDisplayName} → {change.toDisplayName}</span>
+                                    </div>
+                                  ))}
+                                  {!snapshotComparison.removedDependencies.length ? <p className="muted">No removed dependency changes in preview.</p> : null}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : <p className="muted">Select another snapshot to compare with the current one.</p>}
                       </div>
 
                       <div className="card card--nested">

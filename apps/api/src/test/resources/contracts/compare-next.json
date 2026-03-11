@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T11:00:00Z",
+    "completedAt": "2026-03-10T11:05:00Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["Java", "TypeScript"],
+    "metadata": {"fixture": "compare-next"}
+  },
+  "source": {
+    "repositoryId": "repo-search",
+    "acquisitionType": "GIT",
+    "path": "/tmp/search-repo",
+    "remoteUrl": "https://example.com/search-repo.git",
+    "branch": "main",
+    "revision": "def456",
+    "acquiredAt": "2026-03-10T11:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    { "id": "scope:repo", "kind": "REPOSITORY", "name": "search-repo", "displayName": "search-repo", "parentScopeId": null, "sourceRefs": [], "metadata": {} },
+    { "id": "scope:module:backend", "parentScopeId": "scope:repo", "kind": "MODULE", "name": "backend", "displayName": "backend", "sourceRefs": [], "metadata": {} },
+    { "id": "scope:module:web", "parentScopeId": "scope:repo", "kind": "MODULE", "name": "web", "displayName": "web", "sourceRefs": [], "metadata": {} },
+    { "id": "scope:package:backend", "parentScopeId": "scope:module:backend", "kind": "PACKAGE", "name": "backend.api", "displayName": "backend.api", "sourceRefs": [], "metadata": {} },
+    { "id": "scope:package:web", "parentScopeId": "scope:module:web", "kind": "PACKAGE", "name": "web.pages", "displayName": "web.pages", "sourceRefs": [], "metadata": {} }
+  ],
+  "entities": [
+    {
+      "id": "entity:endpoint:orders",
+      "kind": "ENDPOINT",
+      "origin": "INFERRED",
+      "name": "Orders endpoint",
+      "displayName": "GET /orders",
+      "scopeId": "scope:package:backend",
+      "sourceRefs": [{ "path": "backend/OrdersController.java", "startLine": 10, "endLine": 14, "snippet": "@GetMapping(\"/orders\")", "metadata": {"annotation": "GetMapping"} }],
+      "metadata": {"method": "GET", "path": "/orders"}
+    },
+    {
+      "id": "entity:endpoint:orders-create",
+      "kind": "ENDPOINT",
+      "origin": "INFERRED",
+      "name": "Create order endpoint",
+      "displayName": "POST /orders",
+      "scopeId": "scope:package:backend",
+      "sourceRefs": [{ "path": "backend/OrdersController.java", "startLine": 20, "endLine": 26, "snippet": "@PostMapping(\"/orders\")", "metadata": {"annotation": "PostMapping"} }],
+      "metadata": {"method": "POST", "path": "/orders"}
+    },
+    {
+      "id": "entity:service:orders-backend",
+      "kind": "SERVICE",
+      "origin": "OBSERVED",
+      "name": "OrderService",
+      "displayName": "OrderService",
+      "scopeId": "scope:package:backend",
+      "sourceRefs": [{ "path": "backend/OrderService.java", "startLine": 5, "endLine": 30, "snippet": "class OrderService", "metadata": {} }],
+      "metadata": {"role": "application-service"}
+    },
+    {
+      "id": "entity:service:orders-command",
+      "kind": "SERVICE",
+      "origin": "OBSERVED",
+      "name": "OrderCommandService",
+      "displayName": "OrderCommandService",
+      "scopeId": "scope:package:backend",
+      "sourceRefs": [{ "path": "backend/OrderCommandService.java", "startLine": 5, "endLine": 30, "snippet": "class OrderCommandService", "metadata": {} }],
+      "metadata": {"role": "application-service"}
+    },
+    {
+      "id": "entity:service:orders-web",
+      "kind": "SERVICE",
+      "origin": "OBSERVED",
+      "name": "OrderService",
+      "displayName": "OrderService",
+      "scopeId": "scope:package:web",
+      "sourceRefs": [{ "path": "web/OrderService.ts", "startLine": 1, "endLine": 24, "snippet": "export class OrderService", "metadata": {} }],
+      "metadata": {"role": "frontend-service"}
+    },
+    {
+      "id": "entity:ui:orders-page",
+      "kind": "UI_MODULE",
+      "origin": "OBSERVED",
+      "name": "OrdersPage",
+      "displayName": "OrdersPage",
+      "scopeId": "scope:package:web",
+      "sourceRefs": [{ "path": "web/OrdersPage.tsx", "startLine": 1, "endLine": 40, "snippet": "export function OrdersPage", "metadata": {} }],
+      "metadata": {}
+    },
+    {
+      "id": "entity:external:payments",
+      "kind": "EXTERNAL_SYSTEM",
+      "origin": "INFERRED",
+      "name": "payments-api",
+      "displayName": "Payments API",
+      "scopeId": "scope:module:backend",
+      "sourceRefs": [{ "path": "backend/PaymentClient.java", "startLine": 5, "endLine": 20, "snippet": "class PaymentClient", "metadata": {} }],
+      "metadata": {"owner": "payments"}
+    }
+  ],
+  "relationships": [
+    { "id": "rel:ui:endpoint", "kind": "CALLS", "fromEntityId": "entity:ui:orders-page", "toEntityId": "entity:endpoint:orders", "label": "page calls endpoint", "sourceRefs": [], "metadata": {} },
+    { "id": "rel:endpoint:service", "kind": "CALLS", "fromEntityId": "entity:endpoint:orders", "toEntityId": "entity:service:orders-backend", "label": "endpoint calls service", "sourceRefs": [], "metadata": {} },
+    { "id": "rel:web:service", "kind": "USES", "fromEntityId": "entity:ui:orders-page", "toEntityId": "entity:service:orders-web", "label": "page uses web service", "sourceRefs": [], "metadata": {} },
+    { "id": "rel:create:service", "kind": "CALLS", "fromEntityId": "entity:endpoint:orders-create", "toEntityId": "entity:service:orders-command", "label": "create endpoint calls command service", "sourceRefs": [], "metadata": {} },
+    { "id": "rel:command:external", "kind": "CALLS", "fromEntityId": "entity:service:orders-command", "toEntityId": "entity:external:payments", "label": "command service calls payments api", "sourceRefs": [], "metadata": {} }
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 9,
+    "totalFileCount": 9,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}
