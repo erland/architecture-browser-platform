@@ -4,6 +4,7 @@ import { summarizeEntryKinds, toEntryPointItemOptions } from "./entryPointViewMo
 import { summarizeMatchReasons, toSearchResultOptions } from "./searchViewModel";
 import { buildSavedViewRequest, parseSavedViewJson, toSavedViewStateLabel } from "./savedViewModel";
 import { comparisonSnapshotOptions, summarizeComparisonHeadline } from "./compareViewModel";
+import { normalizeRetentionForm, summarizeOperationsHeadline } from "./operationsViewModel";
 
 type ApiHealth = {
   status: string;
@@ -524,11 +525,131 @@ type SnapshotComparison = {
   removedDependencies: ComparisonRelationshipChange[];
 };
 
+
+
+type OperationsRepositoryRow = {
+  id: string;
+  repositoryKey: string;
+  name: string;
+  status: RepositoryStatus;
+  snapshotCount: number;
+  runCount: number;
+  latestSnapshotId: string | null;
+  latestSnapshotImportedAt: string | null;
+  latestRunId: string | null;
+  latestRunStatus: RunStatus | null;
+  latestRunOutcome: RunOutcome;
+  latestRunRequestedAt: string | null;
+};
+
+type OperationsRunRow = {
+  id: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  status: RunStatus;
+  outcome: RunOutcome;
+  requestedAt: string;
+  completedAt: string | null;
+  errorSummary: string | null;
+  retainedBySnapshot: boolean;
+};
+
+type OperationsDiagnostic = {
+  externalId: string;
+  severity: string | null;
+  phase: string | null;
+  code: string;
+  message: string;
+  fatal: boolean;
+  filePath: string | null;
+  entityId: string | null;
+  scopeId: string | null;
+};
+
+type FailedSnapshotRow = {
+  id: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  snapshotKey: string;
+  status: SnapshotStatus;
+  completenessStatus: string;
+  importedAt: string;
+  diagnosticCount: number;
+  diagnostics: OperationsDiagnostic[];
+  warnings: string[];
+};
+
+type RetentionDefaults = {
+  keepSnapshotsPerRepository: number;
+  keepRunsPerRepository: number;
+};
+
+type RetentionSnapshotCandidate = {
+  snapshotId: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  snapshotKey: string;
+  importedAt: string;
+  entityCount: number;
+  relationshipCount: number;
+  diagnosticCount: number;
+};
+
+type RetentionRunCandidate = {
+  runId: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  status: RunStatus;
+  outcome: RunOutcome;
+  requestedAt: string;
+  retainedBySnapshot: boolean;
+  errorSummary: string | null;
+};
+
+type RetentionPreview = {
+  workspaceId: string;
+  keepSnapshotsPerRepository: number;
+  keepRunsPerRepository: number;
+  snapshotDeleteCount: number;
+  runDeleteCount: number;
+  snapshotsToDelete: RetentionSnapshotCandidate[];
+  runsToDelete: RetentionRunCandidate[];
+  generatedAt: string;
+  dryRun: boolean;
+};
+
+type OperationsOverview = {
+  workspaceId: string;
+  health: ApiHealth;
+  summary: {
+    repositoryCount: number;
+    activeRepositoryCount: number;
+    runCount: number;
+    failedRunCount: number;
+    snapshotCount: number;
+    failedSnapshotCount: number;
+    auditEventCount: number;
+  };
+  repositories: OperationsRepositoryRow[];
+  recentRuns: OperationsRunRow[];
+  failedRuns: OperationsRunRow[];
+  failedSnapshots: FailedSnapshotRow[];
+  retentionDefaults: RetentionDefaults;
+  generatedAt: string;
+};
+
 type ApiError = {
   code: string;
   message: string;
   details: string[];
 };
+
+const initialOperationsOverview: OperationsOverview | null = null;
+const initialRetentionPreview: RetentionPreview | null = null;
 
 const initialHealth: ApiHealth = {
   status: "unknown",
@@ -651,6 +772,9 @@ export function App() {
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>("");
   const [comparisonSnapshotId, setComparisonSnapshotId] = useState<string>("");
   const [snapshotComparison, setSnapshotComparison] = useState<SnapshotComparison | null>(null);
+  const [operationsOverview, setOperationsOverview] = useState<OperationsOverview | null>(initialOperationsOverview);
+  const [retentionPreview, setRetentionPreview] = useState<RetentionPreview | null>(initialRetentionPreview);
+  const [retentionForm, setRetentionForm] = useState<{ keepSnapshotsPerRepository: string; keepRunsPerRepository: string }>({ keepSnapshotsPerRepository: "2", keepRunsPerRepository: "5" });
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -739,6 +863,9 @@ export function App() {
       setSelectedSavedViewId("");
       setComparisonSnapshotId("");
       setSnapshotComparison(null);
+      setOperationsOverview(null);
+      setRetentionPreview(null);
+      setRetentionForm({ keepSnapshotsPerRepository: "2", keepRunsPerRepository: "5" });
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -774,6 +901,9 @@ export function App() {
       setSelectedSavedViewId("");
       setComparisonSnapshotId("");
       setSnapshotComparison(null);
+      setOperationsOverview(null);
+      setRetentionPreview(null);
+      setRetentionForm({ keepSnapshotsPerRepository: "2", keepRunsPerRepository: "5" });
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -852,17 +982,23 @@ export function App() {
 
   async function loadWorkspaceDetail(workspaceId: string) {
     try {
-      const [repositoryPayload, auditPayload, runPayload, snapshotPayload] = await Promise.all([
+      const [repositoryPayload, auditPayload, runPayload, snapshotPayload, operationsPayload] = await Promise.all([
         fetchJson<Repository[]>(`/api/workspaces/${workspaceId}/repositories`, { method: "GET" }),
         fetchJson<AuditEvent[]>(`/api/workspaces/${workspaceId}/audit-events`, { method: "GET" }),
         fetchJson<RunRecord[]>(`/api/workspaces/${workspaceId}/runs/recent`, { method: "GET" }),
         fetchJson<SnapshotSummary[]>(`/api/workspaces/${workspaceId}/snapshots`, { method: "GET" }),
+        fetchJson<OperationsOverview>(`/api/workspaces/${workspaceId}/operations/overview`, { method: "GET" }),
       ]);
       setRepositories(repositoryPayload);
       setAuditEvents(auditPayload);
       setRecentRuns(runPayload);
       setSnapshots(snapshotPayload);
       setSelectedSnapshotId((current) => current && snapshotPayload.some((item) => item.id === current) ? current : (snapshotPayload[0]?.id ?? null));
+      setOperationsOverview(operationsPayload);
+      setRetentionForm({
+        keepSnapshotsPerRepository: `${operationsPayload.retentionDefaults.keepSnapshotsPerRepository}`,
+        keepRunsPerRepository: `${operationsPayload.retentionDefaults.keepRunsPerRepository}`,
+      });
       setRepositoryEditor((current) => current.id ? current : {
         id: null,
         name: "",
@@ -996,6 +1132,42 @@ export function App() {
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+
+  async function handlePreviewRetention(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedWorkspaceId) return;
+    setBusyMessage("Previewing retention…");
+    try {
+      const normalized = normalizeRetentionForm(retentionForm, operationsOverview?.retentionDefaults ?? { keepSnapshotsPerRepository: 2, keepRunsPerRepository: 5 });
+      const payload = await fetchJson<RetentionPreview>(`/api/workspaces/${selectedWorkspaceId}/operations/retention/preview?keepSnapshotsPerRepository=${normalized.keepSnapshotsPerRepository}&keepRunsPerRepository=${normalized.keepRunsPerRepository}`, { method: "GET" });
+      setRetentionPreview(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
+  async function handleApplyRetention() {
+    if (!selectedWorkspaceId) return;
+    setBusyMessage("Applying retention…");
+    try {
+      const normalized = normalizeRetentionForm(retentionForm, operationsOverview?.retentionDefaults ?? { keepSnapshotsPerRepository: 2, keepRunsPerRepository: 5 });
+      const payload = await fetchJson<RetentionPreview>(`/api/workspaces/${selectedWorkspaceId}/operations/retention/apply`, {
+        method: "POST",
+        body: JSON.stringify({ ...normalized, dryRun: false }),
+      });
+      setRetentionPreview(payload);
+      await loadWorkspaceDetail(selectedWorkspaceId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
     }
   }
 
@@ -2152,6 +2324,121 @@ export function App() {
               ))}
               {!recentRuns.length && selectedWorkspace ? <p className="muted">No runs have been requested yet.</p> : null}
             </div>
+          </article>
+
+          <article className="card">
+            <div className="section-heading"><h2>Administration and operations</h2><span className="badge">Step 13</span></div>
+            {selectedWorkspace && operationsOverview ? (
+              <div className="stack">
+                <p>{summarizeOperationsHeadline(operationsOverview.summary)}</p>
+                <div className="split-grid split-grid--compact">
+                  <div className="card card--nested"><h4>Health</h4><p>{operationsOverview.health.status} · {operationsOverview.health.service}</p><p className="muted">Updated {formatDateTime(operationsOverview.health.time)}</p></div>
+                  <div className="card card--nested"><h4>Repositories</h4><p>{operationsOverview.summary.repositoryCount} total · {operationsOverview.summary.activeRepositoryCount} active</p></div>
+                  <div className="card card--nested"><h4>Runs</h4><p>{operationsOverview.summary.runCount} total · {operationsOverview.summary.failedRunCount} failed</p></div>
+                  <div className="card card--nested"><h4>Snapshots</h4><p>{operationsOverview.summary.snapshotCount} total · {operationsOverview.summary.failedSnapshotCount} problematic</p></div>
+                </div>
+
+                <div className="split-grid split-grid--compact">
+                  <div className="card card--nested">
+                    <div className="section-heading"><h3>Repository administration</h3><span className="badge">{operationsOverview.repositories.length}</span></div>
+                    <div className="stack stack--compact">
+                      {operationsOverview.repositories.map((repository) => (
+                        <div key={repository.id} className="audit-item">
+                          <strong>{repository.name}</strong>
+                          <span>{repository.repositoryKey} · {repository.status}</span>
+                          <span>{repository.snapshotCount} snapshots · {repository.runCount} runs</span>
+                          <span>Latest snapshot {formatDateTime(repository.latestSnapshotImportedAt)}</span>
+                          <span>Latest run {repository.latestRunStatus ?? "—"}{repository.latestRunOutcome ? ` · ${repository.latestRunOutcome}` : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h3>Retention</h3><span className="badge">Safe cleanup</span></div>
+                    <form className="stack stack--compact" onSubmit={handlePreviewRetention}>
+                      <label className="stack stack--compact">
+                        <span>Keep snapshots per repository</span>
+                        <input value={retentionForm.keepSnapshotsPerRepository} onChange={(event) => setRetentionForm((current) => ({ ...current, keepSnapshotsPerRepository: event.target.value }))} />
+                      </label>
+                      <label className="stack stack--compact">
+                        <span>Keep terminal runs per repository</span>
+                        <input value={retentionForm.keepRunsPerRepository} onChange={(event) => setRetentionForm((current) => ({ ...current, keepRunsPerRepository: event.target.value }))} />
+                      </label>
+                      <div className="button-row">
+                        <button type="submit">Preview retention</button>
+                        <button type="button" className="button-secondary" onClick={() => void handleApplyRetention()}>Apply retention</button>
+                      </div>
+                    </form>
+                    {retentionPreview ? (
+                      <div className="stack stack--compact">
+                        <p>{retentionPreview.snapshotDeleteCount} snapshots and {retentionPreview.runDeleteCount} runs are currently eligible for cleanup.</p>
+                        <div className="split-grid split-grid--compact">
+                          <div className="card card--nested">
+                            <div className="section-heading"><h4>Snapshots to delete</h4><span className="badge">{retentionPreview.snapshotDeleteCount}</span></div>
+                            <div className="stack stack--compact">
+                              {retentionPreview.snapshotsToDelete.map((snapshot) => (
+                                <div key={snapshot.snapshotId} className="audit-item">
+                                  <strong>{snapshot.snapshotKey}</strong>
+                                  <span>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</span>
+                                  <span>{snapshot.entityCount} entities · {snapshot.relationshipCount} relationships · {snapshot.diagnosticCount} diagnostics</span>
+                                </div>
+                              ))}
+                              {!retentionPreview.snapshotsToDelete.length ? <p className="muted">No snapshot cleanup candidates right now.</p> : null}
+                            </div>
+                          </div>
+                          <div className="card card--nested">
+                            <div className="section-heading"><h4>Runs to delete</h4><span className="badge">{retentionPreview.runDeleteCount}</span></div>
+                            <div className="stack stack--compact">
+                              {retentionPreview.runsToDelete.map((run) => (
+                                <div key={run.runId} className="audit-item">
+                                  <strong>{run.repositoryName ?? run.repositoryKey ?? run.repositoryRegistrationId}</strong>
+                                  <span>{run.status}{run.outcome ? ` · ${run.outcome}` : ""} · {formatDateTime(run.requestedAt)}</span>
+                                  {run.errorSummary ? <code>{run.errorSummary}</code> : null}
+                                </div>
+                              ))}
+                              {!retentionPreview.runsToDelete.length ? <p className="muted">No run cleanup candidates right now.</p> : null}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : <p className="muted">Preview retention to see what would be deleted before applying cleanup.</p>}
+                  </div>
+                </div>
+
+                <div className="split-grid split-grid--compact">
+                  <div className="card card--nested">
+                    <div className="section-heading"><h3>Failed runs</h3><span className="badge">{operationsOverview.failedRuns.length}</span></div>
+                    <div className="stack stack--compact">
+                      {operationsOverview.failedRuns.map((run) => (
+                        <div key={run.id} className="audit-item">
+                          <strong>{run.repositoryName ?? run.repositoryKey ?? run.repositoryRegistrationId}</strong>
+                          <span>{run.status}{run.outcome ? ` · ${run.outcome}` : ""} · requested {formatDateTime(run.requestedAt)}</span>
+                          {run.errorSummary ? <code>{run.errorSummary}</code> : null}
+                        </div>
+                      ))}
+                      {!operationsOverview.failedRuns.length ? <p className="muted">No failed runs recorded.</p> : null}
+                    </div>
+                  </div>
+                  <div className="card card--nested">
+                    <div className="section-heading"><h3>Problematic snapshots</h3><span className="badge">{operationsOverview.failedSnapshots.length}</span></div>
+                    <div className="stack stack--compact">
+                      {operationsOverview.failedSnapshots.map((snapshot) => (
+                        <div key={snapshot.id} className="audit-item">
+                          <strong>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</strong>
+                          <span>{snapshot.snapshotKey} · {snapshot.status} · {snapshot.completenessStatus}</span>
+                          {snapshot.diagnostics.map((diagnostic) => (
+                            <span key={diagnostic.externalId}>{diagnostic.code}: {diagnostic.message}</span>
+                          ))}
+                          {snapshot.warnings.map((warning, index) => <span key={`${snapshot.id}-warning-${index}`}>{warning}</span>)}
+                        </div>
+                      ))}
+                      {!operationsOverview.failedSnapshots.length ? <p className="muted">No problematic snapshots recorded.</p> : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : <p className="muted">Select a workspace to review operational health, retention, and diagnostics.</p>}
           </article>
 
           <article className="card">

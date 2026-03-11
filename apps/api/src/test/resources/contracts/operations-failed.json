@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:07:00Z",
+    "outcome": "FAILED",
+    "detectedTechnologies": ["Java"],
+    "metadata": {"fixture": "operations-failed"}
+  },
+  "source": {
+    "repositoryId": "repo-search",
+    "acquisitionType": "GIT",
+    "path": "/tmp/search-repo",
+    "remoteUrl": "https://example.com/search-repo.git",
+    "branch": "main",
+    "revision": "zzz999",
+    "acquiredAt": "2026-03-10T12:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    { "id": "scope:repo", "kind": "REPOSITORY", "name": "search-repo", "displayName": "search-repo", "parentScopeId": null, "sourceRefs": [], "metadata": {} },
+    { "id": "scope:module:backend", "parentScopeId": "scope:repo", "kind": "MODULE", "name": "backend", "displayName": "backend", "sourceRefs": [], "metadata": {} }
+  ],
+  "entities": [
+    {
+      "id": "entity:service:broken",
+      "kind": "SERVICE",
+      "origin": "OBSERVED",
+      "name": "BrokenService",
+      "displayName": "BrokenService",
+      "scopeId": "scope:module:backend",
+      "sourceRefs": [{ "path": "backend/BrokenService.java", "startLine": 1, "endLine": 10, "snippet": "class BrokenService", "metadata": {} }],
+      "metadata": {}
+    }
+  ],
+  "relationships": [],
+  "diagnostics": [
+    {
+      "id": "diag:broken:1",
+      "severity": "ERROR",
+      "phase": "EXTRACTION",
+      "code": "JAVA_PARSE_FAILURE",
+      "message": "Could not parse backend/BrokenService.java",
+      "fatal": true,
+      "filePath": "backend/BrokenService.java",
+      "scopeId": "scope:module:backend",
+      "entityId": "entity:service:broken",
+      "sourceRefs": [],
+      "metadata": {"line": 42}
+    }
+  ],
+  "completeness": {
+    "status": "FAILED",
+    "indexedFileCount": 1,
+    "totalFileCount": 2,
+    "degradedFileCount": 1,
+    "omittedPaths": ["backend/LegacyParser.java"],
+    "notes": ["Indexer stopped early after a fatal parser error."]
+  },
+  "metadata": {}
+}
