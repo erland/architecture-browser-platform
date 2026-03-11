@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { summarizeDependencyKinds, toDependencyEntityOptions } from "./dependencyViewModel";
 import { summarizeEntryKinds, toEntryPointItemOptions } from "./entryPointViewModel";
+import { summarizeMatchReasons, toSearchResultOptions } from "./searchViewModel";
 
 type ApiHealth = {
   status: string;
@@ -341,6 +342,95 @@ type EntryPointView = {
   } | null;
 };
 
+type SearchResult = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  origin: string | null;
+  scopeId: string | null;
+  scopePath: string;
+  sourcePath: string | null;
+  sourceSnippet: string | null;
+  sourceRefCount: number;
+  summary: string | null;
+  inboundRelationshipCount: number;
+  outboundRelationshipCount: number;
+  matchReasons: string[];
+};
+
+type SearchView = {
+  snapshot: SnapshotSummary;
+  query: string;
+  scope: {
+    externalId: string | null;
+    kind: string;
+    name: string;
+    displayName: string;
+    path: string;
+    repositoryWide: boolean;
+  };
+  summary: {
+    searchableEntityCount: number;
+    visibleResultCount: number;
+    totalMatchCount: number;
+    limit: number;
+    queryBlank: boolean;
+  };
+  visibleKinds: KindCount[];
+  results: SearchResult[];
+};
+
+type EntityDetailRelationship = {
+  externalId: string;
+  kind: string;
+  label: string | null;
+  summary: string | null;
+  direction: string;
+  otherEntityId: string;
+  otherDisplayName: string;
+  otherKind: string;
+  otherScopePath: string;
+};
+
+type EntitySourceRef = {
+  path: string | null;
+  startLine: number | null;
+  endLine: number | null;
+  snippet: string | null;
+  metadataJson: string | null;
+};
+
+type EntityDetail = {
+  snapshot: SnapshotSummary;
+  entity: {
+    externalId: string;
+    kind: string;
+    name: string;
+    displayName: string | null;
+    origin: string | null;
+    scopeId: string | null;
+    scopePath: string;
+    sourceRefCount: number;
+    summary: string | null;
+    inboundRelationshipCount: number;
+    outboundRelationshipCount: number;
+  };
+  scope: {
+    externalId: string | null;
+    kind: string;
+    name: string;
+    displayName: string;
+    path: string;
+    repositoryWide: boolean;
+  };
+  relatedKinds: KindCount[];
+  sourceRefs: EntitySourceRef[];
+  inboundRelationships: EntityDetailRelationship[];
+  outboundRelationships: EntityDetailRelationship[];
+  metadataJson: string | null;
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -439,6 +529,11 @@ export function App() {
   const [selectedEntryPointScopeId, setSelectedEntryPointScopeId] = useState<string>("");
   const [entryCategory, setEntryCategory] = useState<EntryCategory>("ALL");
   const [focusedEntryPointId, setFocusedEntryPointId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedSearchScopeId, setSelectedSearchScopeId] = useState<string>("");
+  const [searchView, setSearchView] = useState<SearchView | null>(null);
+  const [selectedSearchEntityId, setSelectedSearchEntityId] = useState<string>("");
+  const [entityDetail, setEntityDetail] = useState<EntityDetail | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -469,6 +564,7 @@ export function App() {
 
   const dependencyEntityOptions = useMemo(() => toDependencyEntityOptions(dependencyView?.entities ?? []), [dependencyView]);
   const entryPointOptions = useMemo(() => toEntryPointItemOptions(entryPointView?.items ?? []), [entryPointView]);
+  const searchResultOptions = useMemo(() => toSearchResultOptions(searchView?.results ?? []), [searchView]);
 
   const latestRunByRepository = useMemo(() => {
     const result = new Map<string, RunRecord>();
@@ -510,6 +606,11 @@ export function App() {
       setSelectedEntryPointScopeId("");
       setEntryCategory("ALL");
       setFocusedEntryPointId("");
+      setSearchQuery("");
+      setSelectedSearchScopeId("");
+      setSearchView(null);
+      setSelectedSearchEntityId("");
+      setEntityDetail(null);
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -530,6 +631,11 @@ export function App() {
       setEntryPointView(null);
       setSelectedEntryPointScopeId("");
       setFocusedEntryPointId("");
+      setSearchQuery("");
+      setSelectedSearchScopeId("");
+      setSearchView(null);
+      setSelectedSearchEntityId("");
+      setEntityDetail(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -556,6 +662,22 @@ export function App() {
       setEntryPointView(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId, selectedEntryPointScopeId, entryCategory, focusedEntryPointId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId) {
+      void loadSearchView(selectedWorkspaceId, selectedSnapshotId, searchQuery, selectedSearchScopeId || undefined);
+    } else {
+      setSearchView(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, searchQuery, selectedSearchScopeId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId && selectedSearchEntityId) {
+      void loadEntityDetail(selectedWorkspaceId, selectedSnapshotId, selectedSearchEntityId);
+    } else {
+      setEntityDetail(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, selectedSearchEntityId]);
 
   async function loadHealth() {
     try {
@@ -672,6 +794,37 @@ export function App() {
       const query = params.toString();
       const payload = await fetchJson<EntryPointView>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entry-points${query ? `?${query}` : ""}`, { method: "GET" });
       setEntryPointView(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+
+  async function loadSearchView(workspaceId: string, snapshotId: string, queryText: string, scopeId?: string) {
+    try {
+      const params = new URLSearchParams();
+      if (queryText.trim()) {
+        params.set("q", queryText.trim());
+      }
+      if (scopeId) {
+        params.set("scopeId", scopeId);
+      }
+      params.set("limit", "25");
+      const query = params.toString();
+      const payload = await fetchJson<SearchView>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/search${query ? `?${query}` : ""}`, { method: "GET" });
+      setSearchView(payload);
+      setSelectedSearchEntityId((current) => current && payload.results.some((result) => result.externalId === current) ? current : "");
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadEntityDetail(workspaceId: string, snapshotId: string, entityId: string) {
+    try {
+      const payload = await fetchJson<EntityDetail>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entities/${encodeURIComponent(entityId)}`, { method: "GET" });
+      setEntityDetail(payload);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
@@ -1363,6 +1516,132 @@ export function App() {
                             ) : null}
                           </div>
                         ) : <p className="muted">Entry-point and integration view will appear when a snapshot is available.</p>}
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Search and entity detail</h3><span className="badge">Step 10</span></div>
+                        <div className="split-grid split-grid--compact">
+                          <label>
+                            <span>Search query</span>
+                            <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, kind, summary, source path" />
+                          </label>
+                          <label>
+                            <span>Scope filter</span>
+                            <select value={selectedSearchScopeId} onChange={(event) => setSelectedSearchScopeId(event.target.value)}>
+                              <option value="">Repository-wide</option>
+                              {flattenedLayoutNodes.map((node) => (
+                                <option key={node.externalId} value={node.externalId}>
+                                  {`${"  ".repeat(node.depth)}${node.displayName ?? node.name}`}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Detail focus</span>
+                            <select value={selectedSearchEntityId} onChange={(event) => setSelectedSearchEntityId(event.target.value)}>
+                              <option value="">No selected entity</option>
+                              {searchResultOptions.map((result) => (
+                                <option key={result.externalId} value={result.externalId}>
+                                  {result.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {searchView ? (
+                          <div className="stack stack--compact">
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Searchable entities</h4><p>{searchView.summary.searchableEntityCount}</p></div>
+                              <div className="card card--nested"><h4>Matches</h4><p>{searchView.summary.totalMatchCount}</p></div>
+                              <div className="card card--nested"><h4>Visible results</h4><p>{searchView.summary.visibleResultCount}</p></div>
+                              <div className="card card--nested"><h4>Scope</h4><p>{searchView.scope.path}</p></div>
+                            </div>
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Visible kinds</h4><p>{summarizeCounts(searchView.visibleKinds)}</p></div>
+                              <div className="card card--nested"><h4>Query</h4><p>{searchView.query || "—"}</p></div>
+                              <div className="card card--nested"><h4>Limit</h4><p>{searchView.summary.limit}</p></div>
+                              <div className="card card--nested"><h4>Status</h4><p>{searchView.summary.queryBlank ? "Enter a query" : (searchView.results.length ? "Results ready" : "No matches")}</p></div>
+                            </div>
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Results</h4><span className="badge">{searchView.results.length}</span></div>
+                              <div className="stack stack--compact">
+                                {searchView.results.map((result) => (
+                                  <button key={result.externalId} type="button" className={`list-item ${result.externalId === selectedSearchEntityId ? "list-item--active" : ""}`} onClick={() => setSelectedSearchEntityId((current) => current === result.externalId ? "" : result.externalId)}>
+                                    <strong>{result.displayName ?? result.name}</strong>
+                                    <span>{result.kind} · {result.scopePath}</span>
+                                    <span>{result.inboundRelationshipCount} inbound · {result.outboundRelationshipCount} outbound · {result.sourceRefCount} source refs</span>
+                                    <span>{summarizeMatchReasons(result.matchReasons)}</span>
+                                  </button>
+                                ))}
+                                {!searchView.results.length ? <p className="muted">{searchView.summary.queryBlank ? "Enter a search query to look up entities in the imported snapshot." : "No entities matched the current search."}</p> : null}
+                              </div>
+                            </div>
+
+                            {entityDetail ? (
+                              <div className="stack stack--compact">
+                                <div className="card card--nested">
+                                  <div className="section-heading"><h4>Entity detail</h4><span className="badge">{entityDetail.entity.kind}</span></div>
+                                  <p><strong>{entityDetail.entity.displayName ?? entityDetail.entity.name}</strong></p>
+                                  <p className="muted">{entityDetail.entity.scopePath}</p>
+                                  <p>{entityDetail.entity.inboundRelationshipCount} inbound · {entityDetail.entity.outboundRelationshipCount} outbound · {entityDetail.entity.sourceRefCount} source refs</p>
+                                  <p>{entityDetail.entity.summary ?? "No summary available."}</p>
+                                </div>
+
+                                <div className="split-grid split-grid--compact">
+                                  <div className="card card--nested"><h4>Related kinds</h4><p>{summarizeCounts(entityDetail.relatedKinds)}</p></div>
+                                  <div className="card card--nested"><h4>Scope</h4><p>{entityDetail.scope.path}</p></div>
+                                  <div className="card card--nested"><h4>Origin</h4><p>{entityDetail.entity.origin ?? "—"}</p></div>
+                                  <div className="card card--nested"><h4>Metadata</h4><p>{entityDetail.metadataJson ? "Available" : "—"}</p></div>
+                                </div>
+
+                                <div className="card card--nested">
+                                  <div className="section-heading"><h4>Source context</h4><span className="badge">{entityDetail.sourceRefs.length}</span></div>
+                                  <div className="stack stack--compact">
+                                    {entityDetail.sourceRefs.map((sourceRef, index) => (
+                                      <div key={`${sourceRef.path ?? "source"}-${index}`} className="audit-item">
+                                        <strong>{sourceRef.path ?? "Unknown path"}</strong>
+                                        <span>{sourceRef.startLine ?? "—"}–{sourceRef.endLine ?? "—"}</span>
+                                        <span>{sourceRef.snippet ?? "No snippet"}</span>
+                                      </div>
+                                    ))}
+                                    {!entityDetail.sourceRefs.length ? <p className="muted">No source references available.</p> : null}
+                                  </div>
+                                  {entityDetail.metadataJson ? <pre>{entityDetail.metadataJson}</pre> : null}
+                                </div>
+
+                                <div className="split-grid split-grid--compact">
+                                  <div className="card card--nested">
+                                    <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entityDetail.inboundRelationships.length}</span></div>
+                                    <div className="stack stack--compact">
+                                      {entityDetail.inboundRelationships.map((relationship) => (
+                                        <button key={relationship.externalId} type="button" className="list-item" onClick={() => setSelectedSearchEntityId(relationship.otherEntityId)}>
+                                          <strong>{relationship.otherDisplayName}</strong>
+                                          <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                          <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                                        </button>
+                                      ))}
+                                      {!entityDetail.inboundRelationships.length ? <p className="muted">No inbound relationships.</p> : null}
+                                    </div>
+                                  </div>
+                                  <div className="card card--nested">
+                                    <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entityDetail.outboundRelationships.length}</span></div>
+                                    <div className="stack stack--compact">
+                                      {entityDetail.outboundRelationships.map((relationship) => (
+                                        <button key={relationship.externalId} type="button" className="list-item" onClick={() => setSelectedSearchEntityId(relationship.otherEntityId)}>
+                                          <strong>{relationship.otherDisplayName}</strong>
+                                          <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                          <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                                        </button>
+                                      ))}
+                                      {!entityDetail.outboundRelationships.length ? <p className="muted">No outbound relationships.</p> : null}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : <p className="muted">Search and entity detail view will appear when a snapshot is available.</p>}
                       </div>
 
                       <div className="card card--nested">

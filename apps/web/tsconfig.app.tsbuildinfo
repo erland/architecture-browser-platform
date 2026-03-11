@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/dependencyviewmodel.ts","./src/entrypointviewmodel.ts","./src/main.tsx","./src/__tests__/dependencyviewmodel.test.ts","./src/__tests__/entrypointviewmodel.test.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/dependencyviewmodel.ts","./src/entrypointviewmodel.ts","./src/main.tsx","./src/searchviewmodel.ts","./src/__tests__/dependencyviewmodel.test.ts","./src/__tests__/entrypointviewmodel.test.ts","./src/__tests__/searchviewmodel.test.ts"],"version":"5.9.3"}
