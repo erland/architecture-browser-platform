@@ -12,15 +12,15 @@ Architecture Browser Platform monorepo baseline for the user-facing self-hosted 
 - `docs` — product docs, ERD/import notes, and IR analysis
 - `scripts` — helper scripts for starting/stopping the baseline environment
 
-## Step 2 status
+## Step 3 status
 
-This step establishes the first real platform persistence and contract slice:
+This step adds the first usable management slice on top of the Step 2 baseline:
 
-- JPA/Panache domain model for workspace, repository registration, run, snapshot, overlay, saved view, and audit event
-- Flyway-owned schema baseline under `apps/api/src/main/resources/db/migration`
-- versioned import contract notes aligned to the currently observed indexer IR
-- JSON Schema validation for indexer imports
-- stub storage endpoint that parses a valid payload, seeds workspace/repository rows, creates an immutable snapshot, and stores imported facts in a generic projection table
+- CRUD APIs for workspaces
+- CRUD APIs for repository registrations inside workspaces
+- validation rules for keys, required fields, and source-type-specific paths/URLs
+- audit events for create, update, and archive operations
+- a thin web UI for workspace and repository management
 
 ## Prerequisites
 
@@ -110,6 +110,13 @@ There is no manual top-level migration workflow in this step.
 - API baseline info: `http://localhost:8080/api/baseline`
 - API domain model summary: `http://localhost:8080/api/domain-model`
 - API current IR contract notes: `http://localhost:8080/api/contracts/indexer-ir`
+- Workspaces: `GET/POST http://localhost:8080/api/workspaces`
+- Workspace detail/update: `GET/PUT http://localhost:8080/api/workspaces/{workspaceId}`
+- Workspace archive: `POST http://localhost:8080/api/workspaces/{workspaceId}/archive`
+- Workspace audit trail: `GET http://localhost:8080/api/workspaces/{workspaceId}/audit-events`
+- Repositories in workspace: `GET/POST http://localhost:8080/api/workspaces/{workspaceId}/repositories`
+- Repository detail/update: `GET/PUT http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}`
+- Repository archive: `POST http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/archive`
 - Contract validation: `POST http://localhost:8080/api/imports/indexer-ir/validate`
 - Stub import storage: `POST http://localhost:8080/api/imports/indexer-ir/stub-store`
 
@@ -123,17 +130,20 @@ npm run build:web
 cd apps/api && mvn test && mvn package
 ```
 
-To exercise the stub import path after the API is running:
+To exercise the management APIs after the API is running:
 
 ```bash
-curl -X POST \
-  -H 'Content-Type: application/json' \
-  --data @../../docs/samples/indexer-ir/minimal-success.json \
-  http://localhost:8080/api/imports/indexer-ir/stub-store
+curl -X POST   -H 'Content-Type: application/json'   --data '{"workspaceKey":"customs-core","name":"Swedish Customs Core"}'   http://localhost:8080/api/workspaces
+```
+
+Then create a repository registration inside that workspace:
+
+```bash
+curl -X POST   -H 'Content-Type: application/json'   --data '{"repositoryKey":"platform-api","name":"Platform API","sourceType":"GIT","remoteUrl":"https://github.com/erland/architecture-browser-platform"}'   http://localhost:8080/api/workspaces/<workspaceId>/repositories
 ```
 
 ## Notes
 
 - The platform remains a single repository for MVP because backend, frontend, install packaging, persistence, and import-contract evolution are tightly coupled.
 - The indexer remains a separate repository so parsing/extraction logic stays isolated from the platform product lifecycle.
-- Step 2 keeps imported code facts in a generic `imported_fact` projection so later vertical slices can add specialized browse schemas without blocking current progress.
+- The imported-fact projection from Step 2 is still intentionally generic so browse-specialized schemas can be added in later steps without reworking the management APIs.
