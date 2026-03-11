@@ -98,6 +98,10 @@ public class SnapshotCatalogService {
         return snapshots.stream().map(this::toSummary).toList();
     }
 
+    public SnapshotSummaryResponse getSummary(String workspaceId, String snapshotId) {
+        return toSummary(requireSnapshot(workspaceId, snapshotId));
+    }
+
     private SnapshotSummaryResponse toSummary(SnapshotEntity snapshot) {
         RepositoryRegistrationEntity repository = RepositoryRegistrationEntity.findById(snapshot.repositoryRegistrationId);
         return new SnapshotSummaryResponse(

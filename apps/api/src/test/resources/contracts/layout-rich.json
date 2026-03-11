@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:00:01Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java", "typescript"],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "fixture-layout-repo",
+    "acquisitionType": "local-path",
+    "path": "/fixtures/layout-repo",
+    "remoteUrl": null,
+    "branch": "main",
+    "revision": "layout-abc123",
+    "acquiredAt": "2026-03-10T12:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {"id": "scope:repo", "kind": "REPOSITORY", "name": "layout-repo", "displayName": "layout-repo", "parentScopeId": null, "sourceRefs": [], "metadata": {}},
+    {"id": "scope:module:backend", "kind": "MODULE", "name": "backend", "displayName": "Backend module", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {"language": "java"}},
+    {"id": "scope:module:web", "kind": "MODULE", "name": "web", "displayName": "Web module", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {"language": "typescript"}},
+    {"id": "scope:package:com.example.backend", "kind": "PACKAGE", "name": "com.example.backend", "displayName": "com.example.backend", "parentScopeId": "scope:module:backend", "sourceRefs": [], "metadata": {"language": "java"}}
+  ],
+  "entities": [
+    {"id": "entity:application:backend", "kind": "MODULE", "origin": "OBSERVED", "name": "backend", "displayName": "backend-app", "scopeId": "scope:module:backend", "sourceRefs": [{"path": "backend/build.gradle", "startLine": 1, "endLine": 1, "snippet": "plugins", "metadata": {}}], "metadata": {}},
+    {"id": "entity:class:controller", "kind": "CLASS", "origin": "OBSERVED", "name": "DemoController", "displayName": "com.example.backend.DemoController", "scopeId": "scope:package:com.example.backend", "sourceRefs": [{"path": "backend/src/main/java/com/example/backend/DemoController.java", "startLine": 3, "endLine": 20, "snippet": "class DemoController", "metadata": {}}], "metadata": {}},
+    {"id": "entity:endpoint:demo", "kind": "ENDPOINT", "origin": "INFERRED", "name": "Demo endpoint", "displayName": "GET /demo", "scopeId": "scope:package:com.example.backend", "sourceRefs": [{"path": "backend/src/main/java/com/example/backend/DemoController.java", "startLine": 8, "endLine": 12, "snippet": "@GetMapping(\"/demo\")", "metadata": {}}], "metadata": {}},
+    {"id": "entity:application:web", "kind": "MODULE", "origin": "OBSERVED", "name": "web", "displayName": "web-app", "scopeId": "scope:module:web", "sourceRefs": [{"path": "web/package.json", "startLine": 1, "endLine": 12, "snippet": "package.json", "metadata": {}}], "metadata": {}},
+    {"id": "entity:component:dashboard", "kind": "UI_MODULE", "origin": "INFERRED", "name": "DashboardPage", "displayName": "DashboardPage", "scopeId": "scope:module:web", "sourceRefs": [{"path": "web/src/pages/DashboardPage.tsx", "startLine": 1, "endLine": 30, "snippet": "export function DashboardPage()", "metadata": {}}], "metadata": {}}
+  ],
+  "relationships": [
+    {"id": "rel:controller:exposes:endpoint", "kind": "EXPOSES", "fromEntityId": "entity:class:controller", "toEntityId": "entity:endpoint:demo", "label": "controller exposes endpoint", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:web:calls:endpoint", "kind": "CALLS", "fromEntityId": "entity:component:dashboard", "toEntityId": "entity:endpoint:demo", "label": "dashboard calls demo endpoint", "sourceRefs": [], "metadata": {}}
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 11,
+    "totalFileCount": 11,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}

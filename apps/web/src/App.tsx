@@ -143,6 +143,74 @@ type SnapshotOverview = {
   warnings: string[];
 };
 
+type LayoutNode = {
+  externalId: string;
+  parentScopeId: string | null;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  path: string;
+  depth: number;
+  directChildScopeCount: number;
+  directEntityCount: number;
+  descendantScopeCount: number;
+  descendantEntityCount: number;
+  directEntityKinds: KindCount[];
+  children: LayoutNode[];
+};
+
+type LayoutTree = {
+  snapshot: SnapshotSummary;
+  roots: LayoutNode[];
+  summary: {
+    scopeCount: number;
+    entityCount: number;
+    relationshipCount: number;
+    maxDepth: number;
+    scopeKinds: KindCount[];
+    entityKinds: KindCount[];
+  };
+};
+
+type LayoutEntity = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  origin: string | null;
+  scopeId: string | null;
+  sourceRefCount: number;
+  summary: string | null;
+};
+
+type LayoutScopeDetail = {
+  snapshot: SnapshotSummary;
+  scope: {
+    externalId: string;
+    parentScopeId: string | null;
+    kind: string;
+    name: string;
+    displayName: string | null;
+    path: string;
+    depth: number;
+    directChildScopeCount: number;
+    directEntityCount: number;
+    descendantScopeCount: number;
+    descendantEntityCount: number;
+    directEntityKinds: KindCount[];
+  };
+  breadcrumb: Array<{
+    externalId: string;
+    kind: string;
+    name: string;
+    displayName: string | null;
+    path: string;
+  }>;
+  childScopes: LayoutNode[];
+  entities: LayoutEntity[];
+  entityKinds: KindCount[];
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -209,6 +277,18 @@ function summarizeCounts(items: KindCount[]) {
   return items.slice(0, 4).map((item) => `${item.key} (${item.count})`).join(", ") || "—";
 }
 
+function containsScope(nodes: LayoutNode[], scopeId: string): boolean {
+  return nodes.some((node) => node.externalId === scopeId || containsScope(node.children, scopeId));
+}
+
+function flattenLayout(nodes: LayoutNode[]): LayoutNode[] {
+  const result: LayoutNode[] = [];
+  for (const node of nodes) {
+    result.push(node, ...flattenLayout(node.children));
+  }
+  return result;
+}
+
 export function App() {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -218,6 +298,9 @@ export function App() {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
   const [snapshotOverview, setSnapshotOverview] = useState<SnapshotOverview | null>(null);
+  const [layoutTree, setLayoutTree] = useState<LayoutTree | null>(null);
+  const [selectedLayoutScopeId, setSelectedLayoutScopeId] = useState<string | null>(null);
+  const [layoutScopeDetail, setLayoutScopeDetail] = useState<LayoutScopeDetail | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -243,6 +326,8 @@ export function App() {
     () => snapshots.find((snapshot) => snapshot.id === selectedSnapshotId) ?? null,
     [selectedSnapshotId, snapshots],
   );
+
+  const flattenedLayoutNodes = useMemo(() => flattenLayout(layoutTree?.roots ?? []), [layoutTree]);
 
   const latestRunByRepository = useMemo(() => {
     const result = new Map<string, RunRecord>();
@@ -273,6 +358,9 @@ export function App() {
       setSnapshots([]);
       setSelectedSnapshotId(null);
       setSnapshotOverview(null);
+      setLayoutTree(null);
+      setSelectedLayoutScopeId(null);
+      setLayoutScopeDetail(null);
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -281,10 +369,22 @@ export function App() {
   useEffect(() => {
     if (selectedWorkspaceId && selectedSnapshotId) {
       void loadSnapshotOverview(selectedWorkspaceId, selectedSnapshotId);
+      void loadLayoutTree(selectedWorkspaceId, selectedSnapshotId);
     } else {
       setSnapshotOverview(null);
+      setLayoutTree(null);
+      setSelectedLayoutScopeId(null);
+      setLayoutScopeDetail(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId && selectedLayoutScopeId) {
+      void loadLayoutScopeDetail(selectedWorkspaceId, selectedSnapshotId, selectedLayoutScopeId);
+    } else {
+      setLayoutScopeDetail(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, selectedLayoutScopeId]);
 
   async function loadHealth() {
     try {
@@ -341,6 +441,28 @@ export function App() {
     try {
       const payload = await fetchJson<SnapshotOverview>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overview`, { method: "GET" });
       setSnapshotOverview(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadLayoutTree(workspaceId: string, snapshotId: string) {
+    try {
+      const payload = await fetchJson<LayoutTree>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/tree`, { method: "GET" });
+      setLayoutTree(payload);
+      const firstScope = payload.roots[0]?.externalId ?? null;
+      setSelectedLayoutScopeId((current) => current && containsScope(payload.roots, current) ? current : firstScope);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadLayoutScopeDetail(workspaceId: string, snapshotId: string, scopeId: string) {
+    try {
+      const payload = await fetchJson<LayoutScopeDetail>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/scopes/${encodeURIComponent(scopeId)}`, { method: "GET" });
+      setLayoutScopeDetail(payload);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
@@ -513,10 +635,10 @@ export function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">Architecture Browser Platform</p>
-        <h1>Snapshot catalog and overview pages</h1>
+        <h1>Repository and module layout explorer</h1>
         <p className="lead">
-          Step 6 adds a browsable snapshot catalog and a per-snapshot overview so architects can inspect imported repository views,
-          completeness state, source provenance, technology hints, and high-level architectural counts before deeper navigation is built.
+          Step 7 extends the snapshot browser with a repository/module/package explorer so architects can traverse scope structure,
+          inspect classification badges and counts, and drill down from repository roots into lower-level scopes and direct entities.
         </p>
       </section>
 
@@ -738,6 +860,94 @@ export function App() {
                           {snapshotOverview.topScopes.map((scope) => <div key={scope.externalId} className="summary-row"><strong>{scope.name}</strong><span>{scope.count} facts</span></div>)}
                           {!snapshotOverview.topScopes.length ? <p className="muted">No scope breakdown available.</p> : null}
                         </div>
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Layout explorer</h3><span className="badge">Step 7</span></div>
+                        {layoutTree ? (
+                          <div className="split-grid split-grid--wide">
+                            <div className="stack stack--compact">
+                              <div className="card card--nested">
+                                <h4>Tree</h4>
+                                <div className="stack stack--compact">
+                                  {flattenedLayoutNodes.map((node) => (
+                                    <button
+                                      key={node.externalId}
+                                      type="button"
+                                      className={`list-item ${node.externalId === selectedLayoutScopeId ? "list-item--active" : ""}`}
+                                      style={{ paddingLeft: `${12 + node.depth * 16}px` }}
+                                      onClick={() => setSelectedLayoutScopeId(node.externalId)}
+                                    >
+                                      <strong>{node.displayName ?? node.name}</strong>
+                                      <span>{node.kind} · {node.directChildScopeCount} child scopes · {node.directEntityCount} direct entities</span>
+                                      <span>{node.descendantScopeCount} nested scopes · {node.descendantEntityCount} entities in subtree</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="split-grid split-grid--compact">
+                                <div className="card card--nested"><h4>Scope kinds</h4><p>{summarizeCounts(layoutTree.summary.scopeKinds)}</p></div>
+                                <div className="card card--nested"><h4>Entity kinds</h4><p>{summarizeCounts(layoutTree.summary.entityKinds)}</p></div>
+                              </div>
+                            </div>
+
+                            <div className="stack stack--compact">
+                              {layoutScopeDetail ? (
+                                <>
+                                  <div className="card card--nested">
+                                    <div className="section-heading">
+                                      <h4>{layoutScopeDetail.scope.displayName ?? layoutScopeDetail.scope.name}</h4>
+                                      <span className="badge">{layoutScopeDetail.scope.kind}</span>
+                                    </div>
+                                    <dl className="kv kv--compact">
+                                      <div><dt>Path</dt><dd>{layoutScopeDetail.scope.path}</dd></div>
+                                      <div><dt>Depth</dt><dd>{layoutScopeDetail.scope.depth}</dd></div>
+                                      <div><dt>Direct child scopes</dt><dd>{layoutScopeDetail.scope.directChildScopeCount}</dd></div>
+                                      <div><dt>Direct entities</dt><dd>{layoutScopeDetail.scope.directEntityCount}</dd></div>
+                                      <div><dt>Nested scopes</dt><dd>{layoutScopeDetail.scope.descendantScopeCount}</dd></div>
+                                      <div><dt>Entities in subtree</dt><dd>{layoutScopeDetail.scope.descendantEntityCount}</dd></div>
+                                    </dl>
+                                    <p className="muted top-gap">{layoutScopeDetail.breadcrumb.map((item) => item.displayName ?? item.name).join(" / ")}</p>
+                                  </div>
+
+                                  <div className="split-grid split-grid--compact">
+                                    <div className="card card--nested"><h4>Direct entity badges</h4><p>{summarizeCounts(layoutScopeDetail.entityKinds)}</p></div>
+                                    <div className="card card--nested"><h4>Child scopes</h4><p>{layoutScopeDetail.childScopes.length || "—"}</p></div>
+                                  </div>
+
+                                  <div className="card card--nested">
+                                    <div className="section-heading"><h4>Child scopes</h4><span className="badge">{layoutScopeDetail.childScopes.length}</span></div>
+                                    <div className="stack stack--compact">
+                                      {layoutScopeDetail.childScopes.map((scope) => (
+                                        <button key={scope.externalId} type="button" className="list-item" onClick={() => setSelectedLayoutScopeId(scope.externalId)}>
+                                          <strong>{scope.displayName ?? scope.name}</strong>
+                                          <span>{scope.kind} · {scope.directChildScopeCount} child scopes · {scope.directEntityCount} direct entities</span>
+                                        </button>
+                                      ))}
+                                      {!layoutScopeDetail.childScopes.length ? <p className="muted">No lower-level scopes under this node.</p> : null}
+                                    </div>
+                                  </div>
+
+                                  <div className="card card--nested">
+                                    <div className="section-heading"><h4>Direct entities</h4><span className="badge">{layoutScopeDetail.entities.length}</span></div>
+                                    <div className="stack stack--compact">
+                                      {layoutScopeDetail.entities.map((entity) => (
+                                        <div key={entity.externalId} className="run-item">
+                                          <strong>{entity.displayName ?? entity.name}</strong>
+                                          <span>{entity.kind}{entity.origin ? ` · ${entity.origin}` : ""}</span>
+                                          <span>{entity.sourceRefCount} source references</span>
+                                          <span>{entity.summary ?? "—"}</span>
+                                        </div>
+                                      ))}
+                                      {!layoutScopeDetail.entities.length ? <p className="muted">No direct entities under this scope.</p> : null}
+                                    </div>
+                                  </div>
+                                </>
+                              ) : <p className="muted">Select a scope to inspect its drill-down view.</p>}
+                            </div>
+                          </div>
+                        ) : <p className="muted">Layout explorer will appear when a snapshot is available.</p>}
                       </div>
 
                       <div className="card card--nested">
