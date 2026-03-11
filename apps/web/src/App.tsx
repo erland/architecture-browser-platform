@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { summarizeDependencyKinds, toDependencyEntityOptions } from "./dependencyViewModel";
+import { summarizeEntryKinds, toEntryPointItemOptions } from "./entryPointViewModel";
 
 type ApiHealth = {
   status: string;
@@ -279,6 +280,67 @@ type DependencyView = {
   } | null;
 };
 
+
+type EntryCategory = "ALL" | "ENTRY_POINT" | "DATA" | "INTEGRATION";
+
+type EntryPointItem = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  origin: string | null;
+  scopeId: string | null;
+  scopePath: string;
+  inScope: boolean;
+  sourceRefCount: number;
+  sourcePath: string | null;
+  sourceSnippet: string | null;
+  summary: string | null;
+  inboundRelationshipCount: number;
+  outboundRelationshipCount: number;
+  relatedKinds: KindCount[];
+};
+
+type EntryPointRelationship = {
+  externalId: string;
+  kind: string;
+  label: string;
+  summary: string | null;
+  direction: string;
+  otherEntityId: string;
+  otherDisplayName: string;
+  otherKind: string;
+  otherScopePath: string;
+};
+
+type EntryPointView = {
+  snapshot: SnapshotSummary;
+  scope: {
+    externalId: string | null;
+    kind: string;
+    name: string;
+    displayName: string;
+    path: string;
+    repositoryWide: boolean;
+  };
+  category: EntryCategory;
+  summary: {
+    totalRelevantItemCount: number;
+    visibleItemCount: number;
+    entryPointCount: number;
+    dataCount: number;
+    integrationCount: number;
+    relationshipCount: number;
+  };
+  visibleKinds: KindCount[];
+  items: EntryPointItem[];
+  focus: {
+    item: EntryPointItem;
+    inboundRelationships: EntryPointRelationship[];
+    outboundRelationships: EntryPointRelationship[];
+  } | null;
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -373,6 +435,10 @@ export function App() {
   const [selectedDependencyScopeId, setSelectedDependencyScopeId] = useState<string>("");
   const [dependencyDirection, setDependencyDirection] = useState<DependencyDirection>("ALL");
   const [focusedDependencyEntityId, setFocusedDependencyEntityId] = useState<string>("");
+  const [entryPointView, setEntryPointView] = useState<EntryPointView | null>(null);
+  const [selectedEntryPointScopeId, setSelectedEntryPointScopeId] = useState<string>("");
+  const [entryCategory, setEntryCategory] = useState<EntryCategory>("ALL");
+  const [focusedEntryPointId, setFocusedEntryPointId] = useState<string>("");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -402,6 +468,7 @@ export function App() {
   const flattenedLayoutNodes = useMemo(() => flattenLayout(layoutTree?.roots ?? []), [layoutTree]);
 
   const dependencyEntityOptions = useMemo(() => toDependencyEntityOptions(dependencyView?.entities ?? []), [dependencyView]);
+  const entryPointOptions = useMemo(() => toEntryPointItemOptions(entryPointView?.items ?? []), [entryPointView]);
 
   const latestRunByRepository = useMemo(() => {
     const result = new Map<string, RunRecord>();
@@ -439,6 +506,10 @@ export function App() {
       setSelectedDependencyScopeId("");
       setDependencyDirection("ALL");
       setFocusedDependencyEntityId("");
+      setEntryPointView(null);
+      setSelectedEntryPointScopeId("");
+      setEntryCategory("ALL");
+      setFocusedEntryPointId("");
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -456,6 +527,9 @@ export function App() {
       setDependencyView(null);
       setSelectedDependencyScopeId("");
       setFocusedDependencyEntityId("");
+      setEntryPointView(null);
+      setSelectedEntryPointScopeId("");
+      setFocusedEntryPointId("");
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -474,6 +548,14 @@ export function App() {
       setDependencyView(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId, selectedDependencyScopeId, dependencyDirection, focusedDependencyEntityId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId) {
+      void loadEntryPointView(selectedWorkspaceId, selectedSnapshotId, selectedEntryPointScopeId || undefined, entryCategory, focusedEntryPointId || undefined);
+    } else {
+      setEntryPointView(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, selectedEntryPointScopeId, entryCategory, focusedEntryPointId]);
 
   async function loadHealth() {
     try {
@@ -571,6 +653,25 @@ export function App() {
       const query = params.toString();
       const payload = await fetchJson<DependencyView>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/dependencies${query ? `?${query}` : ""}`, { method: "GET" });
       setDependencyView(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadEntryPointView(workspaceId: string, snapshotId: string, scopeId?: string, category: EntryCategory = "ALL", focusEntityId?: string) {
+    try {
+      const params = new URLSearchParams();
+      if (scopeId) {
+        params.set("scopeId", scopeId);
+      }
+      if (focusEntityId) {
+        params.set("focusEntityId", focusEntityId);
+      }
+      params.set("category", category);
+      const query = params.toString();
+      const payload = await fetchJson<EntryPointView>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entry-points${query ? `?${query}` : ""}`, { method: "GET" });
+      setEntryPointView(payload);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
@@ -743,10 +844,10 @@ export function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">Architecture Browser Platform</p>
-        <h1>Repository and module layout explorer</h1>
+        <h1>Architecture browser workspace</h1>
         <p className="lead">
-          Step 7 extends the snapshot browser with a repository/module/package explorer so architects can traverse scope structure,
-          inspect classification badges and counts, and drill down from repository roots into lower-level scopes and direct entities.
+          Step 9 extends the snapshot browser with entry-point and data/integration views so architects can inspect endpoints, startup points, data stores, channels,
+          and external systems with scope filters, detail panels, and cross-links back to owners and source context.
         </p>
       </section>
 
@@ -1151,6 +1252,117 @@ export function App() {
                             </div>
                           </div>
                         ) : <p className="muted">Dependency view will appear when a snapshot is available.</p>}
+                      </div>
+
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Entry points and data/integration surfaces</h3><span className="badge">Step 9</span></div>
+                        <div className="split-grid split-grid--compact">
+                          <label>
+                            <span>Scope filter</span>
+                            <select value={selectedEntryPointScopeId} onChange={(event) => setSelectedEntryPointScopeId(event.target.value)}>
+                              <option value="">Repository-wide</option>
+                              {flattenedLayoutNodes.map((node) => (
+                                <option key={node.externalId} value={node.externalId}>
+                                  {`${"  ".repeat(node.depth)}${node.displayName ?? node.name}`}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Category</span>
+                            <select value={entryCategory} onChange={(event) => setEntryCategory(event.target.value as EntryCategory)}>
+                              <option value="ALL">All</option>
+                              <option value="ENTRY_POINT">Entry points</option>
+                              <option value="DATA">Data stores/adapters</option>
+                              <option value="INTEGRATION">Channels/external systems</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Detail focus</span>
+                            <select value={focusedEntryPointId} onChange={(event) => setFocusedEntryPointId(event.target.value)}>
+                              <option value="">No focused item</option>
+                              {entryPointOptions.map((item) => (
+                                <option key={item.externalId} value={item.externalId}>
+                                  {item.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {entryPointView ? (
+                          <div className="stack stack--compact">
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Visible items</h4><p>{entryPointView.summary.visibleItemCount}</p></div>
+                              <div className="card card--nested"><h4>Entry points</h4><p>{entryPointView.summary.entryPointCount}</p></div>
+                              <div className="card card--nested"><h4>Data</h4><p>{entryPointView.summary.dataCount}</p></div>
+                              <div className="card card--nested"><h4>Integrations</h4><p>{entryPointView.summary.integrationCount}</p></div>
+                            </div>
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Relevant inventory</h4><p>{entryPointView.summary.totalRelevantItemCount}</p></div>
+                              <div className="card card--nested"><h4>Linked relationships</h4><p>{entryPointView.summary.relationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Visible kinds</h4><p>{summarizeEntryKinds(entryPointView.items)}</p></div>
+                              <div className="card card--nested"><h4>Scope</h4><p>{entryPointView.scope.path}</p></div>
+                            </div>
+
+                            {entryPointView.focus ? (
+                              <div className="card card--nested">
+                                <div className="section-heading">
+                                  <h4>Focused detail</h4>
+                                  <span className="badge">{entryPointView.focus.item.kind}</span>
+                                </div>
+                                <p><strong>{entryPointView.focus.item.displayName ?? entryPointView.focus.item.name}</strong></p>
+                                <p className="muted">{entryPointView.focus.item.scopePath}</p>
+                                <p>{entryPointView.focus.item.inboundRelationshipCount} inbound · {entryPointView.focus.item.outboundRelationshipCount} outbound · {entryPointView.focus.item.sourceRefCount} source refs</p>
+                                <p>{entryPointView.focus.item.sourcePath ?? "No source path"}</p>
+                                {entryPointView.focus.item.sourceSnippet ? <code>{entryPointView.focus.item.sourceSnippet}</code> : null}
+                              </div>
+                            ) : null}
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Visible items</h4><span className="badge">{entryPointView.items.length}</span></div>
+                              <div className="stack stack--compact">
+                                {entryPointView.items.map((item) => (
+                                  <button key={item.externalId} type="button" className={`list-item ${item.externalId === focusedEntryPointId ? "list-item--active" : ""}`} onClick={() => setFocusedEntryPointId((current) => current === item.externalId ? "" : item.externalId)}>
+                                    <strong>{item.displayName ?? item.name}</strong>
+                                    <span>{item.kind} · {item.scopePath}</span>
+                                    <span>{item.inboundRelationshipCount} inbound · {item.outboundRelationshipCount} outbound · {summarizeCounts(item.relatedKinds)}</span>
+                                  </button>
+                                ))}
+                                {!entryPointView.items.length ? <p className="muted">No items match the current filter.</p> : null}
+                              </div>
+                            </div>
+
+                            {entryPointView.focus ? (
+                              <div className="split-grid split-grid--compact">
+                                <div className="card card--nested">
+                                  <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entryPointView.focus.inboundRelationships.length}</span></div>
+                                  <div className="stack stack--compact">
+                                    {entryPointView.focus.inboundRelationships.map((relationship) => (
+                                      <div key={relationship.externalId} className="audit-item">
+                                        <strong>{relationship.otherDisplayName}</strong>
+                                        <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                        <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="card card--nested">
+                                  <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entryPointView.focus.outboundRelationships.length}</span></div>
+                                  <div className="stack stack--compact">
+                                    {entryPointView.focus.outboundRelationships.map((relationship) => (
+                                      <div key={relationship.externalId} className="audit-item">
+                                        <strong>{relationship.otherDisplayName}</strong>
+                                        <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                        <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : <p className="muted">Entry-point and integration view will appear when a snapshot is available.</p>}
                       </div>
 
                       <div className="card card--nested">

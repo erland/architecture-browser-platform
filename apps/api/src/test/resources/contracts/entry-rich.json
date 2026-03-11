@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-09T10:00:00Z",
+    "completedAt": "2026-03-09T10:05:00Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java", "react"],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "repo-entry-rich",
+    "acquisitionType": "GIT",
+    "path": null,
+    "remoteUrl": "https://github.com/erland/entry-rich",
+    "branch": "main",
+    "revision": "abc123",
+    "acquiredAt": "2026-03-09T10:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {"id": "scope:repo", "kind": "REPOSITORY", "name": "entry-rich", "displayName": "entry-rich", "parentScopeId": null, "sourceRefs": [], "metadata": {}},
+    {"id": "scope:module:backend", "kind": "MODULE", "name": "backend", "displayName": "backend-app", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {}},
+    {"id": "scope:package:backend", "kind": "PACKAGE", "name": "com.example.backend", "displayName": "com.example.backend", "parentScopeId": "scope:module:backend", "sourceRefs": [], "metadata": {}},
+    {"id": "scope:module:web", "kind": "MODULE", "name": "web", "displayName": "web-app", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {}}
+  ],
+  "entities": [
+    {"id": "entity:controller", "kind": "CLASS", "origin": "OBSERVED", "name": "DemoController", "displayName": "DemoController", "scopeId": "scope:package:backend", "sourceRefs": [{"path": "backend/DemoController.java", "startLine": 5, "endLine": 40, "snippet": "class DemoController", "metadata": {}}], "metadata": {}},
+    {"id": "entity:endpoint", "kind": "ENDPOINT", "origin": "INFERRED", "name": "Demo endpoint", "displayName": "GET /demo", "scopeId": "scope:package:backend", "sourceRefs": [{"path": "backend/DemoController.java", "startLine": 8, "endLine": 12, "snippet": "@GetMapping(\"/demo\")", "metadata": {}}], "metadata": {}},
+    {"id": "entity:startup", "kind": "STARTUP_POINT", "origin": "OBSERVED", "name": "BackendApplication", "displayName": "BackendApplication.main", "scopeId": "scope:package:backend", "sourceRefs": [{"path": "backend/BackendApplication.java", "startLine": 3, "endLine": 8, "snippet": "public static void main", "metadata": {}}], "metadata": {}},
+    {"id": "entity:adapter", "kind": "PERSISTENCE_ADAPTER", "origin": "OBSERVED", "name": "OrderRepository", "displayName": "OrderRepository", "scopeId": "scope:package:backend", "sourceRefs": [{"path": "backend/OrderRepository.java", "startLine": 4, "endLine": 20, "snippet": "interface OrderRepository", "metadata": {}}], "metadata": {}},
+    {"id": "entity:datastore", "kind": "DATASTORE", "origin": "INFERRED", "name": "orders", "displayName": "orders-db", "scopeId": "scope:module:backend", "sourceRefs": [{"path": "backend/application.yml", "startLine": 10, "endLine": 14, "snippet": "datasource: orders", "metadata": {}}], "metadata": {}},
+    {"id": "entity:external", "kind": "EXTERNAL_SYSTEM", "origin": "INFERRED", "name": "payments", "displayName": "Payments API", "scopeId": "scope:module:backend", "sourceRefs": [{"path": "backend/PaymentClient.java", "startLine": 5, "endLine": 18, "snippet": "class PaymentClient", "metadata": {}}], "metadata": {}},
+    {"id": "entity:service", "kind": "SERVICE", "origin": "INFERRED", "name": "order-events", "displayName": "order-events-topic", "scopeId": "scope:module:backend", "sourceRefs": [{"path": "backend/MessagingConfig.java", "startLine": 4, "endLine": 12, "snippet": "topic: order-events", "metadata": {}}], "metadata": {}},
+    {"id": "entity:web", "kind": "UI_MODULE", "origin": "OBSERVED", "name": "DashboardPage", "displayName": "DashboardPage", "scopeId": "scope:module:web", "sourceRefs": [{"path": "web/DashboardPage.tsx", "startLine": 1, "endLine": 30, "snippet": "export function DashboardPage", "metadata": {}}], "metadata": {}}
+  ],
+  "relationships": [
+    {"id": "rel:controller:endpoint", "kind": "EXPOSES", "fromEntityId": "entity:controller", "toEntityId": "entity:endpoint", "label": "controller exposes endpoint", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:web:endpoint", "kind": "CALLS", "fromEntityId": "entity:web", "toEntityId": "entity:endpoint", "label": "dashboard calls endpoint", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:startup:service", "kind": "USES", "fromEntityId": "entity:startup", "toEntityId": "entity:service", "label": "startup configures topic", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:controller:adapter", "kind": "USES", "fromEntityId": "entity:controller", "toEntityId": "entity:adapter", "label": "controller uses repository", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:adapter:read", "kind": "READS", "fromEntityId": "entity:adapter", "toEntityId": "entity:datastore", "label": "repository reads datastore", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:adapter:write", "kind": "WRITES", "fromEntityId": "entity:adapter", "toEntityId": "entity:datastore", "label": "repository writes datastore", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:controller:external", "kind": "CALLS", "fromEntityId": "entity:controller", "toEntityId": "entity:external", "label": "controller calls payments api", "sourceRefs": [], "metadata": {}},
+    {"id": "rel:endpoint:service", "kind": "CALLS", "fromEntityId": "entity:endpoint", "toEntityId": "entity:service", "label": "endpoint publishes event", "sourceRefs": [], "metadata": {}}
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 12,
+    "totalFileCount": 12,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}
