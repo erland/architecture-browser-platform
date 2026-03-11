@@ -12,15 +12,16 @@ Architecture Browser Platform monorepo baseline for the user-facing self-hosted 
 - `docs` — product docs, ERD/import notes, and IR analysis
 - `scripts` — helper scripts for starting/stopping the baseline environment
 
-## Step 3 status
+## Step 4 status
 
-This step adds the first usable management slice on top of the Step 2 baseline:
+This step extends the baseline with the first run orchestration slice:
 
 - CRUD APIs for workspaces
 - CRUD APIs for repository registrations inside workspaces
-- validation rules for keys, required fields, and source-type-specific paths/URLs
-- audit events for create, update, and archive operations
-- a thin web UI for workspace and repository management
+- run request and run-history APIs
+- persisted run state transitions and audit events
+- a stub indexer adapter for simulated success/failure outcomes
+- a thin web UI for management and run-status tracking
 
 ## Prerequisites
 
@@ -117,6 +118,9 @@ There is no manual top-level migration workflow in this step.
 - Repositories in workspace: `GET/POST http://localhost:8080/api/workspaces/{workspaceId}/repositories`
 - Repository detail/update: `GET/PUT http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}`
 - Repository archive: `POST http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/archive`
+- Request repository run: `POST http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/runs`
+- Repository run history: `GET http://localhost:8080/api/workspaces/{workspaceId}/repositories/{repositoryId}/runs`
+- Recent workspace runs: `GET http://localhost:8080/api/workspaces/{workspaceId}/runs/recent`
 - Contract validation: `POST http://localhost:8080/api/imports/indexer-ir/validate`
 - Stub import storage: `POST http://localhost:8080/api/imports/indexer-ir/stub-store`
 
@@ -147,3 +151,13 @@ curl -X POST   -H 'Content-Type: application/json'   --data '{"repositoryKey":"p
 - The platform remains a single repository for MVP because backend, frontend, install packaging, persistence, and import-contract evolution are tightly coupled.
 - The indexer remains a separate repository so parsing/extraction logic stays isolated from the platform product lifecycle.
 - The imported-fact projection from Step 2 is still intentionally generic so browse-specialized schemas can be added in later steps without reworking the management APIs.
+
+
+To exercise stub run orchestration after creating a repository registration:
+
+```bash
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  --data '{"triggerType":"MANUAL","requestedSchemaVersion":"indexer-ir-v1","requestedIndexerVersion":"step4-stub","requestedResult":"SUCCESS"}' \
+  http://localhost:8080/api/workspaces/<workspaceId>/repositories/<repositoryId>/runs
+```

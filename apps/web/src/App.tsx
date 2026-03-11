@@ -10,6 +10,10 @@ type ApiHealth = {
 type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
 type RepositoryStatus = "ACTIVE" | "ARCHIVED";
 type RepositorySourceType = "LOCAL_PATH" | "GIT";
+type TriggerType = "MANUAL" | "SCHEDULED" | "IMPORT_ONLY" | "SYSTEM";
+type RunStatus = "REQUESTED" | "RUNNING" | "IMPORTING" | "COMPLETED" | "FAILED" | "CANCELED";
+type RunOutcome = "SUCCESS" | "PARTIAL" | "FAILED" | null;
+type StubRunResult = "SUCCESS" | "FAILURE";
 
 type Workspace = {
   id: string;
@@ -45,6 +49,25 @@ type AuditEvent = {
   happenedAt: string;
   detailsJson: string | null;
   repositoryRegistrationId: string | null;
+  runId: string | null;
+};
+
+type RunRecord = {
+  id: string;
+  workspaceId: string;
+  repositoryRegistrationId: string;
+  repositoryKey: string | null;
+  repositoryName: string | null;
+  triggerType: TriggerType;
+  status: RunStatus;
+  outcome: RunOutcome;
+  requestedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  schemaVersion: string | null;
+  indexerVersion: string | null;
+  errorSummary: string | null;
+  metadataJson: string | null;
 };
 
 type ApiError = {
@@ -76,6 +99,14 @@ const emptyRepositoryForm = {
   metadataJson: "",
 };
 
+const initialRunRequest = {
+  triggerType: "MANUAL" as TriggerType,
+  requestedSchemaVersion: "indexer-ir-v1",
+  requestedIndexerVersion: "step4-stub",
+  metadataJson: '{"requestedBy":"web-ui"}',
+  requestedResult: "SUCCESS" as StubRunResult,
+};
+
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     headers: {
@@ -94,11 +125,19 @@ async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> 
   return (await response.json()) as T;
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "—";
+  }
+  return new Date(value).toLocaleString();
+}
+
 export function App() {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [recentRuns, setRecentRuns] = useState<RunRecord[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -113,11 +152,22 @@ export function App() {
     defaultBranch: "main",
     metadataJson: "",
   });
+  const [runRequestForm, setRunRequestForm] = useState(initialRunRequest);
 
   const selectedWorkspace = useMemo(
     () => workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null,
     [selectedWorkspaceId, workspaces],
   );
+
+  const latestRunByRepository = useMemo(() => {
+    const result = new Map<string, RunRecord>();
+    for (const run of recentRuns) {
+      if (!result.has(run.repositoryRegistrationId)) {
+        result.set(run.repositoryRegistrationId, run);
+      }
+    }
+    return result;
+  }, [recentRuns]);
 
   useEffect(() => {
     void loadHealth();
@@ -134,10 +184,11 @@ export function App() {
     } else {
       setRepositories([]);
       setAuditEvents([]);
+      setRecentRuns([]);
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
-  }, [selectedWorkspaceId]);
+  }, [selectedWorkspaceId, selectedWorkspace]);
 
   async function loadHealth() {
     try {
@@ -168,12 +219,14 @@ export function App() {
 
   async function loadWorkspaceDetail(workspaceId: string) {
     try {
-      const [repositoryPayload, auditPayload] = await Promise.all([
+      const [repositoryPayload, auditPayload, runPayload] = await Promise.all([
         fetchJson<Repository[]>(`/api/workspaces/${workspaceId}/repositories`, { method: "GET" }),
         fetchJson<AuditEvent[]>(`/api/workspaces/${workspaceId}/audit-events`, { method: "GET" }),
+        fetchJson<RunRecord[]>(`/api/workspaces/${workspaceId}/runs/recent`, { method: "GET" }),
       ]);
       setRepositories(repositoryPayload);
       setAuditEvents(auditPayload);
+      setRecentRuns(runPayload);
       setRepositoryEditor((current) => (current.id ? current : {
         id: null,
         name: "",
@@ -321,6 +374,28 @@ export function App() {
     }
   }
 
+  async function handleRequestRun(repository: Repository, requestedResult: StubRunResult) {
+    if (!selectedWorkspaceId) {
+      return;
+    }
+    setBusyMessage(`Requesting ${requestedResult.toLowerCase()} run for ${repository.name}…`);
+    try {
+      await fetchJson<RunRecord>(`/api/workspaces/${selectedWorkspaceId}/repositories/${repository.id}/runs`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...runRequestForm,
+          requestedResult,
+        }),
+      });
+      await loadWorkspaceDetail(selectedWorkspaceId);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    } finally {
+      setBusyMessage(null);
+    }
+  }
+
   function selectRepositoryForEdit(repository: Repository) {
     setRepositoryEditor({
       id: repository.id,
@@ -336,10 +411,10 @@ export function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">Architecture Browser Platform</p>
-        <h1>Workspace and repository management APIs</h1>
+        <h1>Index-run orchestration and status tracking</h1>
         <p className="lead">
-          Step 3 adds CRUD management flows for workspaces and repository registrations, validation,
-          audit recording, and a thin web UI to exercise those APIs.
+          Step 4 adds run request APIs, persisted run history, status transitions, and a stub indexer adapter so the platform can request
+          repository indexing runs and surface their current and recent outcomes in the UI.
         </p>
       </section>
 
@@ -433,7 +508,7 @@ export function App() {
                 </div>
               </form>
             ) : (
-              <p className="muted">Select a workspace to manage repositories and audit history.</p>
+              <p className="muted">Select a workspace to manage repositories, runs, and audit history.</p>
             )}
           </article>
 
@@ -443,92 +518,162 @@ export function App() {
               <span className="badge">{repositories.length}</span>
             </div>
             {selectedWorkspace ? (
-              <div className="split-grid">
-                <form className="form" onSubmit={handleCreateRepository}>
-                  <h3>Create</h3>
-                  <label>
-                    <span>Repository key</span>
-                    <input value={repositoryForm.repositoryKey} onChange={(event) => setRepositoryForm((current) => ({ ...current, repositoryKey: event.target.value }))} placeholder="backend-api" />
-                  </label>
-                  <label>
-                    <span>Name</span>
-                    <input value={repositoryForm.name} onChange={(event) => setRepositoryForm((current) => ({ ...current, name: event.target.value }))} placeholder="Backend API" />
-                  </label>
-                  <label>
-                    <span>Source type</span>
-                    <select value={repositoryForm.sourceType} onChange={(event) => setRepositoryForm((current) => ({ ...current, sourceType: event.target.value as RepositorySourceType }))}>
-                      <option value="LOCAL_PATH">LOCAL_PATH</option>
-                      <option value="GIT">GIT</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Local path</span>
-                    <input value={repositoryForm.localPath} onChange={(event) => setRepositoryForm((current) => ({ ...current, localPath: event.target.value }))} placeholder="/repos/backend-api" />
-                  </label>
-                  <label>
-                    <span>Remote URL</span>
-                    <input value={repositoryForm.remoteUrl} onChange={(event) => setRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))} placeholder="https://github.com/erland/backend-api" />
-                  </label>
-                  <label>
-                    <span>Default branch</span>
-                    <input value={repositoryForm.defaultBranch} onChange={(event) => setRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))} />
-                  </label>
-                  <label>
-                    <span>Metadata JSON</span>
-                    <textarea value={repositoryForm.metadataJson} onChange={(event) => setRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))} placeholder='{"owner":"architecture"}' />
-                  </label>
-                  <button type="submit">Create repository</button>
-                </form>
+              <>
+                <div className="split-grid">
+                  <form className="form" onSubmit={handleCreateRepository}>
+                    <h3>Create</h3>
+                    <label>
+                      <span>Repository key</span>
+                      <input value={repositoryForm.repositoryKey} onChange={(event) => setRepositoryForm((current) => ({ ...current, repositoryKey: event.target.value }))} placeholder="backend-api" />
+                    </label>
+                    <label>
+                      <span>Name</span>
+                      <input value={repositoryForm.name} onChange={(event) => setRepositoryForm((current) => ({ ...current, name: event.target.value }))} placeholder="Backend API" />
+                    </label>
+                    <label>
+                      <span>Source type</span>
+                      <select value={repositoryForm.sourceType} onChange={(event) => setRepositoryForm((current) => ({ ...current, sourceType: event.target.value as RepositorySourceType }))}>
+                        <option value="LOCAL_PATH">LOCAL_PATH</option>
+                        <option value="GIT">GIT</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Local path</span>
+                      <input value={repositoryForm.localPath} onChange={(event) => setRepositoryForm((current) => ({ ...current, localPath: event.target.value }))} placeholder="/repos/backend-api" />
+                    </label>
+                    <label>
+                      <span>Remote URL</span>
+                      <input value={repositoryForm.remoteUrl} onChange={(event) => setRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))} placeholder="https://github.com/erland/backend-api" />
+                    </label>
+                    <label>
+                      <span>Default branch</span>
+                      <input value={repositoryForm.defaultBranch} onChange={(event) => setRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))} />
+                    </label>
+                    <label>
+                      <span>Metadata JSON</span>
+                      <textarea value={repositoryForm.metadataJson} onChange={(event) => setRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))} placeholder='{"owner":"architecture"}' />
+                    </label>
+                    <button type="submit">Create repository</button>
+                  </form>
 
-                <form className="form" onSubmit={handleUpdateRepository}>
-                  <h3>Edit selected</h3>
-                  {repositoryEditor.id ? (
-                    <>
-                      <label>
-                        <span>Name</span>
-                        <input value={repositoryEditor.name} onChange={(event) => setRepositoryEditor((current) => ({ ...current, name: event.target.value }))} />
-                      </label>
-                      <label>
-                        <span>Local path</span>
-                        <input value={repositoryEditor.localPath} onChange={(event) => setRepositoryEditor((current) => ({ ...current, localPath: event.target.value }))} />
-                      </label>
-                      <label>
-                        <span>Remote URL</span>
-                        <input value={repositoryEditor.remoteUrl} onChange={(event) => setRepositoryEditor((current) => ({ ...current, remoteUrl: event.target.value }))} />
-                      </label>
-                      <label>
-                        <span>Default branch</span>
-                        <input value={repositoryEditor.defaultBranch} onChange={(event) => setRepositoryEditor((current) => ({ ...current, defaultBranch: event.target.value }))} />
-                      </label>
-                      <label>
-                        <span>Metadata JSON</span>
-                        <textarea value={repositoryEditor.metadataJson} onChange={(event) => setRepositoryEditor((current) => ({ ...current, metadataJson: event.target.value }))} />
-                      </label>
-                      <button type="submit">Save repository</button>
-                    </>
-                  ) : (
-                    <p className="muted">Pick a repository from the list below to edit it.</p>
-                  )}
-                </form>
-              </div>
+                  <form className="form" onSubmit={handleUpdateRepository}>
+                    <h3>Edit selected</h3>
+                    {repositoryEditor.id ? (
+                      <>
+                        <label>
+                          <span>Name</span>
+                          <input value={repositoryEditor.name} onChange={(event) => setRepositoryEditor((current) => ({ ...current, name: event.target.value }))} />
+                        </label>
+                        <label>
+                          <span>Local path</span>
+                          <input value={repositoryEditor.localPath} onChange={(event) => setRepositoryEditor((current) => ({ ...current, localPath: event.target.value }))} />
+                        </label>
+                        <label>
+                          <span>Remote URL</span>
+                          <input value={repositoryEditor.remoteUrl} onChange={(event) => setRepositoryEditor((current) => ({ ...current, remoteUrl: event.target.value }))} />
+                        </label>
+                        <label>
+                          <span>Default branch</span>
+                          <input value={repositoryEditor.defaultBranch} onChange={(event) => setRepositoryEditor((current) => ({ ...current, defaultBranch: event.target.value }))} />
+                        </label>
+                        <label>
+                          <span>Metadata JSON</span>
+                          <textarea value={repositoryEditor.metadataJson} onChange={(event) => setRepositoryEditor((current) => ({ ...current, metadataJson: event.target.value }))} />
+                        </label>
+                        <button type="submit">Save repository</button>
+                      </>
+                    ) : (
+                      <p className="muted">Pick a repository from the list below to edit it.</p>
+                    )}
+                  </form>
+                </div>
+
+                <div className="card card--nested">
+                  <div className="section-heading">
+                    <h3>Stub run request defaults</h3>
+                    <span className="badge">Step 4</span>
+                  </div>
+                  <div className="split-grid split-grid--compact">
+                    <label>
+                      <span>Trigger type</span>
+                      <select value={runRequestForm.triggerType} onChange={(event) => setRunRequestForm((current) => ({ ...current, triggerType: event.target.value as TriggerType }))}>
+                        <option value="MANUAL">MANUAL</option>
+                        <option value="SCHEDULED">SCHEDULED</option>
+                        <option value="IMPORT_ONLY">IMPORT_ONLY</option>
+                        <option value="SYSTEM">SYSTEM</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Schema version</span>
+                      <input value={runRequestForm.requestedSchemaVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedSchemaVersion: event.target.value }))} />
+                    </label>
+                    <label>
+                      <span>Indexer version</span>
+                      <input value={runRequestForm.requestedIndexerVersion} onChange={(event) => setRunRequestForm((current) => ({ ...current, requestedIndexerVersion: event.target.value }))} />
+                    </label>
+                    <label>
+                      <span>Metadata JSON</span>
+                      <textarea value={runRequestForm.metadataJson} onChange={(event) => setRunRequestForm((current) => ({ ...current, metadataJson: event.target.value }))} />
+                    </label>
+                  </div>
+                </div>
+              </>
             ) : (
               <p className="muted">Select a workspace to manage repository registrations.</p>
             )}
 
             <div className="table-list">
-              {repositories.map((repository) => (
-                <div key={repository.id} className="table-row">
-                  <div>
-                    <strong>{repository.name}</strong>
-                    <p>{repository.repositoryKey} · {repository.sourceType} · {repository.status}</p>
+              {repositories.map((repository) => {
+                const latestRun = latestRunByRepository.get(repository.id);
+                return (
+                  <div key={repository.id} className="table-row table-row--stacked">
+                    <div>
+                      <strong>{repository.name}</strong>
+                      <p>{repository.repositoryKey} · {repository.sourceType} · {repository.status}</p>
+                      {latestRun ? (
+                        <p>
+                          Latest run: {latestRun.status}
+                          {latestRun.outcome ? ` · ${latestRun.outcome}` : ""}
+                          {latestRun.completedAt ? ` · ${formatDateTime(latestRun.completedAt)}` : ""}
+                        </p>
+                      ) : (
+                        <p>No runs requested yet.</p>
+                      )}
+                    </div>
+                    <div className="actions actions--inline actions--wrap">
+                      <button type="button" className="button-secondary" onClick={() => selectRepositoryForEdit(repository)}>Edit</button>
+                      <button type="button" className="button-secondary" onClick={() => void handleRequestRun(repository, "SUCCESS")}>Run success</button>
+                      <button type="button" className="button-secondary" onClick={() => void handleRequestRun(repository, "FAILURE")}>Run failure</button>
+                      <button type="button" className="button-secondary" onClick={() => void handleArchiveRepository(repository.id)}>Archive</button>
+                    </div>
                   </div>
-                  <div className="actions actions--inline">
-                    <button type="button" className="button-secondary" onClick={() => selectRepositoryForEdit(repository)}>Edit</button>
-                    <button type="button" className="button-secondary" onClick={() => void handleArchiveRepository(repository.id)}>Archive</button>
+                );
+              })}
+              {!repositories.length && selectedWorkspace ? <p className="muted">No repositories registered yet.</p> : null}
+            </div>
+          </article>
+
+          <article className="card">
+            <div className="section-heading">
+              <h2>Current and recent runs</h2>
+              <span className="badge">{recentRuns.length}</span>
+            </div>
+            <div className="stack stack--compact">
+              {recentRuns.map((run) => (
+                <div key={run.id} className="run-item">
+                  <div className="section-heading section-heading--compact">
+                    <strong>{run.repositoryName ?? run.repositoryKey ?? run.repositoryRegistrationId}</strong>
+                    <span className={`badge ${run.status === "FAILED" ? "badge--danger" : "badge--status"}`}>{run.status}</span>
                   </div>
+                  <span>{run.triggerType}{run.outcome ? ` · ${run.outcome}` : ""}</span>
+                  <span>Requested {formatDateTime(run.requestedAt)}</span>
+                  <span>Started {formatDateTime(run.startedAt)}</span>
+                  <span>Completed {formatDateTime(run.completedAt)}</span>
+                  <span>Schema {run.schemaVersion ?? "—"} · Indexer {run.indexerVersion ?? "—"}</span>
+                  {run.errorSummary ? <code>{run.errorSummary}</code> : null}
                 </div>
               ))}
-              {!repositories.length && selectedWorkspace ? <p className="muted">No repositories registered yet.</p> : null}
+              {!recentRuns.length && selectedWorkspace ? <p className="muted">No runs have been requested yet.</p> : null}
             </div>
           </article>
 
@@ -542,7 +687,10 @@ export function App() {
                 <div key={event.id} className="audit-item">
                   <strong>{event.eventType}</strong>
                   <span>{new Date(event.happenedAt).toLocaleString()}</span>
-                  <span>{event.actorType}{event.actorId ? ` · ${event.actorId}` : ""}</span>
+                  <span>
+                    {event.actorType}{event.actorId ? ` · ${event.actorId}` : ""}
+                    {event.runId ? ` · run ${event.runId}` : ""}
+                  </span>
                   {event.detailsJson ? <code>{event.detailsJson}</code> : null}
                 </div>
               ))}

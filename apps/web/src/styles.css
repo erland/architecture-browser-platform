@@ -270,3 +270,47 @@ dd {
     position: static;
   }
 }
+
+.card--nested {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.split-grid--compact {
+  gap: 12px;
+}
+
+.table-row--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.actions--wrap {
+  flex-wrap: wrap;
+}
+
+.stack--compact {
+  gap: 12px;
+}
+
+.run-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.section-heading--compact {
+  margin-bottom: 4px;
+}
+
+.badge--danger {
+  background: rgba(220, 38, 38, 0.18);
+  color: #fecaca;
+}
+
+@media (min-width: 1024px) {
+  .table-row--stacked {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}

@@ -12,22 +12,29 @@ import java.util.UUID;
 public class AuditService {
     @Transactional
     public AuditEventEntity recordWorkspaceEvent(String workspaceId, String eventType, String detailsJson) {
-        return persist(workspaceId, null, eventType, detailsJson);
+        return persist(workspaceId, null, null, null, eventType, detailsJson);
     }
 
     @Transactional
     public AuditEventEntity recordRepositoryEvent(String workspaceId, String repositoryRegistrationId, String eventType, String detailsJson) {
-        return persist(workspaceId, repositoryRegistrationId, eventType, detailsJson);
+        return persist(workspaceId, repositoryRegistrationId, null, null, eventType, detailsJson);
     }
 
-    private AuditEventEntity persist(String workspaceId, String repositoryRegistrationId, String eventType, String detailsJson) {
+    @Transactional
+    public AuditEventEntity recordRunEvent(String workspaceId, String repositoryRegistrationId, String runId, String eventType, String detailsJson) {
+        return persist(workspaceId, repositoryRegistrationId, runId, null, eventType, detailsJson);
+    }
+
+    private AuditEventEntity persist(String workspaceId, String repositoryRegistrationId, String runId, String snapshotId, String eventType, String detailsJson) {
         AuditEventEntity event = new AuditEventEntity();
         event.id = UUID.randomUUID().toString();
         event.workspaceId = workspaceId;
         event.repositoryRegistrationId = repositoryRegistrationId;
+        event.runId = runId;
+        event.snapshotId = snapshotId;
         event.eventType = eventType;
         event.actorType = AuditActorType.API_CLIENT;
-        event.actorId = "step3-management-api";
+        event.actorId = "platform-api";
         event.happenedAt = Instant.now();
         event.detailsJson = detailsJson;
         event.persist();
