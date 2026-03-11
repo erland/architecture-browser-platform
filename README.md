@@ -161,3 +161,17 @@ curl -X POST \
   --data '{"triggerType":"MANUAL","requestedSchemaVersion":"indexer-ir-v1","requestedIndexerVersion":"step4-stub","requestedResult":"SUCCESS"}' \
   http://localhost:8080/api/workspaces/<workspaceId>/repositories/<repositoryId>/runs
 ```
+
+
+## Step 5 verification
+
+From `apps/api`:
+
+```bash
+mvn test
+```
+
+Useful import endpoints:
+
+- `POST /api/workspaces/{workspaceId}/repositories/{repositoryId}/imports/indexer-ir`
+- `POST /api/workspaces/{workspaceId}/repositories/{repositoryId}/runs/{runId}/imports/indexer-ir`

@@ -29,18 +29,25 @@ public class IndexRunLifecycleService {
     }
 
     @Transactional(TxType.REQUIRES_NEW)
-    public IndexRunEntity markCompleted(String runId, String schemaVersion, String indexerVersion, String metadataJson) {
+    public IndexRunEntity markImporting(String runId) {
         IndexRunEntity entity = requireRun(runId);
-        entity.status = RunStatus.COMPLETED;
-        entity.outcome = RunOutcome.SUCCESS;
-        entity.completedAt = Instant.now();
-        entity.schemaVersion = normalizeNullable(schemaVersion, entity.schemaVersion);
-        entity.indexerVersion = normalizeNullable(indexerVersion, entity.indexerVersion);
-        entity.errorSummary = null;
-        entity.metadataJson = normalizeNullable(metadataJson, entity.metadataJson);
+        entity.status = RunStatus.IMPORTING;
+        if (entity.startedAt == null) {
+            entity.startedAt = Instant.now();
+        }
         runAuditService.recordRunEvent(entity.workspaceId, entity.repositoryRegistrationId, entity.id,
-            "run.completed", "{\"status\":\"COMPLETED\",\"outcome\":\"SUCCESS\"}");
+            "run.importing", "{\"status\":\"IMPORTING\"}");
         return entity;
+    }
+
+    @Transactional(TxType.REQUIRES_NEW)
+    public IndexRunEntity markCompleted(String runId, String schemaVersion, String indexerVersion, String metadataJson) {
+        return markFinished(runId, RunOutcome.SUCCESS, schemaVersion, indexerVersion, metadataJson, null);
+    }
+
+    @Transactional(TxType.REQUIRES_NEW)
+    public IndexRunEntity markPartial(String runId, String schemaVersion, String indexerVersion, String metadataJson) {
+        return markFinished(runId, RunOutcome.PARTIAL, schemaVersion, indexerVersion, metadataJson, null);
     }
 
     @Transactional(TxType.REQUIRES_NEW)
@@ -55,6 +62,25 @@ public class IndexRunLifecycleService {
         entity.errorSummary = errorSummary;
         runAuditService.recordRunEvent(entity.workspaceId, entity.repositoryRegistrationId, entity.id,
             "run.failed", "{\"status\":\"FAILED\",\"outcome\":\"FAILED\"}");
+        return entity;
+    }
+
+    private IndexRunEntity markFinished(String runId, RunOutcome outcome, String schemaVersion, String indexerVersion, String metadataJson, String errorSummary) {
+        IndexRunEntity entity = requireRun(runId);
+        entity.status = RunStatus.COMPLETED;
+        entity.outcome = outcome;
+        entity.completedAt = Instant.now();
+        entity.schemaVersion = normalizeNullable(schemaVersion, entity.schemaVersion);
+        entity.indexerVersion = normalizeNullable(indexerVersion, entity.indexerVersion);
+        entity.errorSummary = errorSummary;
+        entity.metadataJson = normalizeNullable(metadataJson, entity.metadataJson);
+        runAuditService.recordRunEvent(entity.workspaceId, entity.repositoryRegistrationId, entity.id,
+            outcome == RunOutcome.PARTIAL
+                ? "run.completed-partial"
+                : "run.completed",
+            outcome == RunOutcome.PARTIAL
+                ? "{\"status\":\"COMPLETED\",\"outcome\":\"PARTIAL\"}"
+                : "{\"status\":\"COMPLETED\",\"outcome\":\"SUCCESS\"}");
         return entity;
     }
 

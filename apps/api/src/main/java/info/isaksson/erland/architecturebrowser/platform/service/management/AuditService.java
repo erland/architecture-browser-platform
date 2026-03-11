@@ -25,6 +25,11 @@ public class AuditService {
         return persist(workspaceId, repositoryRegistrationId, runId, null, eventType, detailsJson);
     }
 
+    @Transactional
+    public AuditEventEntity recordSnapshotEvent(String workspaceId, String repositoryRegistrationId, String runId, String snapshotId, String eventType, String detailsJson) {
+        return persist(workspaceId, repositoryRegistrationId, runId, snapshotId, eventType, detailsJson);
+    }
+
     private AuditEventEntity persist(String workspaceId, String repositoryRegistrationId, String runId, String snapshotId, String eventType, String detailsJson) {
         AuditEventEntity event = new AuditEventEntity();
         event.id = UUID.randomUUID().toString();

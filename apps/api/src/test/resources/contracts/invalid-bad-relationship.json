@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:00:01Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java"],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "fixture-java-backend",
+    "acquisitionType": "local-path",
+    "path": "/fixtures/java-backend",
+    "remoteUrl": null,
+    "branch": "main",
+    "revision": "bad-rel",
+    "acquiredAt": "2026-03-10T12:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {
+      "id": "scope:repo",
+      "kind": "REPOSITORY",
+      "name": "fixture-java-backend",
+      "displayName": "fixture-java-backend",
+      "parentScopeId": null,
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:class:demo-controller",
+      "kind": "CLASS",
+      "origin": "OBSERVED",
+      "name": "DemoController",
+      "displayName": "com.example.DemoController",
+      "scopeId": "scope:repo",
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel:bad",
+      "kind": "CALLS",
+      "fromEntityId": "entity:class:demo-controller",
+      "toEntityId": "entity:missing",
+      "label": "broken relation",
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 1,
+    "totalFileCount": 1,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}
