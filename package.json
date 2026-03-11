@@ -1,0 +1,17 @@
+{
+  "name": "architecture-browser-platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "libs/contracts",
+    "libs/view-models"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @architecture-browser-platform/web",
+    "build:web": "npm run build --workspace @architecture-browser-platform/web",
+    "lint:web": "npm run lint --workspace @architecture-browser-platform/web",
+    "typecheck:web": "npm run typecheck --workspace @architecture-browser-platform/web",
+    "dev:stack": "docker compose -f deploy/docker-compose/docker-compose.yml up --build"
+  }
+}

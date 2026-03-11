@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: architecture-browser-platform-postgres
+    environment:
+      POSTGRES_DB: architecture_browser_platform
+      POSTGRES_USER: architecture_browser
+      POSTGRES_PASSWORD: architecture_browser
+    ports:
+      - "5432:5432"
+    volumes:
+      - platform-postgres-data:/var/lib/postgresql/data
+
+  api:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: architecture-browser-platform-api
+    working_dir: /workspace/apps/api
+    command: mvn quarkus:dev -Dquarkus.http.host=0.0.0.0
+    environment:
+      PLATFORM_DB_JDBC_URL: jdbc:postgresql://postgres:5432/architecture_browser_platform
+      PLATFORM_DB_USERNAME: architecture_browser
+      PLATFORM_DB_PASSWORD: architecture_browser
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../:/workspace
+      - maven-repo:/root/.m2
+    depends_on:
+      - postgres
+
+  web:
+    image: node:20
+    container_name: architecture-browser-platform-web
+    working_dir: /workspace
+    command: sh -c "npm install && npm run dev --workspace @architecture-browser-platform/web -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../../:/workspace
+    depends_on:
+      - api
+
+volumes:
+  platform-postgres-data:
+  maven-repo:

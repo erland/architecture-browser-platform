@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.idea/
+.vscode/
+.DS_Store
+*.iml
+apps/web/node_modules/
+apps/web/dist/
+apps/api/target/
+.env
+/*.zip
