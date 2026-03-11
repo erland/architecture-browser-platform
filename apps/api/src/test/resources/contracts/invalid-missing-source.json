@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:00:01Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": [],
+    "metadata": {}
+  },
+  "scopes": [],
+  "entities": [],
+  "relationships": [],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 0,
+    "totalFileCount": 0,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}

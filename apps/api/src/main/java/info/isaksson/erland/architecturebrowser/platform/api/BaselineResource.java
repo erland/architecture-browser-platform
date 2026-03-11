@@ -15,14 +15,14 @@ public class BaselineResource {
     public Map<String, Object> baseline() {
         return Map.of(
             "repository", "architecture-browser-platform",
-            "step", "1",
-            "summary", "Platform monorepo baseline",
+            "step", "2",
+            "summary", "Core domain model and import contract baseline",
             "apps", List.of("web", "api"),
             "libraries", List.of("contracts", "view-models"),
             "nextSteps", List.of(
-                "Define core domain model and import contract",
                 "Implement workspace and repository management APIs",
-                "Implement index-run orchestration and status tracking"
+                "Implement index-run orchestration and status tracking",
+                "Implement snapshot import pipeline"
             )
         );
     }

@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
+import info.isaksson.erland.architecturebrowser.platform.contract.IndexerImportContract;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -14,7 +15,8 @@ public class IndexerIrContractResource {
     @GET
     public Map<String, Object> currentContract() {
         return Map.of(
-            "schemaVersion", "1.0.0",
+            "platformImportVersion", IndexerImportContract.PLATFORM_IMPORT_VERSION,
+            "supportedSchemaVersions", IndexerImportContract.SUPPORTED_SCHEMA_VERSIONS,
             "topLevelFields", List.of(
                 "schemaVersion",
                 "indexerVersion",
@@ -27,10 +29,11 @@ public class IndexerIrContractResource {
                 "completeness",
                 "metadata"
             ),
+            "stubImportEndpoint", "/api/imports/indexer-ir/stub-store",
             "notes", List.of(
-                "Current understanding is derived from the MVP-level architecture-browser-indexer source code and fixture payloads.",
-                "The platform will treat imported facts as immutable snapshot input.",
-                "User overlays and annotations will be stored separately in later steps."
+                "This contract matches the currently observed indexer MVP payload shape.",
+                "Platform domain rows remain separate from imported immutable facts.",
+                "Step 2 stores imported facts in a generic snapshot plus imported_fact table for future vertical slices."
             )
         );
     }

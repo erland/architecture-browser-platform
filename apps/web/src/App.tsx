@@ -7,6 +7,12 @@ type ApiHealth = {
   time: string;
 };
 
+type DomainModel = {
+  aggregateRoots: string[];
+  importProjection: string[];
+  notes: string[];
+};
+
 const initialHealth: ApiHealth = {
   status: "unknown",
   service: "architecture-browser-platform-api",
@@ -14,22 +20,37 @@ const initialHealth: ApiHealth = {
   time: "",
 };
 
+const initialDomainModel: DomainModel = {
+  aggregateRoots: [],
+  importProjection: [],
+  notes: [],
+};
+
 export function App() {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
+  const [domainModel, setDomainModel] = useState<DomainModel>(initialDomainModel);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const abortController = new AbortController();
 
-    fetch("/api/health", { signal: abortController.signal })
-      .then(async (response) => {
+    Promise.all([
+      fetch("/api/health", { signal: abortController.signal }).then(async (response) => {
         if (!response.ok) {
           throw new Error(`Health request failed with status ${response.status}`);
         }
         return response.json() as Promise<ApiHealth>;
-      })
-      .then((payload) => {
-        setHealth(payload);
+      }),
+      fetch("/api/domain-model", { signal: abortController.signal }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Domain model request failed with status ${response.status}`);
+        }
+        return response.json() as Promise<DomainModel>;
+      }),
+    ])
+      .then(([healthPayload, domainModelPayload]) => {
+        setHealth(healthPayload);
+        setDomainModel(domainModelPayload);
         setError(null);
       })
       .catch((caught: unknown) => {
@@ -47,32 +68,37 @@ export function App() {
     <main className="page">
       <section className="hero">
         <p className="eyebrow">Architecture Browser Platform</p>
-        <h1>Monorepo baseline</h1>
+        <h1>Core domain model and import contract</h1>
         <p className="lead">
-          Step 1 establishes the web app, API, contracts module, Compose packaging,
-          and documentation needed to start the platform implementation.
+          Step 2 defines the platform aggregates, Flyway-backed schema baseline, and a versioned
+          stub import path for immutable indexer snapshots.
         </p>
       </section>
 
       <section className="grid">
         <article className="card">
-          <h2>Current scope</h2>
+          <h2>Step 2 deliverables</h2>
           <ul>
-            <li>Platform repository skeleton</li>
-            <li>React + TypeScript UI scaffold</li>
-            <li>Quarkus API scaffold</li>
-            <li>PostgreSQL Compose baseline</li>
-            <li>Indexer IR handoff notes</li>
+            <li>Workspace, repository, run, snapshot, overlay, saved-view, audit aggregates</li>
+            <li>Flyway migrations owned by the API application</li>
+            <li>JPA/Panache persistence model</li>
+            <li>Versioned indexer IR validation and stub storage path</li>
           </ul>
         </article>
 
         <article className="card">
-          <h2>Next planned slices</h2>
+          <h2>Domain model</h2>
+          <p>Aggregate roots</p>
           <ul>
-            <li>Core domain model and import contract</li>
-            <li>Workspace and repository registration</li>
-            <li>Index run orchestration and status tracking</li>
-            <li>Snapshot import and catalog browsing</li>
+            {domainModel.aggregateRoots.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <p>Imported projections</p>
+          <ul>
+            {domainModel.importProjection.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
         </article>
 
@@ -97,6 +123,15 @@ export function App() {
             </div>
           </dl>
           {error ? <p className="error">{error}</p> : null}
+        </article>
+
+        <article className="card card--wide">
+          <h2>Notes</h2>
+          <ul>
+            {domainModel.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
         </article>
       </section>
     </main>

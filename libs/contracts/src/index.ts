@@ -21,6 +21,9 @@ export type CompletenessStatus = "COMPLETE" | "PARTIAL" | "FAILED";
 
 export type JsonObject = Record<string, unknown>;
 
+export const PLATFORM_IMPORT_VERSION = "2026-03-step2" as const;
+export const SUPPORTED_INDEXER_SCHEMA_VERSIONS = ["1.0.0"] as const;
+
 export interface SourceReference {
   path: string;
   startLine: number | null;
@@ -113,4 +116,131 @@ export interface ArchitectureIndexDocument {
   diagnostics: Diagnostic[];
   completeness: CompletenessMetadata;
   metadata: JsonObject;
+}
+
+export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
+export type RepositorySourceType = "LOCAL_PATH" | "GIT";
+export type RepositoryStatus = "ACTIVE" | "ARCHIVED";
+export type PlatformRunStatus = "REQUESTED" | "RUNNING" | "IMPORTING" | "COMPLETED" | "FAILED" | "CANCELED";
+export type TriggerType = "MANUAL" | "SCHEDULED" | "IMPORT_ONLY" | "SYSTEM";
+export type SnapshotStatus = "DRAFT" | "READY" | "FAILED";
+export type OverlayKind = "TAG_SET" | "HEATMAP" | "ANNOTATION" | "HIGHLIGHT";
+export type AuditActorType = "USER" | "SYSTEM" | "API_CLIENT";
+export type ImportedFactType = "SCOPE" | "ENTITY" | "RELATIONSHIP" | "DIAGNOSTIC";
+
+export interface WorkspaceRecord {
+  id: string;
+  workspaceKey: string;
+  name: string;
+  description: string | null;
+  status: WorkspaceStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RepositoryRegistrationRecord {
+  id: string;
+  workspaceId: string;
+  repositoryKey: string;
+  name: string;
+  sourceType: RepositorySourceType;
+  localPath: string | null;
+  remoteUrl: string | null;
+  defaultBranch: string | null;
+  status: RepositoryStatus;
+  metadataJson: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IndexRunRecord {
+  id: string;
+  workspaceId: string;
+  repositoryRegistrationId: string;
+  triggerType: TriggerType;
+  status: PlatformRunStatus;
+  outcome: RunOutcome | null;
+  requestedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  schemaVersion: string | null;
+  indexerVersion: string | null;
+  errorSummary: string | null;
+  metadataJson: string;
+}
+
+export interface SnapshotRecord {
+  id: string;
+  workspaceId: string;
+  repositoryRegistrationId: string;
+  runId: string | null;
+  snapshotKey: string;
+  status: SnapshotStatus;
+  completenessStatus: CompletenessStatus;
+  schemaVersion: string;
+  indexerVersion: string;
+  sourceRepositoryId: string | null;
+  sourceRevision: string | null;
+  sourceBranch: string | null;
+  importedAt: string;
+  scopeCount: number;
+  entityCount: number;
+  relationshipCount: number;
+  diagnosticCount: number;
+  indexedFileCount: number;
+  totalFileCount: number;
+  degradedFileCount: number;
+  rawPayloadJson: string;
+  metadataJson: string;
+}
+
+export interface ImportedFactRecord {
+  id: string;
+  snapshotId: string;
+  factType: ImportedFactType;
+  externalId: string;
+  factKind: string;
+  name: string;
+  displayName: string | null;
+  scopeExternalId: string | null;
+  fromExternalId: string | null;
+  toExternalId: string | null;
+  summary: string | null;
+  payloadJson: string;
+}
+
+export interface OverlayRecord {
+  id: string;
+  workspaceId: string;
+  snapshotId: string | null;
+  kind: OverlayKind;
+  name: string;
+  definitionJson: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedViewRecord {
+  id: string;
+  workspaceId: string;
+  snapshotId: string | null;
+  name: string;
+  viewType: string;
+  queryJson: string | null;
+  layoutJson: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditEventRecord {
+  id: string;
+  workspaceId: string;
+  repositoryRegistrationId: string | null;
+  runId: string | null;
+  snapshotId: string | null;
+  eventType: string;
+  actorType: AuditActorType;
+  actorId: string | null;
+  happenedAt: string;
+  detailsJson: string;
 }
