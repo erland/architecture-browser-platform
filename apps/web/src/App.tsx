@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { summarizeDependencyKinds, toDependencyEntityOptions } from "./dependencyViewModel";
 
 type ApiHealth = {
   status: string;
@@ -211,6 +212,73 @@ type LayoutScopeDetail = {
   entityKinds: KindCount[];
 };
 
+type DependencyDirection = "ALL" | "INBOUND" | "OUTBOUND";
+
+type DependencyEntity = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  origin: string | null;
+  scopeId: string | null;
+  scopePath: string;
+  inScope: boolean;
+  sourceRefCount: number;
+  summary: string | null;
+  inboundCount: number;
+  outboundCount: number;
+};
+
+type DependencyRelationship = {
+  externalId: string;
+  kind: string;
+  label: string;
+  summary: string | null;
+  fromEntityId: string;
+  fromDisplayName: string;
+  fromKind: string;
+  fromScopePath: string;
+  fromInScope: boolean;
+  toEntityId: string;
+  toDisplayName: string;
+  toKind: string;
+  toScopePath: string;
+  toInScope: boolean;
+  directionCategory: string;
+  crossesScopeBoundary: boolean;
+};
+
+type DependencyView = {
+  snapshot: SnapshotSummary;
+  scope: {
+    externalId: string | null;
+    kind: string;
+    name: string;
+    displayName: string;
+    path: string;
+    repositoryWide: boolean;
+  };
+  direction: DependencyDirection;
+  relationshipKinds: KindCount[];
+  summary: {
+    scopeEntityCount: number;
+    visibleEntityCount: number;
+    visibleRelationshipCount: number;
+    internalRelationshipCount: number;
+    inboundRelationshipCount: number;
+    outboundRelationshipCount: number;
+  };
+  entities: DependencyEntity[];
+  relationships: DependencyRelationship[];
+  focus: {
+    entity: DependencyEntity;
+    inboundRelationshipCount: number;
+    outboundRelationshipCount: number;
+    inboundRelationships: DependencyRelationship[];
+    outboundRelationships: DependencyRelationship[];
+  } | null;
+};
+
 type ApiError = {
   code: string;
   message: string;
@@ -301,6 +369,10 @@ export function App() {
   const [layoutTree, setLayoutTree] = useState<LayoutTree | null>(null);
   const [selectedLayoutScopeId, setSelectedLayoutScopeId] = useState<string | null>(null);
   const [layoutScopeDetail, setLayoutScopeDetail] = useState<LayoutScopeDetail | null>(null);
+  const [dependencyView, setDependencyView] = useState<DependencyView | null>(null);
+  const [selectedDependencyScopeId, setSelectedDependencyScopeId] = useState<string>("");
+  const [dependencyDirection, setDependencyDirection] = useState<DependencyDirection>("ALL");
+  const [focusedDependencyEntityId, setFocusedDependencyEntityId] = useState<string>("");
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -328,6 +400,8 @@ export function App() {
   );
 
   const flattenedLayoutNodes = useMemo(() => flattenLayout(layoutTree?.roots ?? []), [layoutTree]);
+
+  const dependencyEntityOptions = useMemo(() => toDependencyEntityOptions(dependencyView?.entities ?? []), [dependencyView]);
 
   const latestRunByRepository = useMemo(() => {
     const result = new Map<string, RunRecord>();
@@ -361,6 +435,10 @@ export function App() {
       setLayoutTree(null);
       setSelectedLayoutScopeId(null);
       setLayoutScopeDetail(null);
+      setDependencyView(null);
+      setSelectedDependencyScopeId("");
+      setDependencyDirection("ALL");
+      setFocusedDependencyEntityId("");
       setWorkspaceEditor({ name: "", description: "" });
       setRepositoryEditor({ id: null, name: "", localPath: "", remoteUrl: "", defaultBranch: "main", metadataJson: "" });
     }
@@ -375,6 +453,9 @@ export function App() {
       setLayoutTree(null);
       setSelectedLayoutScopeId(null);
       setLayoutScopeDetail(null);
+      setDependencyView(null);
+      setSelectedDependencyScopeId("");
+      setFocusedDependencyEntityId("");
     }
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
@@ -385,6 +466,14 @@ export function App() {
       setLayoutScopeDetail(null);
     }
   }, [selectedWorkspaceId, selectedSnapshotId, selectedLayoutScopeId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId && selectedSnapshotId) {
+      void loadDependencyView(selectedWorkspaceId, selectedSnapshotId, selectedDependencyScopeId || undefined, dependencyDirection, focusedDependencyEntityId || undefined);
+    } else {
+      setDependencyView(null);
+    }
+  }, [selectedWorkspaceId, selectedSnapshotId, selectedDependencyScopeId, dependencyDirection, focusedDependencyEntityId]);
 
   async function loadHealth() {
     try {
@@ -463,6 +552,25 @@ export function App() {
     try {
       const payload = await fetchJson<LayoutScopeDetail>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/scopes/${encodeURIComponent(scopeId)}`, { method: "GET" });
       setLayoutScopeDetail(payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unknown error");
+    }
+  }
+
+  async function loadDependencyView(workspaceId: string, snapshotId: string, scopeId?: string, direction: DependencyDirection = "ALL", focusEntityId?: string) {
+    try {
+      const params = new URLSearchParams();
+      if (scopeId) {
+        params.set("scopeId", scopeId);
+      }
+      if (focusEntityId) {
+        params.set("focusEntityId", focusEntityId);
+      }
+      params.set("direction", direction);
+      const query = params.toString();
+      const payload = await fetchJson<DependencyView>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/dependencies${query ? `?${query}` : ""}`, { method: "GET" });
+      setDependencyView(payload);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unknown error");
@@ -948,6 +1056,101 @@ export function App() {
                             </div>
                           </div>
                         ) : <p className="muted">Layout explorer will appear when a snapshot is available.</p>}
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h3>Dependency and relationship view</h3><span className="badge">Step 8</span></div>
+                        <div className="split-grid split-grid--compact">
+                          <label>
+                            <span>Scope focus</span>
+                            <select value={selectedDependencyScopeId} onChange={(event) => { setSelectedDependencyScopeId(event.target.value); setFocusedDependencyEntityId(""); }}>
+                              <option value="">All scopes</option>
+                              {flattenedLayoutNodes.map((node) => (
+                                <option key={node.externalId} value={node.externalId}>
+                                  {`${" ".repeat(node.depth * 2)}${node.displayName ?? node.name}`}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Direction</span>
+                            <select value={dependencyDirection} onChange={(event) => setDependencyDirection(event.target.value as DependencyDirection)}>
+                              <option value="ALL">All</option>
+                              <option value="INBOUND">Inbound</option>
+                              <option value="OUTBOUND">Outbound</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Entity focus</span>
+                            <select value={focusedDependencyEntityId} onChange={(event) => setFocusedDependencyEntityId(event.target.value)}>
+                              <option value="">No focused entity</option>
+                              {dependencyEntityOptions.map((entity) => (
+                                <option key={entity.externalId} value={entity.externalId}>
+                                  {entity.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {dependencyView ? (
+                          <div className="stack stack--compact">
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Scope entities</h4><p>{dependencyView.summary.scopeEntityCount}</p></div>
+                              <div className="card card--nested"><h4>Visible entities</h4><p>{dependencyView.summary.visibleEntityCount}</p></div>
+                              <div className="card card--nested"><h4>Relationships</h4><p>{dependencyView.summary.visibleRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Kinds</h4><p>{summarizeDependencyKinds(dependencyView.relationships)}</p></div>
+                            </div>
+
+                            <div className="split-grid split-grid--compact">
+                              <div className="card card--nested"><h4>Internal</h4><p>{dependencyView.summary.internalRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Inbound</h4><p>{dependencyView.summary.inboundRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Outbound</h4><p>{dependencyView.summary.outboundRelationshipCount}</p></div>
+                              <div className="card card--nested"><h4>Scope</h4><p>{dependencyView.scope.path}</p></div>
+                            </div>
+
+                            {dependencyView.focus ? (
+                              <div className="card card--nested">
+                                <div className="section-heading">
+                                  <h4>Focused entity</h4>
+                                  <span className="badge">{dependencyView.focus.entity.kind}</span>
+                                </div>
+                                <p><strong>{dependencyView.focus.entity.displayName ?? dependencyView.focus.entity.name}</strong></p>
+                                <p className="muted">{dependencyView.focus.entity.scopePath}</p>
+                                <p>{dependencyView.focus.inboundRelationshipCount} inbound · {dependencyView.focus.outboundRelationshipCount} outbound</p>
+                              </div>
+                            ) : null}
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Visible entities</h4><span className="badge">{dependencyView.entities.length}</span></div>
+                              <div className="stack stack--compact">
+                                {dependencyView.entities.map((entity) => (
+                                  <button key={entity.externalId} type="button" className={`list-item ${entity.externalId === focusedDependencyEntityId ? "list-item--active" : ""}`} onClick={() => setFocusedDependencyEntityId((current) => current === entity.externalId ? "" : entity.externalId)}>
+                                    <strong>{entity.displayName ?? entity.name}</strong>
+                                    <span>{entity.kind} · {entity.inScope ? "in scope" : "external neighbor"}</span>
+                                    <span>{entity.inboundCount} inbound · {entity.outboundCount} outbound</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="card card--nested">
+                              <div className="section-heading"><h4>Relationship graph</h4><span className="badge">{dependencyView.relationships.length}</span></div>
+                              <div className="stack stack--compact">
+                                {dependencyView.relationships.map((relationship) => (
+                                  <div key={relationship.externalId} className="run-item">
+                                    <strong>{relationship.fromDisplayName}</strong>
+                                    <span>{relationship.fromKind} · {relationship.fromInScope ? "scope" : "external"}</span>
+                                    <span>↓ {relationship.kind} {relationship.crossesScopeBoundary ? "· boundary" : "· internal"}</span>
+                                    <strong>{relationship.toDisplayName}</strong>
+                                    <span>{relationship.toKind} · {relationship.toInScope ? "scope" : "external"}</span>
+                                    <span>{relationship.fromScopePath} → {relationship.toScopePath}</span>
+                                  </div>
+                                ))}
+                                {!dependencyView.relationships.length ? <p className="muted">No relationships match the current filter.</p> : null}
+                              </div>
+                            </div>
+                          </div>
+                        ) : <p className="muted">Dependency view will appear when a snapshot is available.</p>}
                       </div>
 
                       <div className="card card--nested">

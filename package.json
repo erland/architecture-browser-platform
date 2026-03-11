@@ -12,6 +12,7 @@
     "build:web": "npm run build --workspace @architecture-browser-platform/web",
     "lint:web": "npm run lint --workspace @architecture-browser-platform/web",
     "typecheck:web": "npm run typecheck --workspace @architecture-browser-platform/web",
+    "test:web": "npm run test --workspace @architecture-browser-platform/web",
     "dev:stack": "docker compose -f deploy/docker-compose/docker-compose.yml up --build"
   }
 }
