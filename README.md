@@ -35,11 +35,11 @@ For remote test deployment:
 
 - Docker with Compose plugin
 - cloned `architecture-browser-platform` repository
-- published platform API and web images
+- published platform API, web, and indexer images
 
 ## Development install
 
-Development is optimized for a local checkout where `architecture-browser-platform` and `architecture-browser-indexer` are sibling directories. The current MVP still uses the stub indexer adapter, so the platform dev stack does not yet need the indexer container to run.
+Development is optimized for a local checkout where `architecture-browser-platform` and `architecture-browser-indexer` are sibling directories. The dev stack now includes the real `architecture-browser-indexer` HTTP worker and uses it over HTTP from the API.
 
 Start the dev stack:
 
@@ -52,6 +52,7 @@ This starts:
 - PostgreSQL on `localhost:5432`
 - Quarkus dev mode on `http://localhost:8080`
 - Vite dev server on `http://localhost:5173`
+- indexer HTTP worker on `http://localhost:8082`
 
 Stop it with:
 
@@ -65,7 +66,19 @@ The underlying compose file is:
 deploy/docker-compose/docker-compose.dev.yml
 ```
 
-This dev mode does **not** require pushing images to GHCR.
+### Dev repository path note
+
+The dev API and indexer containers mount the parent directory that contains both sibling repositories at `/host-workspace`.
+When you register a local repository for real indexing in dev mode, use a container-visible path such as:
+
+```text
+/host-workspace/architecture-browser-platform
+/host-workspace/architecture-browser-indexer
+```
+
+The smoke test uses the bundled sample repo mounted at `/workspace/smoke-repo`.
+
+This dev mode does **not** require pushing images to GHCR. The indexer image is built locally from the sibling `../architecture-browser-indexer` checkout.
 
 ## Test / remote install
 
@@ -82,6 +95,7 @@ cp deploy/env/platform-test.env.example deploy/env/platform-test.env
 - `POSTGRES_PASSWORD`
 - `PLATFORM_API_IMAGE`
 - `PLATFORM_WEB_IMAGE`
+- `PLATFORM_INDEXER_IMAGE`
 
 3. Start the stack:
 
@@ -94,10 +108,11 @@ This starts:
 - PostgreSQL on `localhost:5432`
 - API on `http://localhost:8080`
 - Web UI on `http://localhost:8081`
+- indexer HTTP worker on `http://localhost:8082`
 
 The web container serves the built SPA and proxies `/api/*` to the API container.
 
-4. Run a smoke test:
+4. Run a smoke test that verifies the real indexer integration path against the bundled sample repository:
 
 ```bash
 ./scripts/smoke-test.sh
@@ -151,6 +166,7 @@ docker compose -f deploy/docker-compose/docker-compose.dev.yml config
 cp deploy/env/platform-test.env.example deploy/env/platform-test.env
 sed -i.bak 's#ghcr.io/example/architecture-browser-platform-api:latest#architecture-browser-platform-api:local#' deploy/env/platform-test.env
 sed -i.bak 's#ghcr.io/example/architecture-browser-platform-web:latest#architecture-browser-platform-web:local#' deploy/env/platform-test.env
+sed -i.bak 's#ghcr.io/example/architecture-browser-indexer:latest#architecture-browser-indexer:local#' deploy/env/platform-test.env
 docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml config
 ```
 
@@ -160,15 +176,18 @@ docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/
 
 - Web UI: `http://localhost:5173`
 - API health: `http://localhost:8080/api/health`
+- Indexer health: `http://localhost:8082/health`
 
 ### Test
 
 - Web UI: `http://localhost:8081`
 - API health: `http://localhost:8080/api/health`
+- Indexer health: `http://localhost:8082/health`
 
 ## Notes
 
 - Dev and test now have separate Docker Compose files.
 - Dev is optimized for source-mounted iteration and does not require published images.
 - Test is optimized for remote deployment from published images and does not require rebuilding the whole stack on the server.
-- The platform still uses the stub indexer adapter at MVP stage, so full external indexer container orchestration can be added later without reworking the new packaging split.
+- The platform can now call the real indexer worker over HTTP.
+- The bundled smoke test exercises the end-to-end flow: workspace → repository registration → run request → remote indexing → snapshot import.

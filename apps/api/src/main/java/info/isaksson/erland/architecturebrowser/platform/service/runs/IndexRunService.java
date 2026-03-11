@@ -28,7 +28,7 @@ public class IndexRunService {
     IndexRunPersistenceService persistenceService;
 
     @Inject
-    StubIndexerAdapter stubIndexerAdapter;
+    IndexerExecutionGateway indexerExecutionGateway;
 
     public RunResponse requestRun(String workspaceId, String repositoryId, RequestRunRequest request) {
         var workspace = workspaceManagementService.requireWorkspace(workspaceId);
@@ -36,7 +36,7 @@ public class IndexRunService {
         validator.validate(workspace, repository, request);
 
         IndexRunEntity entity = persistenceService.createRequestedRun(workspace, repository, request);
-        IndexRunEntity finalState = stubIndexerAdapter.execute(entity, request);
+        IndexRunEntity finalState = indexerExecutionGateway.execute(workspace, repository, entity, request);
         return toResponse(finalState, repository);
     }
 
