@@ -3,16 +3,18 @@ import type { DependencyPanelProps } from '../components/snapshotCatalogTypes';
 
 export function DependenciesTab(props: DependencyPanelProps) {
   return (
-    <div className="content-stack browser-tab-view">
-      <section className="card section-intro">
+    <div className="browser-tab-shell">
+      <section className="card browser-tab-shell__intro">
         <p className="eyebrow">Browser / Dependencies</p>
         <h2>Dependency exploration</h2>
-        <p className="lead">
-          This tab wraps the current dependency tooling so directional filtering and entity focus become a dedicated browser workflow.
+        <p className="muted">
+          Keep filters and relationship context close at hand while giving the entity list and relationship graph a much larger reading surface.
         </p>
       </section>
 
-      <DependencyPanel {...props} />
+      <section className="browser-tab-shell__content">
+        <DependencyPanel {...props} />
+      </section>
     </div>
   );
 }

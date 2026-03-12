@@ -3,16 +3,18 @@ import type { LayoutExplorerPanelProps } from '../components/snapshotCatalogType
 
 export function LayoutTab(props: LayoutExplorerPanelProps) {
   return (
-    <div className="content-stack browser-tab-view">
-      <section className="card section-intro">
+    <div className="browser-tab-shell">
+      <section className="card browser-tab-shell__intro">
         <p className="eyebrow">Browser / Layout</p>
         <h2>Scope and layout explorer</h2>
-        <p className="lead">
-          This tab keeps the existing layout tree and scope detail behavior, but gives it a dedicated browser screen instead of sharing space with unrelated panels.
+        <p className="muted">
+          Keep the scope tree and drill-down detail in a wide workspace where the hierarchy can stay visible while the selected scope detail uses the rest of the screen.
         </p>
       </section>
 
-      <LayoutExplorerPanel {...props} />
+      <section className="browser-tab-shell__content">
+        <LayoutExplorerPanel {...props} />
+      </section>
     </div>
   );
 }

@@ -175,55 +175,45 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
   }
 
   return (
-    <div className="content-stack browser-view">
-      <section className="card section-intro">
-        <p className="eyebrow">Browser</p>
-        <h2>Dedicated browser shell</h2>
-        <p className="lead">
-          Step 8 keeps the dedicated Browser route but now drives it from a browser-specific orchestration hook instead of the broader legacy snapshot hook, making the Browser route a cleaner target for further refactoring.
-        </p>
-        <div className="actions">
+    <div className="content-stack browser-view browser-route-shell">
+      <section className="card browser-hero browser-shell-header">
+        <div className="browser-hero__main">
+          <p className="eyebrow">Browser</p>
+          <h2>Focused architecture workspace</h2>
+          <p className="lead browser-hero__lead">
+            Step 11 shifts the Browser route toward a wider, tool-first layout so the active architecture view gets most of the screen while context and navigation stay visible.
+          </p>
+        </div>
+        <div className="browser-hero__actions">
           <button type="button" onClick={onOpenSnapshots}>Choose snapshot</button>
           <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
           <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
         </div>
+        <div className="browser-health-bar">
+          <span className="badge">API {workspaceData.health.status}</span>
+          <span className="badge">{workspaceData.health.service}</span>
+          <span className="badge">{workspaceData.health.version}</span>
+          {workspaceData.health.time ? <span className="badge">{workspaceData.health.time}</span> : null}
+          {busyMessage ? <span className="badge badge--warning">{busyMessage}</span> : null}
+          {error ? <span className="badge badge--danger">{error}</span> : null}
+        </div>
       </section>
 
-      <section className="grid grid--top">
-        <article className="card">
-          <h2>API health</h2>
-          <dl className="kv">
-            <div><dt>Status</dt><dd>{workspaceData.health.status}</dd></div>
-            <div><dt>Service</dt><dd>{workspaceData.health.service}</dd></div>
-            <div><dt>Version</dt><dd>{workspaceData.health.version}</dd></div>
-            <div><dt>Time</dt><dd>{workspaceData.health.time || '—'}</dd></div>
-          </dl>
-          {busyMessage ? <p className="notice">{busyMessage}</p> : null}
-          {error ? <p className="error">{error}</p> : null}
-        </article>
+      <section className="browser-shell-layout">
+        <aside className="browser-shell-rail">
+          <ContextHeader
+            selectedWorkspace={workspaceData.selectedWorkspace}
+            repositoryLabel={repositoryLabel}
+            selectedSnapshot={browserExplorer.selectedSnapshot}
+            snapshotOverview={browserExplorer.snapshotOverview}
+          />
 
-        <article className="card">
-          <div className="section-heading">
-            <h2>Browser route status</h2>
-            <span className="badge">Step 8</span>
-          </div>
-          <p className="muted">
-The Browser route now uses dedicated browser orchestration. The legacy snapshot hook still handles customization and comparison for the temporary stacked flow, which reduces coupling before Compare and Operations move into their own routes.
-          </p>
-        </article>
-      </section>
+          <BrowserTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
+        </aside>
 
-      <ContextHeader
-        selectedWorkspace={workspaceData.selectedWorkspace}
-        repositoryLabel={repositoryLabel}
-        selectedSnapshot={browserExplorer.selectedSnapshot}
-        snapshotOverview={browserExplorer.snapshotOverview}
-      />
-
-      <BrowserTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
-
-      <section className="browser-main-content">
-        {tabContent}
+        <section className="browser-shell-body browser-main-content">
+          {tabContent}
+        </section>
       </section>
     </div>
   );

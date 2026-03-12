@@ -74,8 +74,10 @@ export function App() {
     return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
 
+  const isBrowserRoute = currentPath === '/browser';
+
   return (
-    <main className="page">
+    <main className={isBrowserRoute ? "page page--browser" : "page"}>
       <section className="hero hero--compact">
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>

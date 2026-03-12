@@ -9,22 +9,26 @@ type OverviewTabProps = SnapshotOverviewPanelProps & {
 
 export function OverviewTab({ selectedSnapshot, snapshotOverview }: OverviewTabProps) {
   return (
-    <div className="content-stack browser-tab-view">
-      <section className="card section-intro">
+    <div className="browser-tab-shell browser-tab-shell--overview">
+      <section className="card browser-tab-shell__intro">
         <p className="eyebrow">Browser / Overview</p>
         <h2>Snapshot summary</h2>
-        <p className="lead">
-          This tab wraps the existing overview and diagnostics panels so the browser route exposes summary context as its own task-focused screen.
+        <p className="muted">
+          Keep high-level context, completeness, and recent diagnostics visible without forcing the architect to scroll past unrelated admin sections.
         </p>
       </section>
 
-      <div className="content-stack">
-        <SnapshotOverviewPanel
-          selectedSnapshot={selectedSnapshot}
-          snapshotOverview={snapshotOverview}
-        />
-        <RecentDiagnosticsPanel snapshotOverview={snapshotOverview} />
-      </div>
+      <section className="browser-tab-shell__content browser-overview-grid">
+        <div className="content-stack">
+          <SnapshotOverviewPanel
+            selectedSnapshot={selectedSnapshot}
+            snapshotOverview={snapshotOverview}
+          />
+        </div>
+        <div className="content-stack">
+          <RecentDiagnosticsPanel snapshotOverview={snapshotOverview} />
+        </div>
+      </section>
     </div>
   );
 }

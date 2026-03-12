@@ -3,16 +3,18 @@ import type { EntryPointPanelProps } from '../components/snapshotCatalogTypes';
 
 export function EntryPointsTab(props: EntryPointPanelProps) {
   return (
-    <div className="content-stack browser-tab-view">
-      <section className="card section-intro">
+    <div className="browser-tab-shell">
+      <section className="card browser-tab-shell__intro">
         <p className="eyebrow">Browser / Entry points</p>
         <h2>Entry and integration starting points</h2>
-        <p className="lead">
-          This tab keeps the current entry-point exploration behavior while making it an explicit browser screen for inbound flows and integration hotspots.
+        <p className="muted">
+          Separate entry analysis from the rest of the browser so inbound flows, integrations, and focused detail can use the full workspace width.
         </p>
       </section>
 
-      <EntryPointPanel {...props} />
+      <section className="browser-tab-shell__content">
+        <EntryPointPanel {...props} />
+      </section>
     </div>
   );
 }

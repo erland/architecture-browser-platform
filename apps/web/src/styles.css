@@ -558,3 +558,123 @@ dd {
 .compare-guidance {
   max-width: 56rem;
 }
+
+.page--browser {
+  max-width: 1600px;
+}
+
+.browser-route-shell {
+  gap: 16px;
+}
+
+.browser-shell-header {
+  display: grid;
+  gap: 14px;
+}
+
+.browser-hero {
+  padding: 18px 20px;
+}
+
+.browser-hero__lead {
+  max-width: 980px;
+  margin-bottom: 0;
+}
+
+.browser-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.browser-health-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.browser-shell-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.browser-shell-rail {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 20px;
+}
+
+.browser-shell-body {
+  min-width: 0;
+}
+
+.browser-context-header {
+  padding: 16px;
+}
+
+.browser-context-header .section-heading {
+  align-items: start;
+}
+
+.browser-context-grid {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.browser-tab-nav {
+  padding: 16px;
+}
+
+.browser-tab-nav__links {
+  grid-template-columns: 1fr;
+}
+
+.browser-main-content {
+  min-height: 480px;
+}
+
+.browser-tab-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.browser-tab-shell__intro {
+  padding: 16px 18px;
+}
+
+.browser-tab-shell__intro h2 {
+  margin-bottom: 8px;
+}
+
+.browser-tab-shell__content {
+  min-width: 0;
+}
+
+.browser-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.browser-overview-grid > .content-stack {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .browser-shell-layout,
+  .browser-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .browser-shell-rail {
+    position: static;
+  }
+
+  .browser-tab-nav__links {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
