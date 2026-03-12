@@ -12,7 +12,7 @@ export function AppNavigation({ currentPath, onNavigate }: AppNavigationProps) {
         <p className="eyebrow">Navigation</p>
         <h2 className="app-nav__title">Platform views</h2>
         <p className="muted app-nav__lead">
-          Step 4 moves repository registration and run requests into their own view while snapshot browsing and operations continue migrating out of the temporary stacked screen.
+          Step 5 moves snapshot catalog and selection into their own view while detailed browsing and operations continue migrating out of the temporary stacked screen.
         </p>
       </div>
       <div className="app-nav__links">

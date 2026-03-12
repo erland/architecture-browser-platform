@@ -82,6 +82,7 @@ export type SnapshotCatalogSectionProps = {
   setComparisonSnapshotId: Setter<string>;
   comparisonOptions: ComparisonOption[];
   snapshotComparison: SnapshotComparison | null;
+  showCatalogList?: boolean;
 };
 
 export type SnapshotOverviewPanelProps = {
@@ -164,4 +165,5 @@ export type ComparisonPanelProps = {
   setComparisonSnapshotId: Setter<string>;
   comparisonOptions: ComparisonOption[];
   snapshotComparison: SnapshotComparison | null;
+  showCatalogList?: boolean;
 };

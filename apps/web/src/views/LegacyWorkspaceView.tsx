@@ -8,9 +8,10 @@ import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 type LegacyWorkspaceViewProps = {
   onOpenWorkspaces: () => void;
   onOpenRepositories: () => void;
+  onOpenSnapshots: () => void;
 };
 
-export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories }: LegacyWorkspaceViewProps) {
+export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOpenSnapshots }: LegacyWorkspaceViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -37,11 +38,12 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories }: Le
         <p className="eyebrow">Current workspace</p>
         <h2>Snapshot and operations flow</h2>
         <p className="lead">
-          Workspace lifecycle management now lives in Workspaces, and repository registration plus run requests now live in Repositories. This temporary screen is reduced to snapshot exploration and operations until the next steps split it further.
+          Workspace lifecycle management now lives in Workspaces, repository registration plus run requests now live in Repositories, and snapshot selection now lives in Snapshots. This temporary screen is reduced to detailed snapshot exploration and operations for the currently selected snapshot until the Browser and Operations routes are implemented.
         </p>
         <div className="actions">
           <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open Workspaces view</button>
           <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Repositories view</button>
+          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots view</button>
         </div>
       </section>
 
@@ -75,6 +77,7 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories }: Le
           <div className="actions">
             <button type="button" onClick={onOpenWorkspaces}>Manage workspaces</button>
             <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
+            <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Choose snapshot</button>
           </div>
         </article>
       </section>
@@ -141,6 +144,7 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories }: Le
             setComparisonSnapshotId={snapshotExplorer.setComparisonSnapshotId}
             comparisonOptions={snapshotExplorer.comparisonOptions}
             snapshotComparison={snapshotExplorer.snapshotComparison}
+            showCatalogList={false}
           />
 
           <OperationsAndAuditSection

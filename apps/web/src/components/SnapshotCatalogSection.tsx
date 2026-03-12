@@ -69,6 +69,7 @@ export function SnapshotCatalogSection(props: SnapshotCatalogSectionProps) {
     setComparisonSnapshotId,
     comparisonOptions,
     snapshotComparison,
+    showCatalogList = true,
   } = props;
 
   return (
@@ -78,18 +79,20 @@ export function SnapshotCatalogSection(props: SnapshotCatalogSectionProps) {
         <span className="badge">{snapshots.length}</span>
       </div>
       {selectedWorkspace ? (
-        <div className="split-grid split-grid--wide">
-          <div className="stack stack--compact">
-            {snapshots.map((snapshot) => (
-              <button key={snapshot.id} type="button" className={`list-item ${snapshot.id === selectedSnapshotId ? "list-item--active" : ""}`} onClick={() => setSelectedSnapshotId(snapshot.id)}>
-                <strong>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</strong>
-                <span>{snapshot.snapshotKey}</span>
-                <span>{snapshot.completenessStatus} · {snapshot.importedAt ? formatDateTime(snapshot.importedAt) : "—"}</span>
-                <span>{snapshot.entityCount} entities · {snapshot.relationshipCount} relationships · {snapshot.diagnosticCount} diagnostics</span>
-              </button>
-            ))}
-            {!snapshots.length ? <p className="muted">No snapshots imported yet.</p> : null}
-          </div>
+        <div className={showCatalogList ? 'split-grid split-grid--wide' : 'stack stack--compact'}>
+          {showCatalogList ? (
+            <div className="stack stack--compact">
+              {snapshots.map((snapshot) => (
+                <button key={snapshot.id} type="button" className={`list-item ${snapshot.id === selectedSnapshotId ? "list-item--active" : ""}`} onClick={() => setSelectedSnapshotId(snapshot.id)}>
+                  <strong>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</strong>
+                  <span>{snapshot.snapshotKey}</span>
+                  <span>{snapshot.completenessStatus} · {snapshot.importedAt ? formatDateTime(snapshot.importedAt) : "—"}</span>
+                  <span>{snapshot.entityCount} entities · {snapshot.relationshipCount} relationships · {snapshot.diagnosticCount} diagnostics</span>
+                </button>
+              ))}
+              {!snapshots.length ? <p className="muted">No snapshots imported yet.</p> : null}
+            </div>
+          ) : null}
 
           <div className="stack stack--compact">
             {selectedSnapshot && snapshotOverview ? (

@@ -17,8 +17,8 @@ export function RoutePlaceholderView({ path, onOpenLegacy }: RoutePlaceholderVie
       <h2>{route.label}</h2>
       <p className="lead placeholder-view__lead">{route.description}</p>
       <p className="muted">
-        The route shell and persistent app context are in place, and the dedicated Workspaces plus Repositories views are now live. The current stacked snapshot/operations flow remains available while the
-        rest of the refactor moves each workflow into its own view.
+        The route shell and persistent app context are in place, and the dedicated Workspaces, Repositories, and Snapshots views are now live. The current stacked detailed browser flow remains available while the
+        Browser, Compare, and Operations routes are implemented.
       </p>
       <div className="selection-summary selection-summary--compact">
         <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>
