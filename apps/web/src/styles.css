@@ -403,3 +403,66 @@ dd {
 .grid-span-2 {
   grid-column: span 2;
 }
+
+.hero--compact {
+  margin-bottom: 20px;
+}
+
+.route-content {
+  margin-top: 20px;
+}
+
+.app-nav {
+  display: grid;
+  gap: 20px;
+}
+
+.app-nav__title {
+  margin-bottom: 6px;
+}
+
+.app-nav__lead {
+  max-width: 720px;
+}
+
+.app-nav__links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.nav-link {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.nav-link--active {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(147, 197, 253, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.16);
+}
+
+.nav-link__label {
+  font-weight: 600;
+}
+
+.nav-link__description {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.placeholder-view {
+  min-height: 280px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.placeholder-view__lead {
+  margin-bottom: 0;
+}
