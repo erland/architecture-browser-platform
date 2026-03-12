@@ -20,12 +20,15 @@ function readBrowserTabFromLocation(): BrowserTabKey {
 }
 
 type BrowserViewProps = {
+  onOpenWorkspaces: () => void;
   onOpenSnapshots: () => void;
   onOpenRepositories: () => void;
+  onOpenCompare: () => void;
+  onOpenOperations: () => void;
   onOpenLegacy: () => void;
 };
 
-export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy }: BrowserViewProps) {
+export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories, onOpenCompare, onOpenOperations, onOpenLegacy }: BrowserViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTabKey>(() => readBrowserTabFromLocation());
@@ -167,24 +170,22 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
 
   return (
     <div className="content-stack browser-view browser-route-shell">
-      <section className="card browser-hero browser-shell-header">
-        <div className="browser-hero__main">
+      <section className="card browser-shell-header browser-shell-header--compact">
+        <div>
           <p className="eyebrow">Browser</p>
-          <h2>Focused architecture workspace</h2>
-          <p className="lead browser-hero__lead">
-            Step 12 makes Browser the obvious destination after indexing. The header now explains snapshot status directly, especially when the selected snapshot is partial, so users understand what they are browsing before they dive into the tabs.
+          <h2>Architecture browsing workspace</h2>
+          <p className="muted browser-shell-header__lead">
+            Use the left rail to navigate between focused browser tools. Keep repository and snapshot changes in their dedicated views so the main pane can stay centered on exploration.
           </p>
         </div>
-        <div className="browser-hero__actions">
-          <button type="button" onClick={onOpenSnapshots}>Choose snapshot</button>
-          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+        <div className="browser-shell-header__actions">
+          <button type="button" onClick={onOpenSnapshots}>Change snapshot</button>
+          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Repositories</button>
+          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Current workspace</button>
         </div>
-        <div className="browser-health-bar">
+        <div className="browser-health-bar browser-health-bar--compact">
           <span className="badge">API {workspaceData.health.status}</span>
           <span className="badge">{workspaceData.health.service}</span>
-          <span className="badge">{workspaceData.health.version}</span>
-          {workspaceData.health.time ? <span className="badge">{workspaceData.health.time}</span> : null}
           {busyMessage ? <span className="badge badge--warning">{busyMessage}</span> : null}
           {error ? <span className="badge badge--danger">{error}</span> : null}
         </div>
@@ -192,14 +193,25 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
 
       <section className="browser-shell-layout">
         <aside className="browser-shell-rail">
-          <ContextHeader
-            selectedWorkspace={workspaceData.selectedWorkspace}
-            repositoryLabel={repositoryLabel}
-            selectedSnapshot={browserExplorer.selectedSnapshot}
-            snapshotOverview={browserExplorer.snapshotOverview}
-          />
+          <div className="browser-shell-rail__sticky">
+            <ContextHeader
+              selectedWorkspace={workspaceData.selectedWorkspace}
+              repositoryLabel={repositoryLabel}
+              selectedSnapshot={browserExplorer.selectedSnapshot}
+              snapshotOverview={browserExplorer.snapshotOverview}
+              onOpenWorkspaces={onOpenWorkspaces}
+              onOpenRepositories={onOpenRepositories}
+              onOpenSnapshots={onOpenSnapshots}
+            />
 
-          <BrowserTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
+            <BrowserTabNav
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+              onOpenCompare={onOpenCompare}
+              onOpenOperations={onOpenOperations}
+              onOpenLegacy={onOpenLegacy}
+            />
+          </div>
         </aside>
 
         <section className="browser-shell-body browser-main-content">

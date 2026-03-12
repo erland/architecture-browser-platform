@@ -4,11 +4,13 @@ import type { DependencyPanelProps } from '../components/snapshotCatalogTypes';
 export function DependenciesTab(props: DependencyPanelProps) {
   return (
     <div className="browser-tab-shell">
-      <section className="card browser-tab-shell__intro">
-        <p className="eyebrow">Browser / Dependencies</p>
-        <h2>Dependency exploration</h2>
-        <p className="muted">
-          Keep filters and relationship context close at hand while giving the entity list and relationship graph a much larger reading surface.
+      <section className="browser-workspace-header">
+        <div>
+          <p className="eyebrow">Dependencies</p>
+          <h2>Relationship workspace</h2>
+        </div>
+        <p className="muted browser-workspace-header__hint">
+          Filters stay at the top, entity navigation stays on the left, and the focused relationship context stays on the right.
         </p>
       </section>
 

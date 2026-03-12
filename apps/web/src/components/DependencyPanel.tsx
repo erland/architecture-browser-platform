@@ -13,9 +13,9 @@ export function DependencyPanel({
   setFocusedDependencyEntityId,
 }: DependencyPanelProps) {
   return (
-    <div className="card card--nested">
-      <div className="section-heading"><h3>Dependency and relationship view</h3><span className="badge">Step 8</span></div>
-      <div className="split-grid split-grid--compact">
+    <div className="card card--nested browser-tool-panel">
+      <div className="section-heading section-heading--tight"><h3>Dependency and relationship view</h3><span className="badge">Focused workspace</span></div>
+      <div className="split-grid split-grid--compact browser-tool-filters">
         <label>
           <span>Scope focus</span>
           <select value={selectedDependencyScopeId} onChange={(event) => { setSelectedDependencyScopeId(event.target.value); setFocusedDependencyEntityId(""); }}>
@@ -45,18 +45,11 @@ export function DependencyPanel({
       </div>
       {dependencyView ? (
         <div className="stack stack--compact">
-          <div className="split-grid split-grid--compact">
-            <div className="card card--nested"><h4>Scope entities</h4><p>{dependencyView.summary.scopeEntityCount}</p></div>
-            <div className="card card--nested"><h4>Visible entities</h4><p>{dependencyView.summary.visibleEntityCount}</p></div>
-            <div className="card card--nested"><h4>Relationships</h4><p>{dependencyView.summary.visibleRelationshipCount}</p></div>
-            <div className="card card--nested"><h4>Kinds</h4><p>{summarizeDependencyKinds(dependencyView.relationships)}</p></div>
-          </div>
-
-          <div className="split-grid split-grid--compact">
-            <div className="card card--nested"><h4>Internal</h4><p>{dependencyView.summary.internalRelationshipCount}</p></div>
-            <div className="card card--nested"><h4>Inbound</h4><p>{dependencyView.summary.inboundRelationshipCount}</p></div>
-            <div className="card card--nested"><h4>Outbound</h4><p>{dependencyView.summary.outboundRelationshipCount}</p></div>
-            <div className="card card--nested"><h4>Scope</h4><p>{dependencyView.scope.path}</p></div>
+          <div className="browser-tool-summary-strip">
+            <span className="badge">Visible entities: {dependencyView.summary.visibleEntityCount}</span>
+            <span className="badge">Relationships: {dependencyView.summary.visibleRelationshipCount}</span>
+            <span className="badge">Kinds: {summarizeDependencyKinds(dependencyView.relationships)}</span>
+            <span className="badge">Scope: {dependencyView.scope.path}</span>
           </div>
 
           {dependencyView.focus ? (
@@ -68,33 +61,48 @@ export function DependencyPanel({
             </div>
           ) : null}
 
-          <div className="card card--nested">
-            <div className="section-heading"><h4>Visible entities</h4><span className="badge">{dependencyView.entities.length}</span></div>
-            <div className="stack stack--compact">
-              {dependencyView.entities.map((entity) => (
-                <button key={entity.externalId} type="button" className={`list-item ${entity.externalId === focusedDependencyEntityId ? "list-item--active" : ""}`} onClick={() => setFocusedDependencyEntityId((current) => current === entity.externalId ? "" : entity.externalId)}>
-                  <strong>{entity.displayName ?? entity.name}</strong>
-                  <span>{entity.kind} · {entity.inScope ? "in scope" : "external neighbor"}</span>
-                  <span>{entity.inboundCount} inbound · {entity.outboundCount} outbound</span>
-                </button>
-              ))}
+          <div className="browser-tool-workspace">
+            <div className="card card--nested">
+              <div className="section-heading"><h4>Visible entities</h4><span className="badge">{dependencyView.entities.length}</span></div>
+              <div className="stack stack--compact browser-list-scroll">
+                {dependencyView.entities.map((entity) => (
+                  <button key={entity.externalId} type="button" className={`list-item ${entity.externalId === focusedDependencyEntityId ? "list-item--active" : ""}`} onClick={() => setFocusedDependencyEntityId((current) => current === entity.externalId ? "" : entity.externalId)}>
+                    <strong>{entity.displayName ?? entity.name}</strong>
+                    <span>{entity.kind} · {entity.inScope ? "in scope" : "external neighbor"}</span>
+                    <span>{entity.inboundCount} inbound · {entity.outboundCount} outbound</span>
+                  </button>
+                ))}
+                {!dependencyView.entities.length ? <p className="muted">No entities match the current filter.</p> : null}
+              </div>
             </div>
-          </div>
 
-          <div className="card card--nested">
-            <div className="section-heading"><h4>Relationship graph</h4><span className="badge">{dependencyView.relationships.length}</span></div>
             <div className="stack stack--compact">
-              {dependencyView.relationships.map((relationship) => (
-                <div key={relationship.externalId} className="run-item">
-                  <strong>{relationship.fromDisplayName}</strong>
-                  <span>{relationship.fromKind} · {relationship.fromInScope ? "scope" : "external"}</span>
-                  <span>↓ {relationship.kind} {relationship.crossesScopeBoundary ? "· boundary" : "· internal"}</span>
-                  <strong>{relationship.toDisplayName}</strong>
-                  <span>{relationship.toKind} · {relationship.toInScope ? "scope" : "external"}</span>
-                  <span>{relationship.fromScopePath} → {relationship.toScopePath}</span>
+              <details className="card browser-collapsible-panel" open>
+                <summary>Relationship graph ({dependencyView.relationships.length})</summary>
+                <div className="stack stack--compact top-gap browser-list-scroll">
+                  {dependencyView.relationships.map((relationship) => (
+                    <div key={relationship.externalId} className="run-item">
+                      <strong>{relationship.fromDisplayName}</strong>
+                      <span>{relationship.fromKind} · {relationship.fromInScope ? "scope" : "external"}</span>
+                      <span>↓ {relationship.kind} {relationship.crossesScopeBoundary ? "· boundary" : "· internal"}</span>
+                      <strong>{relationship.toDisplayName}</strong>
+                      <span>{relationship.toKind} · {relationship.toInScope ? "scope" : "external"}</span>
+                      <span>{relationship.fromScopePath} → {relationship.toScopePath}</span>
+                    </div>
+                  ))}
+                  {!dependencyView.relationships.length ? <p className="muted">No relationships match the current filter.</p> : null}
                 </div>
-              ))}
-              {!dependencyView.relationships.length ? <p className="muted">No relationships match the current filter.</p> : null}
+              </details>
+
+              <details className="card browser-collapsible-panel">
+                <summary>More scope metrics</summary>
+                <div className="browser-tool-summary-strip top-gap">
+                  <span className="badge">Scope entities: {dependencyView.summary.scopeEntityCount}</span>
+                  <span className="badge">Internal: {dependencyView.summary.internalRelationshipCount}</span>
+                  <span className="badge">Inbound: {dependencyView.summary.inboundRelationshipCount}</span>
+                  <span className="badge">Outbound: {dependencyView.summary.outboundRelationshipCount}</span>
+                </div>
+              </details>
             </div>
           </div>
         </div>

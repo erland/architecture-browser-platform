@@ -10,24 +10,29 @@ type OverviewTabProps = SnapshotOverviewPanelProps & {
 export function OverviewTab({ selectedSnapshot, snapshotOverview }: OverviewTabProps) {
   return (
     <div className="browser-tab-shell browser-tab-shell--overview">
-      <section className="card browser-tab-shell__intro">
-        <p className="eyebrow">Browser / Overview</p>
-        <h2>Snapshot summary</h2>
-        <p className="muted">
-          Keep high-level context, completeness, and recent diagnostics visible without forcing the architect to scroll past unrelated admin sections.
+      <section className="browser-workspace-header">
+        <div>
+          <p className="eyebrow">Overview</p>
+          <h2>Snapshot summary</h2>
+        </div>
+        <p className="muted browser-workspace-header__hint">
+          Keep the current snapshot readable at a glance. Less-frequent diagnostics stay available below without dominating the workspace.
         </p>
       </section>
 
-      <section className="browser-tab-shell__content browser-overview-grid">
+      <section className="browser-tab-shell__content browser-overview-grid browser-overview-grid--clean">
         <div className="content-stack">
           <SnapshotOverviewPanel
             selectedSnapshot={selectedSnapshot}
             snapshotOverview={snapshotOverview}
           />
         </div>
-        <div className="content-stack">
-          <RecentDiagnosticsPanel snapshotOverview={snapshotOverview} />
-        </div>
+        <details className="card browser-collapsible-panel" open={snapshotOverview.recentDiagnostics.length > 0 && snapshotOverview.recentDiagnostics.length <= 3}>
+          <summary>Diagnostics ({snapshotOverview.recentDiagnostics.length})</summary>
+          <div className="top-gap">
+            <RecentDiagnosticsPanel snapshotOverview={snapshotOverview} />
+          </div>
+        </details>
       </section>
     </div>
   );

@@ -13,9 +13,9 @@ export function EntryPointPanel({
   setFocusedEntryPointId,
 }: EntryPointPanelProps) {
   return (
-    <div className="card card--nested">
-      <div className="section-heading"><h3>Entry points and data/integration surfaces</h3><span className="badge">Step 9</span></div>
-      <div className="split-grid split-grid--compact">
+    <div className="card card--nested browser-tool-panel">
+      <div className="section-heading section-heading--tight"><h3>Entry points and integration surfaces</h3><span className="badge">Focused workspace</span></div>
+      <div className="split-grid split-grid--compact browser-tool-filters">
         <label>
           <span>Scope filter</span>
           <select value={selectedEntryPointScopeId} onChange={(event) => setSelectedEntryPointScopeId(event.target.value)}>
@@ -46,72 +46,85 @@ export function EntryPointPanel({
       </div>
       {entryPointView ? (
         <div className="stack stack--compact">
-          <div className="split-grid split-grid--compact">
-            <div className="card card--nested"><h4>Visible items</h4><p>{entryPointView.summary.visibleItemCount}</p></div>
-            <div className="card card--nested"><h4>Entry points</h4><p>{entryPointView.summary.entryPointCount}</p></div>
-            <div className="card card--nested"><h4>Data</h4><p>{entryPointView.summary.dataCount}</p></div>
-            <div className="card card--nested"><h4>Integrations</h4><p>{entryPointView.summary.integrationCount}</p></div>
-          </div>
-          <div className="split-grid split-grid--compact">
-            <div className="card card--nested"><h4>Relevant inventory</h4><p>{entryPointView.summary.totalRelevantItemCount}</p></div>
-            <div className="card card--nested"><h4>Linked relationships</h4><p>{entryPointView.summary.relationshipCount}</p></div>
-            <div className="card card--nested"><h4>Visible kinds</h4><p>{summarizeEntryKinds(entryPointView.items)}</p></div>
-            <div className="card card--nested"><h4>Scope</h4><p>{entryPointView.scope.path}</p></div>
+          <div className="browser-tool-summary-strip">
+            <span className="badge">Visible items: {entryPointView.summary.visibleItemCount}</span>
+            <span className="badge">Entry points: {entryPointView.summary.entryPointCount}</span>
+            <span className="badge">Data: {entryPointView.summary.dataCount}</span>
+            <span className="badge">Integrations: {entryPointView.summary.integrationCount}</span>
+            <span className="badge">Kinds: {summarizeEntryKinds(entryPointView.items)}</span>
           </div>
 
-          {entryPointView.focus ? (
+          <div className="browser-tool-workspace">
             <div className="card card--nested">
-              <div className="section-heading"><h4>Focused detail</h4><span className="badge">{entryPointView.focus.item.kind}</span></div>
-              <p><strong>{entryPointView.focus.item.displayName ?? entryPointView.focus.item.name}</strong></p>
-              <p className="muted">{entryPointView.focus.item.scopePath}</p>
-              <p>{entryPointView.focus.item.inboundRelationshipCount} inbound · {entryPointView.focus.item.outboundRelationshipCount} outbound · {entryPointView.focus.item.sourceRefCount} source refs</p>
-              <p>{entryPointView.focus.item.sourcePath ?? "No source path"}</p>
-              {entryPointView.focus.item.sourceSnippet ? <code>{entryPointView.focus.item.sourceSnippet}</code> : null}
+              <div className="section-heading"><h4>Visible items</h4><span className="badge">{entryPointView.items.length}</span></div>
+              <div className="stack stack--compact browser-list-scroll">
+                {entryPointView.items.map((item) => (
+                  <button key={item.externalId} type="button" className={`list-item ${item.externalId === focusedEntryPointId ? "list-item--active" : ""}`} onClick={() => setFocusedEntryPointId((current) => current === item.externalId ? "" : item.externalId)}>
+                    <strong>{item.displayName ?? item.name}</strong>
+                    <span>{item.kind} · {item.scopePath}</span>
+                    <span>{item.inboundRelationshipCount} inbound · {item.outboundRelationshipCount} outbound · {item.sourceRefCount} source refs</span>
+                  </button>
+                ))}
+                {!entryPointView.items.length ? <p className="muted">No items match the current filters.</p> : null}
+              </div>
             </div>
-          ) : null}
 
-          <div className="card card--nested">
-            <div className="section-heading"><h4>Visible items</h4><span className="badge">{entryPointView.items.length}</span></div>
             <div className="stack stack--compact">
-              {entryPointView.items.map((item) => (
-                <button key={item.externalId} type="button" className={`list-item ${item.externalId === focusedEntryPointId ? "list-item--active" : ""}`} onClick={() => setFocusedEntryPointId((current) => current === item.externalId ? "" : item.externalId)}>
-                  <strong>{item.displayName ?? item.name}</strong>
-                  <span>{item.kind} · {item.scopePath}</span>
-                  <span>{item.inboundRelationshipCount} inbound · {item.outboundRelationshipCount} outbound · {item.relatedKinds.length ? item.relatedKinds.join(", ") : "—"}</span>
-                </button>
-              ))}
-              {!entryPointView.items.length ? <p className="muted">No items match the current filter.</p> : null}
+              {entryPointView.focus ? (
+                <div className="card card--nested">
+                  <div className="section-heading"><h4>Focused detail</h4><span className="badge">{entryPointView.focus.item.kind}</span></div>
+                  <p><strong>{entryPointView.focus.item.displayName ?? entryPointView.focus.item.name}</strong></p>
+                  <p className="muted">{entryPointView.focus.item.scopePath}</p>
+                  <p>{entryPointView.focus.item.inboundRelationshipCount} inbound · {entryPointView.focus.item.outboundRelationshipCount} outbound · {entryPointView.focus.item.sourceRefCount} source refs</p>
+                  <p>{entryPointView.focus.item.sourcePath ?? "No source path"}</p>
+                  {entryPointView.focus.item.sourceSnippet ? <code>{entryPointView.focus.item.sourceSnippet}</code> : null}
+                </div>
+              ) : null}
+
+              <details className="card browser-collapsible-panel" open={Boolean(entryPointView.focus)}>
+                <summary>Relationships {entryPointView.focus ? `(${entryPointView.focus.inboundRelationships.length + entryPointView.focus.outboundRelationships.length})` : ''}</summary>
+                {entryPointView.focus ? (
+                  <div className="split-grid split-grid--compact top-gap">
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entryPointView.focus.inboundRelationships.length}</span></div>
+                      <div className="stack stack--compact browser-list-scroll">
+                        {entryPointView.focus.inboundRelationships.map((relationship) => (
+                          <div key={relationship.externalId} className="audit-item">
+                            <strong>{relationship.otherDisplayName}</strong>
+                            <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                            <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                          </div>
+                        ))}
+                        {!entryPointView.focus.inboundRelationships.length ? <p className="muted">No inbound relationships.</p> : null}
+                      </div>
+                    </div>
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entryPointView.focus.outboundRelationships.length}</span></div>
+                      <div className="stack stack--compact browser-list-scroll">
+                        {entryPointView.focus.outboundRelationships.map((relationship) => (
+                          <div key={relationship.externalId} className="audit-item">
+                            <strong>{relationship.otherDisplayName}</strong>
+                            <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                            <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                          </div>
+                        ))}
+                        {!entryPointView.focus.outboundRelationships.length ? <p className="muted">No outbound relationships.</p> : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : <p className="muted top-gap">Select an item to inspect its linked relationships.</p>}
+              </details>
+
+              <details className="card browser-collapsible-panel">
+                <summary>More inventory metrics</summary>
+                <div className="browser-tool-summary-strip top-gap">
+                  <span className="badge">Relevant inventory: {entryPointView.summary.totalRelevantItemCount}</span>
+                  <span className="badge">Linked relationships: {entryPointView.summary.relationshipCount}</span>
+                  <span className="badge">Scope: {entryPointView.scope.path}</span>
+                </div>
+              </details>
             </div>
           </div>
-
-          {entryPointView.focus ? (
-            <div className="split-grid split-grid--compact">
-              <div className="card card--nested">
-                <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entryPointView.focus.inboundRelationships.length}</span></div>
-                <div className="stack stack--compact">
-                  {entryPointView.focus.inboundRelationships.map((relationship) => (
-                    <div key={relationship.externalId} className="audit-item">
-                      <strong>{relationship.otherDisplayName}</strong>
-                      <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
-                      <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="card card--nested">
-                <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entryPointView.focus.outboundRelationships.length}</span></div>
-                <div className="stack stack--compact">
-                  {entryPointView.focus.outboundRelationships.map((relationship) => (
-                    <div key={relationship.externalId} className="audit-item">
-                      <strong>{relationship.otherDisplayName}</strong>
-                      <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
-                      <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : null}
         </div>
       ) : <p className="muted">Entry-point and integration view will appear when a snapshot is available.</p>}
     </div>

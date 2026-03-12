@@ -27,24 +27,24 @@ function buildStatusExplanation(selectedSnapshot: SnapshotSummary | null, snapsh
 
   if (selectedSnapshot.completenessStatus === 'COMPLETE') {
     return {
-      title: 'Snapshot fully imported',
-      summary: `Indexed ${indexedFileCount} of ${totalFileCount} files with ${degradedFileCount} degraded files.`,
-      details: primaryMessage ? [primaryMessage] : [],
+      toneClassName: 'browser-context-status browser-context-status--ok',
+      summary: `Complete import · ${indexedFileCount}/${totalFileCount} files indexed`,
+      detail: degradedFileCount > 0 ? `${degradedFileCount} degraded files` : primaryMessage,
     };
   }
 
   if (selectedSnapshot.completenessStatus === 'PARTIAL') {
     return {
-      title: 'Partial snapshot explanation',
-      summary: `Indexed ${indexedFileCount} of ${totalFileCount} files. ${degradedFileCount} files were degraded or omitted, so some browser results may be incomplete.`,
-      details: [...notes, ...warnings].slice(0, 3),
+      toneClassName: 'browser-context-status browser-context-status--warning',
+      summary: `Partial import · ${indexedFileCount}/${totalFileCount} files indexed`,
+      detail: primaryMessage ?? `${degradedFileCount} degraded or omitted files may affect browser results.`,
     };
   }
 
   return {
-    title: 'Snapshot import failed',
-    summary: `This snapshot is not fully usable for browsing. Indexed ${indexedFileCount} of ${totalFileCount} files before the run failed.`,
-    details: [...notes, ...warnings].slice(0, 3),
+    toneClassName: 'browser-context-status browser-context-status--danger',
+    summary: `Import failed · ${indexedFileCount}/${totalFileCount} files indexed`,
+    detail: primaryMessage ?? 'This snapshot is not fully usable for browsing.',
   };
 }
 
@@ -53,67 +53,86 @@ type ContextHeaderProps = {
   repositoryLabel: string;
   selectedSnapshot: SnapshotSummary | null;
   snapshotOverview: SnapshotOverview | null;
+  onOpenWorkspaces?: () => void;
+  onOpenRepositories?: () => void;
+  onOpenSnapshots?: () => void;
 };
 
-export function ContextHeader({ selectedWorkspace, repositoryLabel, selectedSnapshot, snapshotOverview }: ContextHeaderProps) {
+export function ContextHeader({
+  selectedWorkspace,
+  repositoryLabel,
+  selectedSnapshot,
+  snapshotOverview,
+  onOpenWorkspaces,
+  onOpenRepositories,
+  onOpenSnapshots,
+}: ContextHeaderProps) {
   const statusExplanation = buildStatusExplanation(selectedSnapshot, snapshotOverview);
 
   return (
-    <section className="card browser-context-header">
-      <div className="section-heading">
+    <section className="card browser-context-header browser-context-header--compact">
+      <div className="browser-context-header__top browser-context-header__top--compact">
         <div>
-          <p className="eyebrow">Browser context</p>
-          <h2>Focused architecture browsing</h2>
+          <p className="eyebrow">Current context</p>
+          <h2>Browse this snapshot</h2>
+          <p className="muted browser-context-header__lead">Use the selectors below to switch context. The left rail is meant to help you move between views, not to summarize the whole snapshot.</p>
         </div>
-        <div className="browser-context-header__badges">
-          <span className={outcomeBadgeClass(selectedSnapshot?.completenessStatus)}>
-            {selectedSnapshot?.completenessStatus ?? 'No snapshot'}
-          </span>
-          <span className={outcomeBadgeClass(selectedSnapshot?.derivedRunOutcome)}>
-            Run {selectedSnapshot?.derivedRunOutcome ?? '—'}
-          </span>
+      </div>
+
+      <div className="browser-context-switchers" aria-label="Current browser context">
+        <div className="browser-context-switcher-row">
+          <div>
+            <span className="browser-context-switcher-row__label">Workspace</span>
+            <strong className="browser-context-switcher-row__value">{selectedWorkspace?.name ?? '—'}</strong>
+          </div>
+          {onOpenWorkspaces ? (
+            <button type="button" className="button-secondary browser-context-switcher-row__action" onClick={onOpenWorkspaces}>
+              Change
+            </button>
+          ) : null}
         </div>
+
+        <div className="browser-context-switcher-row">
+          <div>
+            <span className="browser-context-switcher-row__label">Repository</span>
+            <strong className="browser-context-switcher-row__value">{repositoryLabel || '—'}</strong>
+          </div>
+          {onOpenRepositories ? (
+            <button type="button" className="button-secondary browser-context-switcher-row__action" onClick={onOpenRepositories}>
+              Change
+            </button>
+          ) : null}
+        </div>
+
+        <div className="browser-context-switcher-row">
+          <div>
+            <span className="browser-context-switcher-row__label">Snapshot</span>
+            <strong className="browser-context-switcher-row__value">{selectedSnapshot?.snapshotKey ?? '—'}</strong>
+            <span className="browser-context-switcher-row__meta">{selectedSnapshot?.sourceBranch ?? snapshotOverview?.source.branch ?? 'No branch recorded'}</span>
+          </div>
+          {onOpenSnapshots ? (
+            <button type="button" className="button-secondary browser-context-switcher-row__action" onClick={onOpenSnapshots}>
+              Change
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="browser-context-header__badges">
+        <span className={outcomeBadgeClass(selectedSnapshot?.completenessStatus)}>
+          {selectedSnapshot?.completenessStatus ?? 'No snapshot'}
+        </span>
+        <span className={outcomeBadgeClass(selectedSnapshot?.derivedRunOutcome)}>
+          Run {selectedSnapshot?.derivedRunOutcome ?? '—'}
+        </span>
       </div>
 
       {statusExplanation ? (
-        <article className="browser-status-explanation">
-          <div className="section-heading section-heading--tight">
-            <h3>{statusExplanation.title}</h3>
-            <span className="badge">{selectedSnapshot?.diagnosticCount ?? 0} diagnostics</span>
-          </div>
-          <p>{statusExplanation.summary}</p>
-          {statusExplanation.details.length ? (
-            <ul className="browser-status-explanation__list">
-              {statusExplanation.details.map((detail) => (
-                <li key={detail}>{detail}</li>
-              ))}
-            </ul>
-          ) : null}
-        </article>
+        <div className={statusExplanation.toneClassName}>
+          <strong>{statusExplanation.summary}</strong>
+          {statusExplanation.detail ? <span>{statusExplanation.detail}</span> : null}
+        </div>
       ) : null}
-
-      <div className="browser-context-grid">
-        <article className="card card--nested">
-          <h3>Workspace</h3>
-          <p><strong>{selectedWorkspace?.name ?? '—'}</strong></p>
-          <p className="muted">{selectedWorkspace?.workspaceKey ?? 'No workspace selected'}</p>
-        </article>
-        <article className="card card--nested">
-          <h3>Repository</h3>
-          <p><strong>{repositoryLabel || '—'}</strong></p>
-          <p className="muted">Source for the selected snapshot</p>
-        </article>
-        <article className="card card--nested">
-          <h3>Snapshot</h3>
-          <p><strong>{selectedSnapshot?.snapshotKey ?? '—'}</strong></p>
-          <p className="muted">{selectedSnapshot?.schemaVersion ? `Schema ${selectedSnapshot.schemaVersion}` : 'No snapshot selected'}</p>
-        </article>
-        <article className="card card--nested">
-          <h3>Branch and revision</h3>
-          <p><strong>{selectedSnapshot?.sourceBranch ?? snapshotOverview?.source.branch ?? '—'}</strong></p>
-          <p className="muted">{selectedSnapshot?.sourceRevision ?? snapshotOverview?.source.revision ?? '—'}</p>
-        </article>
-      </div>
     </section>
   );
 }

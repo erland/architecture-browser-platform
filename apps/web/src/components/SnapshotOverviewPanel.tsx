@@ -19,6 +19,12 @@ export function SnapshotOverviewPanel({ selectedSnapshot, snapshotOverview }: Sn
           <div><dt>Technologies</dt><dd>{snapshotOverview.run.detectedTechnologies.join(", ") || "—"}</dd></div>
           <div><dt>Files</dt><dd>{snapshotOverview.completeness.indexedFileCount}/{snapshotOverview.completeness.totalFileCount} indexed · {snapshotOverview.completeness.degradedFileCount} degraded</dd></div>
         </dl>
+        <div className="browser-tool-summary-strip top-gap">
+          <span className="badge">Scope kinds: {summarizeCounts(snapshotOverview.scopeKinds)}</span>
+          <span className="badge">Entity kinds: {summarizeCounts(snapshotOverview.entityKinds)}</span>
+          <span className="badge">Relationship kinds: {summarizeCounts(snapshotOverview.relationshipKinds)}</span>
+          <span className="badge">Diagnostics: {summarizeCounts(snapshotOverview.diagnosticCodes)}</span>
+        </div>
         {selectedSnapshot.completenessStatus === "PARTIAL" ? (
           <div className="stack stack--compact top-gap">
             <p className="warning">
@@ -32,26 +38,22 @@ export function SnapshotOverviewPanel({ selectedSnapshot, snapshotOverview }: Sn
           </div>
         ) : null}
         {snapshotOverview.warnings.length ? (
-          <div className="stack stack--compact top-gap">
-            {snapshotOverview.warnings.map((warning) => <p key={warning} className="warning">{warning}</p>)}
-          </div>
+          <details className="card browser-collapsible-panel top-gap">
+            <summary>Warnings ({snapshotOverview.warnings.length})</summary>
+            <div className="stack stack--compact top-gap">
+              {snapshotOverview.warnings.map((warning) => <p key={warning} className="warning">{warning}</p>)}
+            </div>
+          </details>
         ) : null}
       </div>
 
-      <div className="split-grid split-grid--compact">
-        <div className="card card--nested"><h3>Scope kinds</h3><p>{summarizeCounts(snapshotOverview.scopeKinds)}</p></div>
-        <div className="card card--nested"><h3>Entity kinds</h3><p>{summarizeCounts(snapshotOverview.entityKinds)}</p></div>
-        <div className="card card--nested"><h3>Relationship kinds</h3><p>{summarizeCounts(snapshotOverview.relationshipKinds)}</p></div>
-        <div className="card card--nested"><h3>Diagnostics</h3><p>{summarizeCounts(snapshotOverview.diagnosticCodes)}</p></div>
-      </div>
-
-      <div className="card card--nested">
-        <div className="section-heading"><h3>Top scopes</h3><span className="badge">{snapshotOverview.topScopes.length}</span></div>
-        <div className="stack stack--compact">
+      <details className="card browser-collapsible-panel" open={snapshotOverview.topScopes.length <= 5}>
+        <summary>Top scopes ({snapshotOverview.topScopes.length})</summary>
+        <div className="stack stack--compact top-gap">
           {snapshotOverview.topScopes.map((scope) => <div key={scope.externalId} className="summary-row"><strong>{scope.name}</strong><span>{scope.count} facts</span></div>)}
           {!snapshotOverview.topScopes.length ? <p className="muted">No scope breakdown available.</p> : null}
         </div>
-      </div>
+      </details>
     </>
   );
 }

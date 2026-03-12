@@ -9,14 +9,14 @@ export function LayoutExplorerPanel({
   layoutScopeDetail,
 }: LayoutExplorerPanelProps) {
   return (
-    <div className="card card--nested">
-      <div className="section-heading"><h3>Layout explorer</h3><span className="badge">Step 7</span></div>
+    <div className="card card--nested browser-tool-panel">
+      <div className="section-heading section-heading--tight"><h3>Layout explorer</h3><span className="badge">Scope tree</span></div>
       {layoutTree ? (
-        <div className="split-grid split-grid--wide">
+        <div className="browser-tool-workspace browser-tool-workspace--wide">
           <div className="stack stack--compact">
             <div className="card card--nested">
-              <h4>Tree</h4>
-              <div className="stack stack--compact">
+              <div className="section-heading section-heading--tight"><h4>Tree</h4><span className="badge">{flattenedLayoutNodes.length}</span></div>
+              <div className="stack stack--compact browser-list-scroll">
                 {flattenedLayoutNodes.map((node) => (
                   <button
                     key={node.externalId}
@@ -33,10 +33,13 @@ export function LayoutExplorerPanel({
               </div>
             </div>
 
-            <div className="split-grid split-grid--compact">
-              <div className="card card--nested"><h4>Scope kinds</h4><p>{summarizeCounts(layoutTree.summary.scopeKinds)}</p></div>
-              <div className="card card--nested"><h4>Entity kinds</h4><p>{summarizeCounts(layoutTree.summary.entityKinds)}</p></div>
-            </div>
+            <details className="card browser-collapsible-panel">
+              <summary>Layout summary</summary>
+              <div className="split-grid split-grid--compact top-gap">
+                <div className="card card--nested"><h4>Scope kinds</h4><p>{summarizeCounts(layoutTree.summary.scopeKinds)}</p></div>
+                <div className="card card--nested"><h4>Entity kinds</h4><p>{summarizeCounts(layoutTree.summary.entityKinds)}</p></div>
+              </div>
+            </details>
           </div>
 
           <div className="stack stack--compact">
@@ -58,9 +61,10 @@ export function LayoutExplorerPanel({
                   <p className="muted top-gap">{layoutScopeDetail.breadcrumb.map((item) => item.displayName ?? item.name).join(" / ")}</p>
                 </div>
 
-                <div className="split-grid split-grid--compact">
-                  <div className="card card--nested"><h4>Direct entity badges</h4><p>{summarizeCounts(layoutScopeDetail.entityKinds)}</p></div>
-                  <div className="card card--nested"><h4>Child scopes</h4><p>{layoutScopeDetail.childScopes.length || "—"}</p></div>
+                <div className="browser-tool-summary-strip">
+                  <span className="badge">Entity kinds: {summarizeCounts(layoutScopeDetail.entityKinds)}</span>
+                  <span className="badge">Child scopes: {layoutScopeDetail.childScopes.length || "—"}</span>
+                  <span className="badge">Direct entities: {layoutScopeDetail.entities.length}</span>
                 </div>
 
                 <div className="card card--nested">
@@ -76,9 +80,9 @@ export function LayoutExplorerPanel({
                   </div>
                 </div>
 
-                <div className="card card--nested">
-                  <div className="section-heading"><h4>Direct entities</h4><span className="badge">{layoutScopeDetail.entities.length}</span></div>
-                  <div className="stack stack--compact">
+                <details className="card browser-collapsible-panel" open={layoutScopeDetail.entities.length <= 8}>
+                  <summary>Direct entities ({layoutScopeDetail.entities.length})</summary>
+                  <div className="stack stack--compact top-gap">
                     {layoutScopeDetail.entities.map((entity) => (
                       <div key={entity.externalId} className="run-item">
                         <strong>{entity.displayName ?? entity.name}</strong>
@@ -89,7 +93,7 @@ export function LayoutExplorerPanel({
                     ))}
                     {!layoutScopeDetail.entities.length ? <p className="muted">No direct entities under this scope.</p> : null}
                   </div>
-                </div>
+                </details>
               </>
             ) : <p className="muted">Select a scope to inspect its drill-down view.</p>}
           </div>

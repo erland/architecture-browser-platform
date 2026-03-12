@@ -6,7 +6,7 @@ export function RecentDiagnosticsPanel({ snapshotOverview }: RecentDiagnosticsPa
   return (
     <div className="card card--nested">
       <div className="section-heading"><h3>Recent diagnostics</h3><span className="badge">{snapshotOverview.recentDiagnostics.length}</span></div>
-      <div className="stack stack--compact">
+      <div className="stack stack--compact browser-list-scroll">
         {snapshotOverview.recentDiagnostics.map((diagnostic) => (
           <div key={diagnostic.externalId} className="audit-item">
             <strong>{diagnostic.code}</strong>

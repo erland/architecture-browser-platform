@@ -64,7 +64,7 @@ export function App() {
       return <SnapshotsView onOpenBrowser={() => handleNavigate('/browser')} onOpenCompare={() => handleNavigate('/compare')} onOpenLegacy={() => handleNavigate('/legacy')} onOpenRepositories={() => handleNavigate('/repositories')} />;
     }
     if (currentPath === '/browser') {
-      return <BrowserView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+      return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} onOpenLegacy={() => handleNavigate('/legacy')} />;
     }
     if (currentPath === '/compare') {
       return <CompareView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenBrowser={() => handleNavigate('/browser')} onOpenLegacy={() => handleNavigate('/legacy')} />;
