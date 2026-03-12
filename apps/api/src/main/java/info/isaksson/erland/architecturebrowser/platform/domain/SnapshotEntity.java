@@ -76,9 +76,9 @@ public class SnapshotEntity extends PanacheEntityBase {
     @Column(nullable = false)
     public int degradedFileCount;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String rawPayloadJson;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String metadataJson;
 }

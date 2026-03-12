@@ -43,7 +43,7 @@ public class RepositoryRegistrationEntity extends PanacheEntityBase {
     @Column(length = 32, nullable = false)
     public RepositoryStatus status;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String metadataJson;
 
     @Column(nullable = false)

@@ -46,6 +46,6 @@ public class ImportedFactEntity extends PanacheEntityBase {
     @Column(length = 4000)
     public String summary;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String payloadJson;
 }

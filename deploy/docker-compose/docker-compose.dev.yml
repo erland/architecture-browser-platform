@@ -45,7 +45,7 @@ services:
       dockerfile: Dockerfile
     container_name: architecture-browser-platform-dev-indexer
     environment:
-      ARCH_BROWSER_TREE_SITTER_LIB_DIR: /app/lib/macos-aarch64
+      ARCH_BROWSER_TREE_SITTER_LIB_DIR: /app/lib/linux-aarch64
     ports:
       - "8082:8080"
     volumes:
@@ -57,6 +57,8 @@ services:
     container_name: architecture-browser-platform-dev-web
     working_dir: /workspace
     command: sh -c "npm install && npm run dev --workspace @architecture-browser-platform/web -- --host 0.0.0.0"
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8080
     ports:
       - "5173:5173"
     volumes:

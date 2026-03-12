@@ -30,7 +30,7 @@ public class OverlayEntity extends PanacheEntityBase {
     @Column(length = 200, nullable = false)
     public String name;
 
-    @Column(columnDefinition = "clob", nullable = false)
+    @Column(columnDefinition = "text", nullable = false)
     public String definitionJson;
 
     @Column(nullable = false)

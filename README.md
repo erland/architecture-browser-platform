@@ -191,3 +191,9 @@ docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/
 - Test is optimized for remote deployment from published images and does not require rebuilding the whole stack on the server.
 - The platform can now call the real indexer worker over HTTP.
 - The bundled smoke test exercises the end-to-end flow: workspace → repository registration → run request → remote indexing → snapshot import.
+
+
+## Runtime diagnostics notes
+
+- The dev/test Docker indexer runtime on Apple Silicon uses Linux ARM64 native tree-sitter libraries from `/app/lib/linux-aarch64`, not the host macOS libraries.
+- The platform API now logs remote indexer request/response details and enables HTTP access logs to make worker communication failures easier to diagnose.

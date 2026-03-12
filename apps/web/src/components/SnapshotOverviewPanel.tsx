@@ -19,6 +19,18 @@ export function SnapshotOverviewPanel({ selectedSnapshot, snapshotOverview }: Sn
           <div><dt>Technologies</dt><dd>{snapshotOverview.run.detectedTechnologies.join(", ") || "—"}</dd></div>
           <div><dt>Files</dt><dd>{snapshotOverview.completeness.indexedFileCount}/{snapshotOverview.completeness.totalFileCount} indexed · {snapshotOverview.completeness.degradedFileCount} degraded</dd></div>
         </dl>
+        {selectedSnapshot.completenessStatus === "PARTIAL" ? (
+          <div className="stack stack--compact top-gap">
+            <p className="warning">
+              Partial means the snapshot was imported successfully, but some files were indexed with degraded completeness.
+            </p>
+            {snapshotOverview.completeness.notes.length ? (
+              <ul className="stack stack--compact muted">
+                {snapshotOverview.completeness.notes.map((note) => <li key={note}>{note}</li>)}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {snapshotOverview.warnings.length ? (
           <div className="stack stack--compact top-gap">
             {snapshotOverview.warnings.map((warning) => <p key={warning} className="warning">{warning}</p>)}

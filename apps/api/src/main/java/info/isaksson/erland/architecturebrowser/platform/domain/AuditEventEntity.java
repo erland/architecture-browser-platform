@@ -42,6 +42,6 @@ public class AuditEventEntity extends PanacheEntityBase {
     @Column(nullable = false)
     public Instant happenedAt;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String detailsJson;
 }

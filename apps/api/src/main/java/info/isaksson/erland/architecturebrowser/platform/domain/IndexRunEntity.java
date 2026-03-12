@@ -51,6 +51,6 @@ public class IndexRunEntity extends PanacheEntityBase {
     @Column(length = 4000)
     public String errorSummary;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String metadataJson;
 }

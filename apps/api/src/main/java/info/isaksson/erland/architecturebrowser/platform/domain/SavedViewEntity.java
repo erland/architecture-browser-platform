@@ -27,10 +27,10 @@ public class SavedViewEntity extends PanacheEntityBase {
     @Column(length = 120, nullable = false)
     public String viewType;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String queryJson;
 
-    @Column(columnDefinition = "clob")
+    @Column(columnDefinition = "text")
     public String layoutJson;
 
     @Column(nullable = false)

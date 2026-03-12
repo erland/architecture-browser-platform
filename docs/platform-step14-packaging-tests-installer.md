@@ -24,7 +24,7 @@ This step hardens the MVP installer experience with two explicit deployment mode
 Assumptions:
 - `architecture-browser-platform` and `architecture-browser-indexer` live side-by-side locally
 - platform development does **not** require publishing images to GHCR
-- current MVP still uses the stub indexer adapter, so the platform dev stack does not yet require an indexer container
+- the current platform dev and test stacks use the real remote indexer, so both environments require an indexer container or published indexer image
 
 Commands:
 

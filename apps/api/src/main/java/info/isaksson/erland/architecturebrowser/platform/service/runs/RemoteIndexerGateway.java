@@ -13,6 +13,7 @@ import info.isaksson.erland.architecturebrowser.platform.service.SnapshotImportS
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.net.URI;
@@ -25,6 +26,8 @@ import java.util.Map;
 
 @ApplicationScoped
 public class RemoteIndexerGateway {
+    private static final Logger LOG = Logger.getLogger(RemoteIndexerGateway.class);
+
     @ConfigProperty(name = "platform.indexer.base-url")
     String baseUrl;
 
@@ -51,11 +54,19 @@ public class RemoteIndexerGateway {
                                   IndexRunEntity requestedRun,
                                   RequestRunRequest request) {
         lifecycleService.markRunning(requestedRun.id);
+        long startedAtNanos = System.nanoTime();
+        LOG.infov("Starting remote indexer run {0} for workspace={1}, repositoryId={2}, repositoryKey={3}, sourceType={4}",
+            requestedRun.id, workspace.id, repository.id, repository.repositoryKey, repository.sourceType);
         try {
             JsonNode payload = invokeIndexer(repository, requestedRun.id);
             snapshotImportService.importForRun(workspace.id, repository.id, requestedRun.id, payload);
+            long elapsedMillis = elapsedMillis(startedAtNanos);
+            LOG.infov("Completed remote indexer run {0} in {1} ms", requestedRun.id, elapsedMillis);
             return lifecycleService.requireRun(requestedRun.id);
         } catch (RuntimeException ex) {
+            long elapsedMillis = elapsedMillis(startedAtNanos);
+            LOG.errorv(ex, "Remote indexer run {0} failed after {1} ms for workspace={2}, repositoryId={3}, repositoryKey={4}",
+                requestedRun.id, elapsedMillis, workspace.id, repository.id, repository.repositoryKey);
             return lifecycleService.markFailed(
                 requestedRun.id,
                 normalizeNullable(request.requestedSchemaVersion()),
@@ -71,14 +82,20 @@ public class RemoteIndexerGateway {
             .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
             .build();
         String requestJson = buildRequestBody(repository, runId);
+        String endpoint = trimTrailingSlash(baseUrl) + "/api/index-jobs/run";
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(trimTrailingSlash(baseUrl) + "/api/index-jobs/run"))
+            .uri(URI.create(endpoint))
             .timeout(Duration.ofSeconds(readTimeoutSeconds))
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(requestJson))
             .build();
+        LOG.infov("Invoking indexer worker endpoint={0}, runId={1}, repositoryKey={2}, sourceType={3}, connectTimeoutSeconds={4}, readTimeoutSeconds={5}",
+            endpoint, runId, repository.repositoryKey, repository.sourceType, connectTimeoutSeconds, readTimeoutSeconds);
+        LOG.debugv("Indexer worker request body for run {0}: {1}", runId, requestJson);
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            LOG.infov("Indexer worker response for run {0}: HTTP {1}", runId, response.statusCode());
+            LOG.debugv("Indexer worker response body for run {0}: {1}", runId, abbreviate(response.body(), 4000));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IllegalStateException("Indexer worker returned HTTP " + response.statusCode() + ": " + abbreviate(response.body(), 1000));
             }
@@ -89,10 +106,12 @@ public class RemoteIndexerGateway {
             }
             return enrichDocument(document, root);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to communicate with the indexer worker.", e);
+            String details = rootCauseDetails(e);
+            throw new IllegalStateException("Failed to communicate with the indexer worker at " + endpoint + ". " + details, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for the indexer worker response.", e);
+            String details = rootCauseDetails(e);
+            throw new IllegalStateException("Interrupted while waiting for the indexer worker response from " + endpoint + ". " + details, e);
         }
     }
 
@@ -132,6 +151,24 @@ public class RemoteIndexerGateway {
             metadata.set("workerManifest", responseRoot.get("manifest"));
         }
         return objectNode;
+    }
+
+
+    private static long elapsedMillis(long startedAtNanos) {
+        return Duration.ofNanos(System.nanoTime() - startedAtNanos).toMillis();
+    }
+
+    private static String rootCauseDetails(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String type = root.getClass().getName();
+        String message = root.getMessage();
+        if (message == null || message.isBlank()) {
+            return "Root cause: " + type;
+        }
+        return "Root cause: " + type + ": " + abbreviate(message, 500);
     }
 
     private static String trimTrailingSlash(String value) {
