@@ -830,7 +830,6 @@ export function App() {
             setSavedViewName={setSavedViewName}
             handleSaveCurrentView={handleSaveCurrentView}
             selectedSavedViewId={selectedSavedViewId}
-            setSelectedSavedViewId={setSelectedSavedViewId}
             handleApplySavedView={handleApplySavedView}
             handleDuplicateSavedView={handleDuplicateSavedView}
             handleDeleteSavedView={handleDeleteSavedView}

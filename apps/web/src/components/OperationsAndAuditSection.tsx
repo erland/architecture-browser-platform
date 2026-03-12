@@ -1,8 +1,32 @@
-// @ts-nocheck
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { summarizeOperationsHeadline } from "../operationsViewModel";
-import { formatDateTime } from "../appModel";
+import {
+  formatDateTime,
+  type AuditEvent,
+  type OperationsOverview,
+  type RetentionPreview,
+  type RunRecord,
+  type Workspace,
+} from "../appModel";
 
-type OperationsAndAuditSectionProps = any;
+type Setter<T> = Dispatch<SetStateAction<T>>;
+
+type RetentionFormState = {
+  keepSnapshotsPerRepository: string;
+  keepRunsPerRepository: string;
+};
+
+type OperationsAndAuditSectionProps = {
+  recentRuns: RunRecord[];
+  selectedWorkspace: Workspace | null;
+  operationsOverview: OperationsOverview | null;
+  retentionForm: RetentionFormState;
+  setRetentionForm: Setter<RetentionFormState>;
+  handlePreviewRetention: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleApplyRetention: () => Promise<void>;
+  retentionPreview: RetentionPreview | null;
+  auditEvents: AuditEvent[];
+};
 
 export function OperationsAndAuditSection(props: OperationsAndAuditSectionProps) {
   const { recentRuns, selectedWorkspace, operationsOverview, retentionForm, setRetentionForm, handlePreviewRetention, handleApplyRetention, retentionPreview, auditEvents } = props;

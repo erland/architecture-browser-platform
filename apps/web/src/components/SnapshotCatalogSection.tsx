@@ -1,12 +1,95 @@
-// @ts-nocheck
-import { summarizeDependencyKinds, toDependencyEntityOptions } from "../dependencyViewModel";
-import { summarizeEntryKinds, toEntryPointItemOptions } from "../entryPointViewModel";
-import { summarizeMatchReasons, toSearchResultOptions } from "../searchViewModel";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { summarizeDependencyKinds } from "../dependencyViewModel";
+import type { DependencyEntityOption } from "../dependencyViewModel";
+import { summarizeEntryKinds } from "../entryPointViewModel";
+import type { EntryPointItemOption } from "../entryPointViewModel";
+import { summarizeMatchReasons } from "../searchViewModel";
+import type { SearchResultOption } from "../searchViewModel";
 import { toSavedViewStateLabel } from "../savedViewModel";
 import { summarizeComparisonHeadline } from "../compareViewModel";
-import { formatDateTime, summarizeCounts } from "../appModel";
+import {
+  formatDateTime,
+  summarizeCounts,
+  type CustomizationOverview,
+  type DependencyDirection,
+  type DependencyView,
+  type EntityDetail,
+  type EntryCategory,
+  type EntryPointView,
+  type LayoutNode,
+  type LayoutScopeDetail,
+  type LayoutTree,
+  type OverlayKind,
+  type SearchView,
+  type SnapshotComparison,
+  type SnapshotOverview,
+  type SnapshotSummary,
+  type Workspace,
+} from "../appModel";
 
-type SnapshotCatalogSectionProps = any;
+type Setter<T> = Dispatch<SetStateAction<T>>;
+type ComparisonOption = { value: string; label: string };
+
+type SnapshotCatalogSectionProps = {
+  snapshots: SnapshotSummary[];
+  selectedWorkspace: Workspace | null;
+  selectedSnapshotId: string | null;
+  setSelectedSnapshotId: Setter<string | null>;
+  selectedSnapshot: SnapshotSummary | null;
+  snapshotOverview: SnapshotOverview | null;
+  flattenedLayoutNodes: LayoutNode[];
+  selectedLayoutScopeId: string | null;
+  setSelectedLayoutScopeId: Setter<string | null>;
+  layoutTree: LayoutTree | null;
+  layoutScopeDetail: LayoutScopeDetail | null;
+  selectedDependencyScopeId: string;
+  setSelectedDependencyScopeId: Setter<string>;
+  dependencyDirection: DependencyDirection;
+  setDependencyDirection: Setter<DependencyDirection>;
+  dependencyView: DependencyView | null;
+  dependencyEntityOptions: DependencyEntityOption[];
+  focusedDependencyEntityId: string;
+  setFocusedDependencyEntityId: Setter<string>;
+  selectedEntryPointScopeId: string;
+  setSelectedEntryPointScopeId: Setter<string>;
+  entryCategory: EntryCategory;
+  setEntryCategory: Setter<EntryCategory>;
+  entryPointView: EntryPointView | null;
+  entryPointOptions: EntryPointItemOption[];
+  focusedEntryPointId: string;
+  setFocusedEntryPointId: Setter<string>;
+  selectedSearchScopeId: string;
+  setSelectedSearchScopeId: Setter<string>;
+  searchQuery: string;
+  setSearchQuery: Setter<string>;
+  searchView: SearchView | null;
+  searchResultOptions: SearchResultOption[];
+  selectedSearchEntityId: string;
+  setSelectedSearchEntityId: Setter<string>;
+  entityDetail: EntityDetail | null;
+  customizationOverview: CustomizationOverview | null;
+  overlayName: string;
+  setOverlayName: Setter<string>;
+  overlayKind: OverlayKind;
+  setOverlayKind: Setter<OverlayKind>;
+  overlayNote: string;
+  setOverlayNote: Setter<string>;
+  handleCreateOverlay: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  selectedOverlayId: string;
+  setSelectedOverlayId: Setter<string>;
+  handleDeleteOverlay: (overlayId: string) => Promise<void>;
+  savedViewName: string;
+  setSavedViewName: Setter<string>;
+  handleSaveCurrentView: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  selectedSavedViewId: string;
+  handleApplySavedView: (savedViewId: string) => Promise<void>;
+  handleDuplicateSavedView: (savedViewId: string) => Promise<void>;
+  handleDeleteSavedView: (savedViewId: string) => Promise<void>;
+  comparisonSnapshotId: string;
+  setComparisonSnapshotId: Setter<string>;
+  comparisonOptions: ComparisonOption[];
+  snapshotComparison: SnapshotComparison | null;
+};
 
 export function SnapshotCatalogSection(props: SnapshotCatalogSectionProps) {
   const {
@@ -61,7 +144,6 @@ export function SnapshotCatalogSection(props: SnapshotCatalogSectionProps) {
     setSavedViewName,
     handleSaveCurrentView,
     selectedSavedViewId,
-    setSelectedSavedViewId,
     handleApplySavedView,
     handleDuplicateSavedView,
     handleDeleteSavedView,
