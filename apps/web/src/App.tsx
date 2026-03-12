@@ -6,6 +6,7 @@ import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
 import { RepositoriesView } from './views/RepositoriesView';
 import { RoutePlaceholderView } from './views/RoutePlaceholderView';
 import { BrowserView } from './views/BrowserView';
+import { CompareView } from './views/CompareView';
 import { SnapshotsView } from './views/SnapshotsView';
 import { WorkspacesView } from './views/WorkspacesView';
 
@@ -63,6 +64,9 @@ export function App() {
     if (currentPath === '/browser') {
       return <BrowserView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenLegacy={() => handleNavigate('/legacy')} />;
     }
+    if (currentPath === '/compare') {
+      return <CompareView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenBrowser={() => handleNavigate('/browser')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+    }
     return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
 
@@ -72,7 +76,7 @@ export function App() {
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>
         <p className="lead">
-          Step 6 introduces the dedicated Browser route so architecture exploration now has its own focused shell with tabbed tools while Compare and Operations continue migrating out of the temporary stacked screen.
+          Steps 6–9 introduce dedicated Browser and Compare routes so architecture exploration and snapshot delta analysis now have focused shells while Operations remains to be moved out of the temporary stacked screen.
         </p>
         <div className="selection-summary">
           <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

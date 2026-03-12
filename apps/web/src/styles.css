@@ -550,3 +550,11 @@ dd {
     grid-template-columns: 1fr;
   }
 }
+
+.compare-view .compare-summary-grid {
+  align-items: stretch;
+}
+
+.compare-guidance {
+  max-width: 56rem;
+}

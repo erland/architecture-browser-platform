@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { FormEvent, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { buildSavedViewRequest, parseSavedViewJson } from "../savedViewModel";
-import { comparisonSnapshotOptions } from "../compareViewModel";
+import { useCompareExplorer } from "./useCompareExplorer";
 import { useBrowserExplorer } from "./useBrowserExplorer";
 import { platformApi } from "../platformApi";
 import {
@@ -10,7 +10,6 @@ import {
   OverlayKind,
   OverlayRecord,
   SavedViewRecord,
-  SnapshotComparison,
   SnapshotSummary,
 } from "../appModel";
 
@@ -80,12 +79,6 @@ export function useSnapshotExplorer(
   const [selectedOverlayId, setSelectedOverlayId] = useState<string>("");
   const [savedViewName, setSavedViewName] = useState<string>("");
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>("");
-  const [comparisonSnapshotId, setComparisonSnapshotId] = useState<string>("");
-  const [snapshotComparison, setSnapshotComparison] = useState<SnapshotComparison | null>(null);
-
-  const comparisonOptions = useMemo(() => comparisonSnapshotOptions(snapshots, selectedSnapshotId), [snapshots, selectedSnapshotId]);
-
-
 
   useEffect(() => {
     if (selectedWorkspaceId && selectedSnapshotId) {
@@ -100,17 +93,7 @@ export function useSnapshotExplorer(
     setSelectedOverlayId("");
     setSavedViewName("");
     setSelectedSavedViewId("");
-    setComparisonSnapshotId("");
-    setSnapshotComparison(null);
   }, [selectedWorkspaceId, selectedSnapshotId]);
-
-  useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId && comparisonSnapshotId) {
-      void loadSnapshotComparison(selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId);
-      return;
-    }
-    setSnapshotComparison(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId]);
 
 
   async function loadCustomizationOverview(workspaceId: string, snapshotId: string) {
@@ -125,15 +108,20 @@ export function useSnapshotExplorer(
     }
   }
 
-  async function loadSnapshotComparison(workspaceId: string, snapshotId: string, otherSnapshotId: string) {
-    try {
-      const payload = await platformApi.getSnapshotComparison<SnapshotComparison>(workspaceId, snapshotId, otherSnapshotId);
-      setSnapshotComparison(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
+  const compareExplorer = useCompareExplorer({
+    selectedWorkspaceId,
+    snapshots,
+    selectedSnapshotId,
+    setSelectedSnapshotId,
+    feedback: { setError },
+  });
+
+  const {
+    comparisonSnapshotId,
+    setComparisonSnapshotId,
+    comparisonOptions,
+    snapshotComparison,
+  } = compareExplorer;
 
   async function handleCreateOverlay(event: FormEvent) {
     event.preventDefault();
