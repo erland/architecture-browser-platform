@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatDateTime } from '../appModel';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
@@ -7,6 +7,7 @@ type SnapshotsViewProps = {
   onOpenBrowser: () => void;
   onOpenCompare: () => void;
   onOpenLegacy: () => void;
+  onOpenRepositories?: () => void;
 };
 
 function completenessBadgeClass(completenessStatus: string) {
@@ -19,7 +20,7 @@ function completenessBadgeClass(completenessStatus: string) {
   return 'badge badge--danger';
 }
 
-export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: SnapshotsViewProps) {
+export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOpenRepositories }: SnapshotsViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -34,6 +35,10 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: Sn
   });
 
   const selectedSnapshot = workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
+  const latestSnapshot = useMemo(
+    () => [...workspaceData.snapshots].sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt))[0] ?? null,
+    [workspaceData.snapshots],
+  );
 
   return (
     <div className="content-stack">
@@ -41,9 +46,50 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: Sn
         <p className="eyebrow">Snapshots</p>
         <h2>Dedicated snapshot catalog and selection flow</h2>
         <p className="lead">
-          Step 5 makes snapshots a first-class view. Users can now pick the snapshot they want to browse, see compact metadata, and move toward Browser or Compare instead of hunting inside the old stacked page.
+          Step 12 strengthens the handoff into Browser and Compare. The selected snapshot is now treated as the explicit bridge between indexing and architecture exploration.
         </p>
       </section>
+
+      {selectedSnapshot ? (
+        <section className="card discoverability-callout">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Recommended next step</p>
+              <h2>Open the selected snapshot in Browser</h2>
+            </div>
+            <span className={completenessBadgeClass(selectedSnapshot.completenessStatus)}>{selectedSnapshot.completenessStatus}</span>
+          </div>
+          <p className="lead discoverability-callout__lead">
+            You have already selected a snapshot. Continue into Browser for architecture exploration, or switch to Compare if you want to evaluate changes against another imported snapshot.
+          </p>
+          <div className="discoverability-stats">
+            <span className="badge">{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</span>
+            <span className="badge">{selectedSnapshot.snapshotKey}</span>
+            <span className="badge">{selectedSnapshot.entityCount} entities</span>
+            <span className="badge">{selectedSnapshot.relationshipCount} relationships</span>
+            <span className="badge">{selectedSnapshot.diagnosticCount} diagnostics</span>
+          </div>
+          <div className="actions actions--wrap">
+            <button type="button" onClick={onOpenBrowser}>Open selected snapshot in Browser</button>
+            <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare this snapshot</button>
+            <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
+          </div>
+        </section>
+      ) : latestSnapshot ? (
+        <section className="card discoverability-callout discoverability-callout--subtle">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Latest imported snapshot</p>
+              <h2>Select a snapshot to continue</h2>
+            </div>
+            <span className="badge">Ready for review</span>
+          </div>
+          <p className="muted">
+            The most recently imported snapshot is <strong>{latestSnapshot.snapshotKey}</strong> from{' '}
+            <strong>{latestSnapshot.repositoryName ?? latestSnapshot.repositoryKey ?? latestSnapshot.repositoryRegistrationId}</strong>. Select it below, then open Browser or Compare.
+          </p>
+        </section>
+      ) : null}
 
       <section className="grid grid--top">
         <article className="card">
@@ -72,7 +118,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: Sn
                 <div><dt>Snapshots</dt><dd>{workspaceData.snapshots.length}</dd></div>
               </dl>
               <p className="muted">
-                Choose a snapshot here, then continue to Browser or Compare. Until the dedicated Browser view is implemented, the legacy route still provides the full stacked browser panels for the selected snapshot.
+                Choose a snapshot here, then continue to Browser or Compare. Browser is now the primary next step after indexing, while Compare remains the place to inspect differences between imports.
               </p>
             </>
           ) : (
@@ -106,7 +152,17 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: Sn
                   </button>
                 );
               })}
-              {!workspaceData.snapshots.length ? <p className="muted">No snapshots imported yet.</p> : null}
+              {!workspaceData.snapshots.length ? (
+                <div className="empty-state-card card card--nested">
+                  <h3>No snapshots imported yet</h3>
+                  <p className="muted">Run indexing from Repositories first, then come back here to pick a snapshot for Browser.</p>
+                  {onOpenRepositories ? (
+                    <div className="actions">
+                      <button type="button" onClick={onOpenRepositories}>Open Repositories</button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="stack stack--compact">
@@ -153,23 +209,23 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy }: Sn
                     </div>
                   </article>
 
-                  <article className="card card--nested">
+                  <article className="card card--nested discoverability-actions-card">
                     <div className="section-heading">
                       <h3>Primary actions</h3>
-                      <span className="badge">Step 5</span>
+                      <span className="badge">Step 12</span>
                     </div>
                     <p className="muted">
-                      The selected snapshot is now carried in shared app context. Browser and Compare routes use this selection as their starting point, and the legacy route can still show the full stacked browser experience until later steps land.
+                      The selected snapshot is carried in shared app context. Browser uses it as the main exploration target, Compare uses it as the baseline snapshot, and the legacy route still shows the older stacked workflow.
                     </p>
                     <div className="actions actions--wrap">
-                      <button type="button" onClick={onOpenBrowser}>Open Browser view</button>
-                      <button type="button" className="button-secondary" onClick={onOpenCompare}>Open Compare view</button>
+                      <button type="button" onClick={onOpenBrowser}>Open selected snapshot in Browser</button>
+                      <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare selected snapshot</button>
                       <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
                     </div>
                   </article>
                 </>
               ) : (
-                <p className="muted">Select a snapshot to inspect compact metadata and open the next workflow.</p>
+                <p className="muted">Select a snapshot to inspect metadata and open the next workflow.</p>
               )}
             </div>
           </div>

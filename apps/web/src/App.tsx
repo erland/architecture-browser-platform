@@ -57,10 +57,10 @@ export function App() {
       return <WorkspacesView />;
     }
     if (currentPath === '/repositories') {
-      return <RepositoriesView />;
+      return <RepositoriesView onOpenBrowser={() => handleNavigate('/browser')} onOpenSnapshots={() => handleNavigate('/snapshots')} />;
     }
     if (currentPath === '/snapshots') {
-      return <SnapshotsView onOpenBrowser={() => handleNavigate('/browser')} onOpenCompare={() => handleNavigate('/compare')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+      return <SnapshotsView onOpenBrowser={() => handleNavigate('/browser')} onOpenCompare={() => handleNavigate('/compare')} onOpenLegacy={() => handleNavigate('/legacy')} onOpenRepositories={() => handleNavigate('/repositories')} />;
     }
     if (currentPath === '/browser') {
       return <BrowserView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenLegacy={() => handleNavigate('/legacy')} />;

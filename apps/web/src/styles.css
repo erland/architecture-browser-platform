@@ -678,3 +678,55 @@ dd {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
+
+.section-heading--tight {
+  margin-bottom: 10px;
+}
+
+.discoverability-callout {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.88));
+}
+
+.discoverability-callout--subtle {
+  border-style: dashed;
+}
+
+.discoverability-callout__lead {
+  max-width: 920px;
+}
+
+.discoverability-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.discoverability-kv {
+  margin-bottom: 16px;
+}
+
+.discoverability-actions-card {
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.browser-status-explanation {
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.browser-status-explanation p {
+  margin-bottom: 0;
+}
+
+.browser-status-explanation__list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  display: grid;
+  gap: 6px;
+}

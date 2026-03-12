@@ -181,7 +181,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
           <p className="eyebrow">Browser</p>
           <h2>Focused architecture workspace</h2>
           <p className="lead browser-hero__lead">
-            Step 11 shifts the Browser route toward a wider, tool-first layout so the active architecture view gets most of the screen while context and navigation stay visible.
+            Step 12 makes Browser the obvious destination after indexing. The header now explains snapshot status directly, especially when the selected snapshot is partial, so users understand what they are browsing before they dive into the tabs.
           </p>
         </div>
         <div className="browser-hero__actions">

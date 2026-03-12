@@ -39,6 +39,14 @@ type UseWorkspaceDataArgs = {
   setError: (value: string | null) => void;
 };
 
+type WorkspaceDetailPayload = {
+  repositoryPayload: Repository[];
+  auditPayload: AuditEvent[];
+  runPayload: RunRecord[];
+  snapshotPayload: SnapshotSummary[];
+  operationsPayload: OperationsOverview;
+};
+
 function toErrorMessage(caught: unknown) {
   return caught instanceof Error ? caught.message : "Unknown error";
 }
@@ -171,7 +179,7 @@ export function useWorkspaceData({
     }
   }
 
-  async function loadWorkspaceDetail(workspaceId: string) {
+  async function loadWorkspaceDetail(workspaceId: string): Promise<WorkspaceDetailPayload | null> {
     try {
       const [repositoryPayload, auditPayload, runPayload, snapshotPayload, operationsPayload] = await Promise.all([
         platformApi.getWorkspaceRepositories<Repository[]>(workspaceId),
@@ -191,8 +199,16 @@ export function useWorkspaceData({
       });
       setSelectedRepositoryId((current) => current && repositoryPayload.some((item) => item.id === current) ? current : null);
       setError(null);
+      return {
+        repositoryPayload,
+        auditPayload,
+        runPayload,
+        snapshotPayload,
+        operationsPayload,
+      };
     } catch (caught) {
       setError(toErrorMessage(caught));
+      return null;
     }
   }
 
@@ -332,8 +348,8 @@ export function useWorkspaceData({
     }
   }
 
-  async function handleRequestRun(repository: Repository, requestedResult: StubRunResult) {
-    if (!selectedWorkspaceId) return;
+  async function handleRequestRun(repository: Repository, requestedResult: StubRunResult): Promise<SnapshotSummary | null> {
+    if (!selectedWorkspaceId) return null;
     setBusyMessage(`Requesting ${requestedResult.toLowerCase()} run for ${repository.name}…`);
     try {
       await platformApi.requestRun<RunRecord>(selectedWorkspaceId, repository.id, {
@@ -341,10 +357,15 @@ export function useWorkspaceData({
         requestedResult,
       });
       setSelectedRepositoryId(repository.id);
-      await loadWorkspaceDetail(selectedWorkspaceId);
+      const detail = await loadWorkspaceDetail(selectedWorkspaceId);
       setError(null);
+      const latestSnapshot = detail?.snapshotPayload
+        .filter((snapshot) => snapshot.repositoryRegistrationId === repository.id)
+        .sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt))[0] ?? null;
+      return latestSnapshot;
     } catch (caught) {
       setError(toErrorMessage(caught));
+      return null;
     } finally {
       setBusyMessage(null);
     }

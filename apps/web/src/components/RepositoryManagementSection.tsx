@@ -47,7 +47,7 @@ type RepositoryManagementSectionProps = {
   setRunRequestForm: Dispatch<SetStateAction<RunRequestForm>>;
   latestRunByRepository: Map<string, RunRecord>;
   selectRepositoryForEdit: (repository: Repository) => void;
-  handleRequestRun: (repository: Repository, requestedResult: StubRunResult) => Promise<void>;
+  handleRequestRun: (repository: Repository, requestedResult: StubRunResult) => Promise<unknown>;
   handleArchiveRepository: (repositoryId: string) => Promise<void>;
 };
 
