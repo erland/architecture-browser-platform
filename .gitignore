@@ -10,3 +10,4 @@ apps/web/dist/
 apps/api/target/
 .env
 /*.zip
+apps/web/tsconfig.app.tsbuildinfo

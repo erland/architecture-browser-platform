@@ -1,0 +1,756 @@
+// @ts-nocheck
+import { summarizeDependencyKinds, toDependencyEntityOptions } from "../dependencyViewModel";
+import { summarizeEntryKinds, toEntryPointItemOptions } from "../entryPointViewModel";
+import { summarizeMatchReasons, toSearchResultOptions } from "../searchViewModel";
+import { toSavedViewStateLabel } from "../savedViewModel";
+import { summarizeComparisonHeadline } from "../compareViewModel";
+import { formatDateTime, summarizeCounts } from "../appModel";
+
+type SnapshotCatalogSectionProps = any;
+
+export function SnapshotCatalogSection(props: SnapshotCatalogSectionProps) {
+  const {
+    snapshots,
+    selectedWorkspace,
+    selectedSnapshotId,
+    setSelectedSnapshotId,
+    selectedSnapshot,
+    snapshotOverview,
+    flattenedLayoutNodes,
+    selectedLayoutScopeId,
+    setSelectedLayoutScopeId,
+    layoutTree,
+    layoutScopeDetail,
+    selectedDependencyScopeId,
+    setSelectedDependencyScopeId,
+    dependencyDirection,
+    setDependencyDirection,
+    dependencyView,
+    dependencyEntityOptions,
+    focusedDependencyEntityId,
+    setFocusedDependencyEntityId,
+    selectedEntryPointScopeId,
+    setSelectedEntryPointScopeId,
+    entryCategory,
+    setEntryCategory,
+    entryPointView,
+    entryPointOptions,
+    focusedEntryPointId,
+    setFocusedEntryPointId,
+    selectedSearchScopeId,
+    setSelectedSearchScopeId,
+    searchQuery,
+    setSearchQuery,
+    searchView,
+    searchResultOptions,
+    selectedSearchEntityId,
+    setSelectedSearchEntityId,
+    entityDetail,
+    customizationOverview,
+    overlayName,
+    setOverlayName,
+    overlayKind,
+    setOverlayKind,
+    overlayNote,
+    setOverlayNote,
+    handleCreateOverlay,
+    selectedOverlayId,
+    setSelectedOverlayId,
+    handleDeleteOverlay,
+    savedViewName,
+    setSavedViewName,
+    handleSaveCurrentView,
+    selectedSavedViewId,
+    setSelectedSavedViewId,
+    handleApplySavedView,
+    handleDuplicateSavedView,
+    handleDeleteSavedView,
+    comparisonSnapshotId,
+    setComparisonSnapshotId,
+    comparisonOptions,
+    snapshotComparison,
+  } = props;
+
+  return (
+    <article className="card">
+  <div className="section-heading">
+    <h2>Snapshot catalog</h2>
+    <span className="badge">{snapshots.length}</span>
+  </div>
+  {selectedWorkspace ? (
+    <div className="split-grid split-grid--wide">
+      <div className="stack stack--compact">
+        {snapshots.map((snapshot) => (
+          <button key={snapshot.id} type="button" className={`list-item ${snapshot.id === selectedSnapshotId ? "list-item--active" : ""}`} onClick={() => setSelectedSnapshotId(snapshot.id)}>
+            <strong>{snapshot.repositoryName ?? snapshot.repositoryKey ?? snapshot.repositoryRegistrationId}</strong>
+            <span>{snapshot.snapshotKey}</span>
+            <span>{snapshot.completenessStatus} · {snapshot.importedAt ? formatDateTime(snapshot.importedAt) : "—"}</span>
+            <span>{snapshot.entityCount} entities · {snapshot.relationshipCount} relationships · {snapshot.diagnosticCount} diagnostics</span>
+          </button>
+        ))}
+        {!snapshots.length ? <p className="muted">No snapshots imported yet.</p> : null}
+      </div>
+
+      <div className="stack stack--compact">
+        {selectedSnapshot && snapshotOverview ? (
+          <>
+            <div className="card card--nested">
+              <div className="section-heading">
+                <h3>Overview</h3>
+                <span className={`badge ${selectedSnapshot.completenessStatus === "PARTIAL" ? "badge--warning" : "badge--status"}`}>{selectedSnapshot.completenessStatus}</span>
+              </div>
+              <dl className="kv kv--compact">
+                <div><dt>Repository</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? "—"}</dd></div>
+                <div><dt>Imported</dt><dd>{formatDateTime(selectedSnapshot.importedAt)}</dd></div>
+                <div><dt>Revision</dt><dd>{snapshotOverview.source.revision ?? "—"}</dd></div>
+                <div><dt>Branch</dt><dd>{snapshotOverview.source.branch ?? "—"}</dd></div>
+                <div><dt>Schema / Indexer</dt><dd>{selectedSnapshot.schemaVersion} / {selectedSnapshot.indexerVersion}</dd></div>
+                <div><dt>Run outcome</dt><dd>{selectedSnapshot.derivedRunOutcome}</dd></div>
+                <div><dt>Technologies</dt><dd>{snapshotOverview.run.detectedTechnologies.join(", ") || "—"}</dd></div>
+                <div><dt>Files</dt><dd>{snapshotOverview.completeness.indexedFileCount}/{snapshotOverview.completeness.totalFileCount} indexed · {snapshotOverview.completeness.degradedFileCount} degraded</dd></div>
+              </dl>
+              {snapshotOverview.warnings.length ? (
+                <div className="stack stack--compact top-gap">
+                  {snapshotOverview.warnings.map((warning) => <p key={warning} className="warning">{warning}</p>)}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="split-grid split-grid--compact">
+              <div className="card card--nested"><h3>Scope kinds</h3><p>{summarizeCounts(snapshotOverview.scopeKinds)}</p></div>
+              <div className="card card--nested"><h3>Entity kinds</h3><p>{summarizeCounts(snapshotOverview.entityKinds)}</p></div>
+              <div className="card card--nested"><h3>Relationship kinds</h3><p>{summarizeCounts(snapshotOverview.relationshipKinds)}</p></div>
+              <div className="card card--nested"><h3>Diagnostics</h3><p>{summarizeCounts(snapshotOverview.diagnosticCodes)}</p></div>
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Top scopes</h3><span className="badge">{snapshotOverview.topScopes.length}</span></div>
+              <div className="stack stack--compact">
+                {snapshotOverview.topScopes.map((scope) => <div key={scope.externalId} className="summary-row"><strong>{scope.name}</strong><span>{scope.count} facts</span></div>)}
+                {!snapshotOverview.topScopes.length ? <p className="muted">No scope breakdown available.</p> : null}
+              </div>
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Layout explorer</h3><span className="badge">Step 7</span></div>
+              {layoutTree ? (
+                <div className="split-grid split-grid--wide">
+                  <div className="stack stack--compact">
+                    <div className="card card--nested">
+                      <h4>Tree</h4>
+                      <div className="stack stack--compact">
+                        {flattenedLayoutNodes.map((node) => (
+                          <button
+                            key={node.externalId}
+                            type="button"
+                            className={`list-item ${node.externalId === selectedLayoutScopeId ? "list-item--active" : ""}`}
+                            style={{ paddingLeft: `${12 + node.depth * 16}px` }}
+                            onClick={() => setSelectedLayoutScopeId(node.externalId)}
+                          >
+                            <strong>{node.displayName ?? node.name}</strong>
+                            <span>{node.kind} · {node.directChildScopeCount} child scopes · {node.directEntityCount} direct entities</span>
+                            <span>{node.descendantScopeCount} nested scopes · {node.descendantEntityCount} entities in subtree</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="split-grid split-grid--compact">
+                      <div className="card card--nested"><h4>Scope kinds</h4><p>{summarizeCounts(layoutTree.summary.scopeKinds)}</p></div>
+                      <div className="card card--nested"><h4>Entity kinds</h4><p>{summarizeCounts(layoutTree.summary.entityKinds)}</p></div>
+                    </div>
+                  </div>
+
+                  <div className="stack stack--compact">
+                    {layoutScopeDetail ? (
+                      <>
+                        <div className="card card--nested">
+                          <div className="section-heading">
+                            <h4>{layoutScopeDetail.scope.displayName ?? layoutScopeDetail.scope.name}</h4>
+                            <span className="badge">{layoutScopeDetail.scope.kind}</span>
+                          </div>
+                          <dl className="kv kv--compact">
+                            <div><dt>Path</dt><dd>{layoutScopeDetail.scope.path}</dd></div>
+                            <div><dt>Depth</dt><dd>{layoutScopeDetail.scope.depth}</dd></div>
+                            <div><dt>Direct child scopes</dt><dd>{layoutScopeDetail.scope.directChildScopeCount}</dd></div>
+                            <div><dt>Direct entities</dt><dd>{layoutScopeDetail.scope.directEntityCount}</dd></div>
+                            <div><dt>Nested scopes</dt><dd>{layoutScopeDetail.scope.descendantScopeCount}</dd></div>
+                            <div><dt>Entities in subtree</dt><dd>{layoutScopeDetail.scope.descendantEntityCount}</dd></div>
+                          </dl>
+                          <p className="muted top-gap">{layoutScopeDetail.breadcrumb.map((item) => item.displayName ?? item.name).join(" / ")}</p>
+                        </div>
+
+                        <div className="split-grid split-grid--compact">
+                          <div className="card card--nested"><h4>Direct entity badges</h4><p>{summarizeCounts(layoutScopeDetail.entityKinds)}</p></div>
+                          <div className="card card--nested"><h4>Child scopes</h4><p>{layoutScopeDetail.childScopes.length || "—"}</p></div>
+                        </div>
+
+                        <div className="card card--nested">
+                          <div className="section-heading"><h4>Child scopes</h4><span className="badge">{layoutScopeDetail.childScopes.length}</span></div>
+                          <div className="stack stack--compact">
+                            {layoutScopeDetail.childScopes.map((scope) => (
+                              <button key={scope.externalId} type="button" className="list-item" onClick={() => setSelectedLayoutScopeId(scope.externalId)}>
+                                <strong>{scope.displayName ?? scope.name}</strong>
+                                <span>{scope.kind} · {scope.directChildScopeCount} child scopes · {scope.directEntityCount} direct entities</span>
+                              </button>
+                            ))}
+                            {!layoutScopeDetail.childScopes.length ? <p className="muted">No lower-level scopes under this node.</p> : null}
+                          </div>
+                        </div>
+
+                        <div className="card card--nested">
+                          <div className="section-heading"><h4>Direct entities</h4><span className="badge">{layoutScopeDetail.entities.length}</span></div>
+                          <div className="stack stack--compact">
+                            {layoutScopeDetail.entities.map((entity) => (
+                              <div key={entity.externalId} className="run-item">
+                                <strong>{entity.displayName ?? entity.name}</strong>
+                                <span>{entity.kind}{entity.origin ? ` · ${entity.origin}` : ""}</span>
+                                <span>{entity.sourceRefCount} source references</span>
+                                <span>{entity.summary ?? "—"}</span>
+                              </div>
+                            ))}
+                            {!layoutScopeDetail.entities.length ? <p className="muted">No direct entities under this scope.</p> : null}
+                          </div>
+                        </div>
+                      </>
+                    ) : <p className="muted">Select a scope to inspect its drill-down view.</p>}
+                  </div>
+                </div>
+              ) : <p className="muted">Layout explorer will appear when a snapshot is available.</p>}
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Dependency and relationship view</h3><span className="badge">Step 8</span></div>
+              <div className="split-grid split-grid--compact">
+                <label>
+                  <span>Scope focus</span>
+                  <select value={selectedDependencyScopeId} onChange={(event) => { setSelectedDependencyScopeId(event.target.value); setFocusedDependencyEntityId(""); }}>
+                    <option value="">All scopes</option>
+                    {flattenedLayoutNodes.map((node) => (
+                      <option key={node.externalId} value={node.externalId}>
+                        {`${" ".repeat(node.depth * 2)}${node.displayName ?? node.name}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Direction</span>
+                  <select value={dependencyDirection} onChange={(event) => setDependencyDirection(event.target.value as DependencyDirection)}>
+                    <option value="ALL">All</option>
+                    <option value="INBOUND">Inbound</option>
+                    <option value="OUTBOUND">Outbound</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Entity focus</span>
+                  <select value={focusedDependencyEntityId} onChange={(event) => setFocusedDependencyEntityId(event.target.value)}>
+                    <option value="">No focused entity</option>
+                    {dependencyEntityOptions.map((entity) => (
+                      <option key={entity.externalId} value={entity.externalId}>
+                        {entity.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {dependencyView ? (
+                <div className="stack stack--compact">
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Scope entities</h4><p>{dependencyView.summary.scopeEntityCount}</p></div>
+                    <div className="card card--nested"><h4>Visible entities</h4><p>{dependencyView.summary.visibleEntityCount}</p></div>
+                    <div className="card card--nested"><h4>Relationships</h4><p>{dependencyView.summary.visibleRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Kinds</h4><p>{summarizeDependencyKinds(dependencyView.relationships)}</p></div>
+                  </div>
+
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Internal</h4><p>{dependencyView.summary.internalRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Inbound</h4><p>{dependencyView.summary.inboundRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Outbound</h4><p>{dependencyView.summary.outboundRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Scope</h4><p>{dependencyView.scope.path}</p></div>
+                  </div>
+
+                  {dependencyView.focus ? (
+                    <div className="card card--nested">
+                      <div className="section-heading">
+                        <h4>Focused entity</h4>
+                        <span className="badge">{dependencyView.focus.entity.kind}</span>
+                      </div>
+                      <p><strong>{dependencyView.focus.entity.displayName ?? dependencyView.focus.entity.name}</strong></p>
+                      <p className="muted">{dependencyView.focus.entity.scopePath}</p>
+                      <p>{dependencyView.focus.inboundRelationshipCount} inbound · {dependencyView.focus.outboundRelationshipCount} outbound</p>
+                    </div>
+                  ) : null}
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Visible entities</h4><span className="badge">{dependencyView.entities.length}</span></div>
+                    <div className="stack stack--compact">
+                      {dependencyView.entities.map((entity) => (
+                        <button key={entity.externalId} type="button" className={`list-item ${entity.externalId === focusedDependencyEntityId ? "list-item--active" : ""}`} onClick={() => setFocusedDependencyEntityId((current) => current === entity.externalId ? "" : entity.externalId)}>
+                          <strong>{entity.displayName ?? entity.name}</strong>
+                          <span>{entity.kind} · {entity.inScope ? "in scope" : "external neighbor"}</span>
+                          <span>{entity.inboundCount} inbound · {entity.outboundCount} outbound</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Relationship graph</h4><span className="badge">{dependencyView.relationships.length}</span></div>
+                    <div className="stack stack--compact">
+                      {dependencyView.relationships.map((relationship) => (
+                        <div key={relationship.externalId} className="run-item">
+                          <strong>{relationship.fromDisplayName}</strong>
+                          <span>{relationship.fromKind} · {relationship.fromInScope ? "scope" : "external"}</span>
+                          <span>↓ {relationship.kind} {relationship.crossesScopeBoundary ? "· boundary" : "· internal"}</span>
+                          <strong>{relationship.toDisplayName}</strong>
+                          <span>{relationship.toKind} · {relationship.toInScope ? "scope" : "external"}</span>
+                          <span>{relationship.fromScopePath} → {relationship.toScopePath}</span>
+                        </div>
+                      ))}
+                      {!dependencyView.relationships.length ? <p className="muted">No relationships match the current filter.</p> : null}
+                    </div>
+                  </div>
+                </div>
+              ) : <p className="muted">Dependency view will appear when a snapshot is available.</p>}
+            </div>
+
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Entry points and data/integration surfaces</h3><span className="badge">Step 9</span></div>
+              <div className="split-grid split-grid--compact">
+                <label>
+                  <span>Scope filter</span>
+                  <select value={selectedEntryPointScopeId} onChange={(event) => setSelectedEntryPointScopeId(event.target.value)}>
+                    <option value="">Repository-wide</option>
+                    {flattenedLayoutNodes.map((node) => (
+                      <option key={node.externalId} value={node.externalId}>
+                        {`${"  ".repeat(node.depth)}${node.displayName ?? node.name}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Category</span>
+                  <select value={entryCategory} onChange={(event) => setEntryCategory(event.target.value as EntryCategory)}>
+                    <option value="ALL">All</option>
+                    <option value="ENTRY_POINT">Entry points</option>
+                    <option value="DATA">Data stores/adapters</option>
+                    <option value="INTEGRATION">Channels/external systems</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Detail focus</span>
+                  <select value={focusedEntryPointId} onChange={(event) => setFocusedEntryPointId(event.target.value)}>
+                    <option value="">No focused item</option>
+                    {entryPointOptions.map((item) => (
+                      <option key={item.externalId} value={item.externalId}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {entryPointView ? (
+                <div className="stack stack--compact">
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Visible items</h4><p>{entryPointView.summary.visibleItemCount}</p></div>
+                    <div className="card card--nested"><h4>Entry points</h4><p>{entryPointView.summary.entryPointCount}</p></div>
+                    <div className="card card--nested"><h4>Data</h4><p>{entryPointView.summary.dataCount}</p></div>
+                    <div className="card card--nested"><h4>Integrations</h4><p>{entryPointView.summary.integrationCount}</p></div>
+                  </div>
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Relevant inventory</h4><p>{entryPointView.summary.totalRelevantItemCount}</p></div>
+                    <div className="card card--nested"><h4>Linked relationships</h4><p>{entryPointView.summary.relationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Visible kinds</h4><p>{summarizeEntryKinds(entryPointView.items)}</p></div>
+                    <div className="card card--nested"><h4>Scope</h4><p>{entryPointView.scope.path}</p></div>
+                  </div>
+
+                  {entryPointView.focus ? (
+                    <div className="card card--nested">
+                      <div className="section-heading">
+                        <h4>Focused detail</h4>
+                        <span className="badge">{entryPointView.focus.item.kind}</span>
+                      </div>
+                      <p><strong>{entryPointView.focus.item.displayName ?? entryPointView.focus.item.name}</strong></p>
+                      <p className="muted">{entryPointView.focus.item.scopePath}</p>
+                      <p>{entryPointView.focus.item.inboundRelationshipCount} inbound · {entryPointView.focus.item.outboundRelationshipCount} outbound · {entryPointView.focus.item.sourceRefCount} source refs</p>
+                      <p>{entryPointView.focus.item.sourcePath ?? "No source path"}</p>
+                      {entryPointView.focus.item.sourceSnippet ? <code>{entryPointView.focus.item.sourceSnippet}</code> : null}
+                    </div>
+                  ) : null}
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Visible items</h4><span className="badge">{entryPointView.items.length}</span></div>
+                    <div className="stack stack--compact">
+                      {entryPointView.items.map((item) => (
+                        <button key={item.externalId} type="button" className={`list-item ${item.externalId === focusedEntryPointId ? "list-item--active" : ""}`} onClick={() => setFocusedEntryPointId((current) => current === item.externalId ? "" : item.externalId)}>
+                          <strong>{item.displayName ?? item.name}</strong>
+                          <span>{item.kind} · {item.scopePath}</span>
+                          <span>{item.inboundRelationshipCount} inbound · {item.outboundRelationshipCount} outbound · {summarizeCounts(item.relatedKinds)}</span>
+                        </button>
+                      ))}
+                      {!entryPointView.items.length ? <p className="muted">No items match the current filter.</p> : null}
+                    </div>
+                  </div>
+
+                  {entryPointView.focus ? (
+                    <div className="split-grid split-grid--compact">
+                      <div className="card card--nested">
+                        <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entryPointView.focus.inboundRelationships.length}</span></div>
+                        <div className="stack stack--compact">
+                          {entryPointView.focus.inboundRelationships.map((relationship) => (
+                            <div key={relationship.externalId} className="audit-item">
+                              <strong>{relationship.otherDisplayName}</strong>
+                              <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                              <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="card card--nested">
+                        <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entryPointView.focus.outboundRelationships.length}</span></div>
+                        <div className="stack stack--compact">
+                          {entryPointView.focus.outboundRelationships.map((relationship) => (
+                            <div key={relationship.externalId} className="audit-item">
+                              <strong>{relationship.otherDisplayName}</strong>
+                              <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                              <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : <p className="muted">Entry-point and integration view will appear when a snapshot is available.</p>}
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Search and entity detail</h3><span className="badge">Step 10</span></div>
+              <div className="split-grid split-grid--compact">
+                <label>
+                  <span>Search query</span>
+                  <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, kind, summary, source path" />
+                </label>
+                <label>
+                  <span>Scope filter</span>
+                  <select value={selectedSearchScopeId} onChange={(event) => setSelectedSearchScopeId(event.target.value)}>
+                    <option value="">Repository-wide</option>
+                    {flattenedLayoutNodes.map((node) => (
+                      <option key={node.externalId} value={node.externalId}>
+                        {`${"  ".repeat(node.depth)}${node.displayName ?? node.name}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Detail focus</span>
+                  <select value={selectedSearchEntityId} onChange={(event) => setSelectedSearchEntityId(event.target.value)}>
+                    <option value="">No selected entity</option>
+                    {searchResultOptions.map((result) => (
+                      <option key={result.externalId} value={result.externalId}>
+                        {result.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {searchView ? (
+                <div className="stack stack--compact">
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Searchable entities</h4><p>{searchView.summary.searchableEntityCount}</p></div>
+                    <div className="card card--nested"><h4>Matches</h4><p>{searchView.summary.totalMatchCount}</p></div>
+                    <div className="card card--nested"><h4>Visible results</h4><p>{searchView.summary.visibleResultCount}</p></div>
+                    <div className="card card--nested"><h4>Scope</h4><p>{searchView.scope.path}</p></div>
+                  </div>
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Visible kinds</h4><p>{summarizeCounts(searchView.visibleKinds)}</p></div>
+                    <div className="card card--nested"><h4>Query</h4><p>{searchView.query || "—"}</p></div>
+                    <div className="card card--nested"><h4>Limit</h4><p>{searchView.summary.limit}</p></div>
+                    <div className="card card--nested"><h4>Status</h4><p>{searchView.summary.queryBlank ? "Enter a query" : (searchView.results.length ? "Results ready" : "No matches")}</p></div>
+                  </div>
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Results</h4><span className="badge">{searchView.results.length}</span></div>
+                    <div className="stack stack--compact">
+                      {searchView.results.map((result) => (
+                        <button key={result.externalId} type="button" className={`list-item ${result.externalId === selectedSearchEntityId ? "list-item--active" : ""}`} onClick={() => setSelectedSearchEntityId((current) => current === result.externalId ? "" : result.externalId)}>
+                          <strong>{result.displayName ?? result.name}</strong>
+                          <span>{result.kind} · {result.scopePath}</span>
+                          <span>{result.inboundRelationshipCount} inbound · {result.outboundRelationshipCount} outbound · {result.sourceRefCount} source refs</span>
+                          <span>{summarizeMatchReasons(result.matchReasons)}</span>
+                        </button>
+                      ))}
+                      {!searchView.results.length ? <p className="muted">{searchView.summary.queryBlank ? "Enter a search query to look up entities in the imported snapshot." : "No entities matched the current search."}</p> : null}
+                    </div>
+                  </div>
+
+                  {entityDetail ? (
+                    <div className="stack stack--compact">
+                      <div className="card card--nested">
+                        <div className="section-heading"><h4>Entity detail</h4><span className="badge">{entityDetail.entity.kind}</span></div>
+                        <p><strong>{entityDetail.entity.displayName ?? entityDetail.entity.name}</strong></p>
+                        <p className="muted">{entityDetail.entity.scopePath}</p>
+                        <p>{entityDetail.entity.inboundRelationshipCount} inbound · {entityDetail.entity.outboundRelationshipCount} outbound · {entityDetail.entity.sourceRefCount} source refs</p>
+                        <p>{entityDetail.entity.summary ?? "No summary available."}</p>
+                      </div>
+
+                      <div className="split-grid split-grid--compact">
+                        <div className="card card--nested"><h4>Related kinds</h4><p>{summarizeCounts(entityDetail.relatedKinds)}</p></div>
+                        <div className="card card--nested"><h4>Scope</h4><p>{entityDetail.scope.path}</p></div>
+                        <div className="card card--nested"><h4>Origin</h4><p>{entityDetail.entity.origin ?? "—"}</p></div>
+                        <div className="card card--nested"><h4>Metadata</h4><p>{entityDetail.metadataJson ? "Available" : "—"}</p></div>
+                      </div>
+
+                      <div className="card card--nested">
+                        <div className="section-heading"><h4>Source context</h4><span className="badge">{entityDetail.sourceRefs.length}</span></div>
+                        <div className="stack stack--compact">
+                          {entityDetail.sourceRefs.map((sourceRef, index) => (
+                            <div key={`${sourceRef.path ?? "source"}-${index}`} className="audit-item">
+                              <strong>{sourceRef.path ?? "Unknown path"}</strong>
+                              <span>{sourceRef.startLine ?? "—"}–{sourceRef.endLine ?? "—"}</span>
+                              <span>{sourceRef.snippet ?? "No snippet"}</span>
+                            </div>
+                          ))}
+                          {!entityDetail.sourceRefs.length ? <p className="muted">No source references available.</p> : null}
+                        </div>
+                        {entityDetail.metadataJson ? <pre>{entityDetail.metadataJson}</pre> : null}
+                      </div>
+
+                      <div className="split-grid split-grid--compact">
+                        <div className="card card--nested">
+                          <div className="section-heading"><h4>Inbound relationships</h4><span className="badge">{entityDetail.inboundRelationships.length}</span></div>
+                          <div className="stack stack--compact">
+                            {entityDetail.inboundRelationships.map((relationship) => (
+                              <button key={relationship.externalId} type="button" className="list-item" onClick={() => setSelectedSearchEntityId(relationship.otherEntityId)}>
+                                <strong>{relationship.otherDisplayName}</strong>
+                                <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                              </button>
+                            ))}
+                            {!entityDetail.inboundRelationships.length ? <p className="muted">No inbound relationships.</p> : null}
+                          </div>
+                        </div>
+                        <div className="card card--nested">
+                          <div className="section-heading"><h4>Outbound relationships</h4><span className="badge">{entityDetail.outboundRelationships.length}</span></div>
+                          <div className="stack stack--compact">
+                            {entityDetail.outboundRelationships.map((relationship) => (
+                              <button key={relationship.externalId} type="button" className="list-item" onClick={() => setSelectedSearchEntityId(relationship.otherEntityId)}>
+                                <strong>{relationship.otherDisplayName}</strong>
+                                <span>{relationship.otherKind} · {relationship.otherScopePath}</span>
+                                <span>{relationship.kind}{relationship.label ? ` · ${relationship.label}` : ""}</span>
+                              </button>
+                            ))}
+                            {!entityDetail.outboundRelationships.length ? <p className="muted">No outbound relationships.</p> : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : <p className="muted">Search and entity detail view will appear when a snapshot is available.</p>}
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Overlays, notes, and saved views</h3><span className="badge">Step 11</span></div>
+              {customizationOverview ? (
+                <div className="stack stack--compact">
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Overlays</h4><p>{customizationOverview.overlays.length}</p></div>
+                    <div className="card card--nested"><h4>Saved views</h4><p>{customizationOverview.savedViews.length}</p></div>
+                    <div className="card card--nested"><h4>Focused entity</h4><p>{selectedSearchEntityId || "—"}</p></div>
+                    <div className="card card--nested"><h4>Focused scope</h4><p>{selectedSearchScopeId || selectedLayoutScopeId || "—"}</p></div>
+                  </div>
+
+                  <form className="split-grid split-grid--compact" onSubmit={handleCreateOverlay}>
+                    <label>
+                      <span>Overlay name</span>
+                      <input value={overlayName} onChange={(event) => setOverlayName(event.target.value)} placeholder="Review notes" />
+                    </label>
+                    <label>
+                      <span>Kind</span>
+                      <select value={overlayKind} onChange={(event) => setOverlayKind(event.target.value as OverlayKind)}>
+                        <option value="ANNOTATION">Annotation/note</option>
+                        <option value="TAG_SET">Tag set</option>
+                        <option value="HIGHLIGHT">Highlight</option>
+                        <option value="HEATMAP">Heatmap</option>
+                      </select>
+                    </label>
+                    <label className="grid-span-2">
+                      <span>Note</span>
+                      <input value={overlayNote} onChange={(event) => setOverlayNote(event.target.value)} placeholder="Stored separately from imported facts" />
+                    </label>
+                    <div className="grid-span-2">
+                      <button type="submit" disabled={!overlayName.trim()}>Create overlay from current focus</button>
+                    </div>
+                  </form>
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Stored overlays</h4><span className="badge">{customizationOverview.overlays.length}</span></div>
+                    <div className="stack stack--compact">
+                      {customizationOverview.overlays.map((overlay) => (
+                        <div key={overlay.id} className={`list-item ${overlay.id === selectedOverlayId ? "list-item--active" : ""}`}>
+                          <strong>{overlay.name}</strong>
+                          <span>{overlay.kind} · {overlay.targetEntityCount} entities · {overlay.targetScopeCount} scopes</span>
+                          <span>{overlay.note || "No note"}</span>
+                          <div className="button-row">
+                            <button type="button" onClick={() => setSelectedOverlayId(overlay.id)}>Inspect</button>
+                            <button type="button" onClick={() => handleDeleteOverlay(overlay.id)}>Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                      {!customizationOverview.overlays.length ? <p className="muted">No overlays or notes stored for this snapshot yet.</p> : null}
+                    </div>
+                    {selectedOverlayId ? <pre>{customizationOverview.overlays.find((overlay) => overlay.id === selectedOverlayId)?.definitionJson}</pre> : null}
+                  </div>
+
+                  <form className="split-grid split-grid--compact" onSubmit={handleSaveCurrentView}>
+                    <label className="grid-span-2">
+                      <span>Saved view name</span>
+                      <input value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} placeholder="Backend orders focus" />
+                    </label>
+                    <div className="grid-span-2">
+                      <button type="submit" disabled={!savedViewName.trim()}>Save current filters and focus</button>
+                    </div>
+                  </form>
+
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Saved views</h4><span className="badge">{customizationOverview.savedViews.length}</span></div>
+                    <div className="stack stack--compact">
+                      {customizationOverview.savedViews.map((savedView) => (
+                        <div key={savedView.id} className={`list-item ${savedView.id === selectedSavedViewId ? "list-item--active" : ""}`}>
+                          <strong>{toSavedViewStateLabel(savedView.name, savedView.viewType, selectedSnapshot?.snapshotKey ?? null)}</strong>
+                          <span>Updated {formatDateTime(savedView.updatedAt)}</span>
+                          <span>{savedView.queryJson ? "Query state saved" : "No query state"} · {savedView.layoutJson ? "Layout state saved" : "No layout state"}</span>
+                          <div className="button-row">
+                            <button type="button" onClick={() => void handleApplySavedView(savedView.id)}>Open</button>
+                            <button type="button" onClick={() => void handleDuplicateSavedView(savedView.id)}>Duplicate</button>
+                            <button type="button" onClick={() => void handleDeleteSavedView(savedView.id)}>Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                      {!customizationOverview.savedViews.length ? <p className="muted">No saved views for this snapshot yet.</p> : null}
+                    </div>
+                  </div>
+                </div>
+              ) : <p className="muted">Customization view will appear when a snapshot is available.</p>}
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Snapshot comparison summary</h3><span className="badge">Step 12</span></div>
+              <div className="split-grid split-grid--compact">
+                <label>
+                  <span>Compare current snapshot to</span>
+                  <select value={comparisonSnapshotId} onChange={(event) => setComparisonSnapshotId(event.target.value)}>
+                    <option value="">Select another snapshot</option>
+                    {comparisonOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {snapshotComparison ? (
+                <div className="stack stack--compact">
+                  <div className="card card--nested">
+                    <div className="section-heading"><h4>Headline</h4><span className="badge">{snapshotComparison.targetSnapshot.snapshotKey}</span></div>
+                    <p>{summarizeComparisonHeadline(snapshotComparison.summary)}</p>
+                    <p className="muted">Base {snapshotComparison.baseSnapshot.snapshotKey} → Target {snapshotComparison.targetSnapshot.snapshotKey}</p>
+                  </div>
+
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Added scopes</h4><p>{snapshotComparison.summary.addedScopeCount}</p></div>
+                    <div className="card card--nested"><h4>Removed scopes</h4><p>{snapshotComparison.summary.removedScopeCount}</p></div>
+                    <div className="card card--nested"><h4>Added entities</h4><p>{snapshotComparison.summary.addedEntityCount}</p></div>
+                    <div className="card card--nested"><h4>Removed entities</h4><p>{snapshotComparison.summary.removedEntityCount}</p></div>
+                  </div>
+
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested"><h4>Added relationships</h4><p>{snapshotComparison.summary.addedRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Removed relationships</h4><p>{snapshotComparison.summary.removedRelationshipCount}</p></div>
+                    <div className="card card--nested"><h4>Added entry points</h4><p>{snapshotComparison.summary.addedEntryPointCount}</p></div>
+                    <div className="card card--nested"><h4>Changed integration/persistence</h4><p>{snapshotComparison.summary.changedIntegrationAndPersistenceCount}</p></div>
+                  </div>
+
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Added entry points</h4><span className="badge">{snapshotComparison.addedEntryPoints.length}</span></div>
+                      <div className="stack stack--compact">
+                        {snapshotComparison.addedEntryPoints.map((item) => (
+                          <div key={item.externalId} className="audit-item">
+                            <strong>{item.displayName}</strong>
+                            <span>{item.kind} · {item.scopePath}</span>
+                          </div>
+                        ))}
+                        {!snapshotComparison.addedEntryPoints.length ? <p className="muted">No added entry points.</p> : null}
+                      </div>
+                    </div>
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Integration/persistence changes</h4><span className="badge">{snapshotComparison.changedIntegrationAndPersistence.length}</span></div>
+                      <div className="stack stack--compact">
+                        {snapshotComparison.changedIntegrationAndPersistence.map((item) => (
+                          <div key={item.externalId} className="audit-item">
+                            <strong>{item.displayName}</strong>
+                            <span>{item.kind} · {item.scopePath}</span>
+                          </div>
+                        ))}
+                        {!snapshotComparison.changedIntegrationAndPersistence.length ? <p className="muted">No notable integration or persistence changes.</p> : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="split-grid split-grid--compact">
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Added dependencies</h4><span className="badge">{snapshotComparison.addedDependencies.length}</span></div>
+                      <div className="stack stack--compact">
+                        {snapshotComparison.addedDependencies.map((change) => (
+                          <div key={change.externalId} className="audit-item">
+                            <strong>{change.label}</strong>
+                            <span>{change.kind}</span>
+                            <span>{change.fromDisplayName} → {change.toDisplayName}</span>
+                          </div>
+                        ))}
+                        {!snapshotComparison.addedDependencies.length ? <p className="muted">No added dependency changes in preview.</p> : null}
+                      </div>
+                    </div>
+                    <div className="card card--nested">
+                      <div className="section-heading"><h4>Removed dependencies</h4><span className="badge">{snapshotComparison.removedDependencies.length}</span></div>
+                      <div className="stack stack--compact">
+                        {snapshotComparison.removedDependencies.map((change) => (
+                          <div key={change.externalId} className="audit-item">
+                            <strong>{change.label}</strong>
+                            <span>{change.kind}</span>
+                            <span>{change.fromDisplayName} → {change.toDisplayName}</span>
+                          </div>
+                        ))}
+                        {!snapshotComparison.removedDependencies.length ? <p className="muted">No removed dependency changes in preview.</p> : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : <p className="muted">Select another snapshot to compare with the current one.</p>}
+            </div>
+
+            <div className="card card--nested">
+              <div className="section-heading"><h3>Recent diagnostics</h3><span className="badge">{snapshotOverview.recentDiagnostics.length}</span></div>
+              <div className="stack stack--compact">
+                {snapshotOverview.recentDiagnostics.map((diagnostic) => (
+                  <div key={diagnostic.externalId} className="audit-item">
+                    <strong>{diagnostic.code}</strong>
+                    <span>{diagnostic.severity}</span>
+                    <span>{diagnostic.message}</span>
+                    <span>{diagnostic.filePath ?? diagnostic.scopeId ?? diagnostic.entityId ?? "—"}</span>
+                  </div>
+                ))}
+                {!snapshotOverview.recentDiagnostics.length ? <p className="muted">No diagnostics recorded for this snapshot.</p> : null}
+              </div>
+            </div>
+          </>
+        ) : <p className="muted">Select a snapshot to inspect its overview.</p>}
+      </div>
+    </div>
+  ) : <p className="muted">Select a workspace to browse imported snapshots.</p>}
+    </article>
+  );
+}
