@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { WorkspaceSidebar } from '../components/WorkspaceSidebar';
+import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { WorkspaceManagementSection } from '../components/WorkspaceManagementSection';
 import { SnapshotCatalogSection } from '../components/SnapshotCatalogSection';
 import { OperationsAndAuditSection } from '../components/OperationsAndAuditSection';
@@ -9,9 +10,23 @@ import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 export function LegacyWorkspaceView() {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selection = useAppSelectionContext();
 
-  const workspaceData = useWorkspaceData({ setBusyMessage, setError });
-  const snapshotExplorer = useSnapshotExplorer(workspaceData.selectedWorkspaceId, workspaceData.snapshots, { setBusyMessage, setError });
+  const workspaceData = useWorkspaceData({
+    selectedWorkspaceId: selection.selectedWorkspaceId,
+    setSelectedWorkspaceId: selection.setSelectedWorkspaceId,
+    selectedRepositoryId: selection.selectedRepositoryId,
+    setSelectedRepositoryId: selection.setSelectedRepositoryId,
+    setBusyMessage,
+    setError,
+  });
+  const snapshotExplorer = useSnapshotExplorer(
+    workspaceData.selectedWorkspaceId,
+    workspaceData.snapshots,
+    selection.selectedSnapshotId,
+    selection.setSelectedSnapshotId,
+    { setBusyMessage, setError },
+  );
 
   return (
     <div className="content-stack">

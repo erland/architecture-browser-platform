@@ -466,3 +466,15 @@ dd {
 .placeholder-view__lead {
   margin-bottom: 0;
 }
+
+.selection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.selection-summary--compact {
+  margin-top: 14px;
+  margin-bottom: 14px;
+}

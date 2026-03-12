@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { toDependencyEntityOptions } from "../dependencyViewModel";
 import { toEntryPointItemOptions } from "../entryPointViewModel";
 import { toSearchResultOptions } from "../searchViewModel";
@@ -37,9 +37,10 @@ function toErrorMessage(caught: unknown) {
 export function useSnapshotExplorer(
   selectedWorkspaceId: string | null,
   snapshots: SnapshotSummary[],
+  selectedSnapshotId: string | null,
+  setSelectedSnapshotId: Dispatch<SetStateAction<string | null>>,
   { setBusyMessage, setError }: FeedbackSetters,
 ) {
-  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
   const [snapshotOverview, setSnapshotOverview] = useState<SnapshotOverview | null>(null);
   const [layoutTree, setLayoutTree] = useState<LayoutTree | null>(null);
   const [selectedLayoutScopeId, setSelectedLayoutScopeId] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export function useSnapshotExplorer(
 
   useEffect(() => {
     setSelectedSnapshotId((current) => (current && snapshots.some((snapshot) => snapshot.id === current) ? current : (snapshots[0]?.id ?? null)));
-  }, [snapshots]);
+  }, [snapshots, setSelectedSnapshotId]);
 
   useEffect(() => {
     if (selectedWorkspaceId && selectedSnapshotId) {

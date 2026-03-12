@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { platformApi } from "../platformApi";
 import {
   ApiHealth,
@@ -30,7 +30,11 @@ type RepositoryEditor = {
 };
 type RetentionForm = { keepSnapshotsPerRepository: string; keepRunsPerRepository: string };
 
-type FeedbackSetters = {
+type UseWorkspaceDataArgs = {
+  selectedWorkspaceId: string | null;
+  setSelectedWorkspaceId: Dispatch<SetStateAction<string | null>>;
+  selectedRepositoryId: string | null;
+  setSelectedRepositoryId: Dispatch<SetStateAction<string | null>>;
   setBusyMessage: (value: string | null) => void;
   setError: (value: string | null) => void;
 };
@@ -50,7 +54,25 @@ function emptyRepositoryEditor(): RepositoryEditor {
   };
 }
 
-export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) {
+function toRepositoryEditor(repository: Repository): RepositoryEditor {
+  return {
+    id: repository.id,
+    name: repository.name,
+    localPath: repository.localPath ?? "",
+    remoteUrl: repository.remoteUrl ?? "",
+    defaultBranch: repository.defaultBranch ?? "",
+    metadataJson: repository.metadataJson ?? "",
+  };
+}
+
+export function useWorkspaceData({
+  selectedWorkspaceId,
+  setSelectedWorkspaceId,
+  selectedRepositoryId,
+  setSelectedRepositoryId,
+  setBusyMessage,
+  setError,
+}: UseWorkspaceDataArgs) {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -60,7 +82,6 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
   const [operationsOverview, setOperationsOverview] = useState<OperationsOverview | null>(initialOperationsOverview);
   const [retentionPreview, setRetentionPreview] = useState<RetentionPreview | null>(initialRetentionPreview);
   const [retentionForm, setRetentionForm] = useState<RetentionForm>({ keepSnapshotsPerRepository: "2", keepRunsPerRepository: "5" });
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [workspaceEditor, setWorkspaceEditor] = useState<WorkspaceEditor>({ name: "", description: "" });
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -108,6 +129,23 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
     setRepositoryEditor(emptyRepositoryEditor());
   }, [selectedWorkspace]);
 
+  useEffect(() => {
+    if (!repositories.length) {
+      setSelectedRepositoryId(null);
+      setRepositoryEditor(emptyRepositoryEditor());
+      return;
+    }
+
+    const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId) ?? null;
+    if (selectedRepository) {
+      setRepositoryEditor(toRepositoryEditor(selectedRepository));
+      return;
+    }
+
+    setSelectedRepositoryId(null);
+    setRepositoryEditor(emptyRepositoryEditor());
+  }, [repositories, selectedRepositoryId, setSelectedRepositoryId]);
+
   async function loadHealth() {
     try {
       const payload = await platformApi.getHealth<ApiHealth>();
@@ -151,7 +189,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
         keepSnapshotsPerRepository: `${operationsPayload.retentionDefaults.keepSnapshotsPerRepository}`,
         keepRunsPerRepository: `${operationsPayload.retentionDefaults.keepRunsPerRepository}`,
       });
-      setRepositoryEditor((current) => (current.id ? current : emptyRepositoryEditor()));
+      setSelectedRepositoryId((current) => current && repositoryPayload.some((item) => item.id === current) ? current : null);
       setError(null);
     } catch (caught) {
       setError(toErrorMessage(caught));
@@ -242,10 +280,11 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
     if (!selectedWorkspaceId) return;
     setBusyMessage("Creating repository registration…");
     try {
-      await platformApi.createRepository<Repository>(selectedWorkspaceId, repositoryForm);
+      const created = await platformApi.createRepository<Repository>(selectedWorkspaceId, repositoryForm);
       setRepositoryForm(emptyRepositoryForm);
       await loadWorkspaces();
       await loadWorkspaceDetail(selectedWorkspaceId);
+      setSelectedRepositoryId(created.id);
       setError(null);
     } catch (caught) {
       setError(toErrorMessage(caught));
@@ -259,7 +298,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
     if (!selectedWorkspaceId || !repositoryEditor.id) return;
     setBusyMessage("Updating repository registration…");
     try {
-      await platformApi.updateRepository<Repository>(selectedWorkspaceId, repositoryEditor.id, {
+      const updated = await platformApi.updateRepository<Repository>(selectedWorkspaceId, repositoryEditor.id, {
         name: repositoryEditor.name,
         localPath: repositoryEditor.localPath,
         remoteUrl: repositoryEditor.remoteUrl,
@@ -268,6 +307,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
       });
       await loadWorkspaceDetail(selectedWorkspaceId);
       await loadWorkspaces();
+      setSelectedRepositoryId(updated.id);
       setError(null);
     } catch (caught) {
       setError(toErrorMessage(caught));
@@ -283,6 +323,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
       await platformApi.archiveRepository<Repository>(selectedWorkspaceId, repositoryId);
       await loadWorkspaceDetail(selectedWorkspaceId);
       await loadWorkspaces();
+      setSelectedRepositoryId((current) => (current === repositoryId ? null : current));
       setError(null);
     } catch (caught) {
       setError(toErrorMessage(caught));
@@ -299,6 +340,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
         ...runRequestForm,
         requestedResult,
       });
+      setSelectedRepositoryId(repository.id);
       await loadWorkspaceDetail(selectedWorkspaceId);
       setError(null);
     } catch (caught) {
@@ -309,14 +351,7 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
   }
 
   function selectRepositoryForEdit(repository: Repository) {
-    setRepositoryEditor({
-      id: repository.id,
-      name: repository.name,
-      localPath: repository.localPath ?? "",
-      remoteUrl: repository.remoteUrl ?? "",
-      defaultBranch: repository.defaultBranch ?? "",
-      metadataJson: repository.metadataJson ?? "",
-    });
+    setSelectedRepositoryId(repository.id);
   }
 
   return {
@@ -332,6 +367,8 @@ export function useWorkspaceData({ setBusyMessage, setError }: FeedbackSetters) 
     setRetentionForm,
     selectedWorkspaceId,
     setSelectedWorkspaceId,
+    selectedRepositoryId,
+    setSelectedRepositoryId,
     selectedWorkspace,
     workspaceForm,
     setWorkspaceForm,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppNavigation } from './components/AppNavigation';
+import { useAppSelectionContext } from './contexts/AppSelectionContext';
 import { normalizeRoutePath, type AppRoutePath } from './routing/appRoutes';
 import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
 import { RoutePlaceholderView } from './views/RoutePlaceholderView';
@@ -13,6 +14,7 @@ function readCurrentRoute(): AppRoutePath {
 
 export function App() {
   const [currentPath, setCurrentPath] = useState<AppRoutePath>(() => readCurrentRoute());
+  const selection = useAppSelectionContext();
 
   useEffect(() => {
     const handlePopState = () => {
@@ -26,7 +28,7 @@ export function App() {
   useEffect(() => {
     const normalizedPath = normalizeRoutePath(window.location.pathname);
     if (normalizedPath !== window.location.pathname) {
-      window.history.replaceState({}, '', normalizedPath);
+      window.history.replaceState({}, '', `${normalizedPath}${window.location.search}${window.location.hash}`);
     }
     if (normalizedPath !== currentPath) {
       setCurrentPath(normalizedPath);
@@ -37,7 +39,7 @@ export function App() {
     if (path === currentPath) {
       return;
     }
-    window.history.pushState({}, '', path);
+    window.history.pushState({}, '', `${path}${window.location.search}${window.location.hash}`);
     setCurrentPath(path);
   }, [currentPath]);
 
@@ -54,9 +56,13 @@ export function App() {
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>
         <p className="lead">
-          Step 1 introduces top-level navigation and route-specific content areas. The current stacked workspace remains available while the
-          dedicated views are introduced incrementally.
+          Step 2 adds persistent workspace, repository, and snapshot selections so the upcoming route-specific views can share the same app context.
         </p>
+        <div className="selection-summary">
+          <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>
+          <span className="badge">Repository: {selection.selectedRepositoryId ?? '—'}</span>
+          <span className="badge">Snapshot: {selection.selectedSnapshotId ?? '—'}</span>
+        </div>
       </section>
 
       <AppNavigation currentPath={currentPath} onNavigate={handleNavigate} />
