@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppNavigation } from './components/AppNavigation';
 import { useAppSelectionContext } from './contexts/AppSelectionContext';
-import { normalizeRoutePath, type AppRoutePath } from './routing/appRoutes';
+import { type AppRoutePath } from './routing/appRoutes';
+import { buildNavigationUrl, readRoutePath } from './routing/appRouteState';
 import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
 import { RepositoriesView } from './views/RepositoriesView';
 import { RoutePlaceholderView } from './views/RoutePlaceholderView';
@@ -15,7 +16,7 @@ function readCurrentRoute(): AppRoutePath {
   if (typeof window === 'undefined') {
     return '/legacy';
   }
-  return normalizeRoutePath(window.location.pathname);
+  return readRoutePath(window.location.pathname);
 }
 
 export function App() {
@@ -32,9 +33,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const normalizedPath = normalizeRoutePath(window.location.pathname);
+    const normalizedPath = readRoutePath(window.location.pathname);
     if (normalizedPath !== window.location.pathname) {
-      window.history.replaceState({}, '', `${normalizedPath}${window.location.search}${window.location.hash}`);
+      window.history.replaceState({}, '', buildNavigationUrl(normalizedPath, window.location.search, window.location.hash));
     }
     if (normalizedPath !== currentPath) {
       setCurrentPath(normalizedPath);
@@ -45,7 +46,7 @@ export function App() {
     if (path === currentPath) {
       return;
     }
-    window.history.pushState({}, '', `${path}${window.location.search}${window.location.hash}`);
+    window.history.pushState({}, '', buildNavigationUrl(path, window.location.search, window.location.hash));
     setCurrentPath(path);
   }, [currentPath]);
 

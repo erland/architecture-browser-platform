@@ -4,21 +4,19 @@ import { EntryPointsTab } from '../browser/EntryPointsTab';
 import { LayoutTab } from '../browser/LayoutTab';
 import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
-import { BrowserTabNav, isBrowserTabKey, type BrowserTabKey } from '../components/BrowserTabNav';
+import { BrowserTabNav } from '../components/BrowserTabNav';
 import { ContextHeader } from '../components/ContextHeader';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserExplorer } from '../hooks/useBrowserExplorer';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
-
-const DEFAULT_BROWSER_TAB: BrowserTabKey = 'overview';
+import { buildBrowserTabSearch, DEFAULT_BROWSER_TAB, readBrowserTabFromSearch } from '../routing/browserTabState';
+import { type BrowserTabKey } from '../routing/browserTabs';
 
 function readBrowserTabFromLocation(): BrowserTabKey {
   if (typeof window === 'undefined') {
     return DEFAULT_BROWSER_TAB;
   }
-  const params = new URLSearchParams(window.location.search);
-  const tab = params.get('browserTab');
-  return isBrowserTabKey(tab) ? tab : DEFAULT_BROWSER_TAB;
+  return readBrowserTabFromSearch(window.location.search);
 }
 
 type BrowserViewProps = {
@@ -59,14 +57,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (activeTab === DEFAULT_BROWSER_TAB) {
-      params.delete('browserTab');
-    } else {
-      params.set('browserTab', activeTab);
-    }
-    const rendered = params.toString();
-    const nextSearch = rendered.length ? `?${rendered}` : '';
+    const nextSearch = buildBrowserTabSearch(window.location.search, activeTab);
     if (nextSearch !== window.location.search) {
       window.history.replaceState({}, '', `${window.location.pathname}${nextSearch}${window.location.hash}`);
     }
