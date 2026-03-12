@@ -4,6 +4,7 @@ import { useAppSelectionContext } from './contexts/AppSelectionContext';
 import { normalizeRoutePath, type AppRoutePath } from './routing/appRoutes';
 import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
 import { RoutePlaceholderView } from './views/RoutePlaceholderView';
+import { WorkspacesView } from './views/WorkspacesView';
 
 function readCurrentRoute(): AppRoutePath {
   if (typeof window === 'undefined') {
@@ -45,7 +46,10 @@ export function App() {
 
   const routeContent = useMemo(() => {
     if (currentPath === '/legacy') {
-      return <LegacyWorkspaceView />;
+      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} />;
+    }
+    if (currentPath === '/workspaces') {
+      return <WorkspacesView />;
     }
     return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
@@ -56,7 +60,7 @@ export function App() {
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>
         <p className="lead">
-          Step 2 adds persistent workspace, repository, and snapshot selections so the upcoming route-specific views can share the same app context.
+          Step 3 introduces a dedicated Workspaces view while keeping shared workspace, repository, and snapshot context available across routes.
         </p>
         <div className="selection-summary">
           <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

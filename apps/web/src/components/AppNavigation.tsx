@@ -12,7 +12,7 @@ export function AppNavigation({ currentPath, onNavigate }: AppNavigationProps) {
         <p className="eyebrow">Navigation</p>
         <h2 className="app-nav__title">Platform views</h2>
         <p className="muted app-nav__lead">
-          Step 1 introduces the route shell and keeps the current full workspace available during the migration.
+          Step 3 moves workspace lifecycle management into its own view while the remaining flows continue migrating out of the current stacked screen.
         </p>
       </div>
       <div className="app-nav__links">

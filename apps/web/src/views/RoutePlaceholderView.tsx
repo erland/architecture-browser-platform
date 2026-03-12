@@ -3,7 +3,7 @@ import type { AppRoutePath } from '../routing/appRoutes';
 import { getRouteMeta } from '../routing/appRoutes';
 
 type RoutePlaceholderViewProps = {
-  path: Exclude<AppRoutePath, '/legacy'>;
+  path: Exclude<AppRoutePath, '/legacy' | '/workspaces'>;
   onOpenLegacy: () => void;
 };
 
@@ -17,8 +17,8 @@ export function RoutePlaceholderView({ path, onOpenLegacy }: RoutePlaceholderVie
       <h2>{route.label}</h2>
       <p className="lead placeholder-view__lead">{route.description}</p>
       <p className="muted">
-        The route shell is now in place, and app-level selection context persists across navigation and refresh. The current end-to-end workspace remains available while the
-        refactor moves each workflow into its own view.
+        The route shell and persistent app context are in place, and the dedicated Workspaces view is now live. The current end-to-end workspace remains available while the
+        rest of the refactor moves each workflow into its own view.
       </p>
       <div className="selection-summary selection-summary--compact">
         <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

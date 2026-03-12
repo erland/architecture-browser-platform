@@ -1,6 +1,6 @@
 export const appRoutes = [
-  { path: '/legacy', label: 'Current workspace', description: 'Existing stacked workspace screen kept available during migration.' },
-  { path: '/workspaces', label: 'Workspaces', description: 'Dedicated workspace administration screen coming in a later step.' },
+  { path: '/legacy', label: 'Current workspace', description: 'Temporary stacked screen for repository, snapshot, and operations workflows.' },
+  { path: '/workspaces', label: 'Workspaces', description: 'Dedicated workspace administration view.' },
   { path: '/repositories', label: 'Repositories', description: 'Repository registration and run flows will move here.' },
   { path: '/snapshots', label: 'Snapshots', description: 'Snapshot catalog and selection will move here.' },
   { path: '/browser', label: 'Browser', description: 'Focused architecture browser view will be introduced here.' },

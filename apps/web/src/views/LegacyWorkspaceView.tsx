@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { WorkspaceSidebar } from '../components/WorkspaceSidebar';
-import { useAppSelectionContext } from '../contexts/AppSelectionContext';
-import { WorkspaceManagementSection } from '../components/WorkspaceManagementSection';
+import { RepositoryManagementSection } from '../components/RepositoryManagementSection';
 import { SnapshotCatalogSection } from '../components/SnapshotCatalogSection';
 import { OperationsAndAuditSection } from '../components/OperationsAndAuditSection';
+import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 
-export function LegacyWorkspaceView() {
+type LegacyWorkspaceViewProps = {
+  onOpenWorkspaces: () => void;
+};
+
+export function LegacyWorkspaceView({ onOpenWorkspaces }: LegacyWorkspaceViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -30,6 +33,17 @@ export function LegacyWorkspaceView() {
 
   return (
     <div className="content-stack">
+      <section className="card section-intro">
+        <p className="eyebrow">Current workspace</p>
+        <h2>Repository, snapshot, and operations flow</h2>
+        <p className="lead">
+          Workspace creation and editing now live in the dedicated Workspaces view. This screen continues to host the remaining stacked flow until the next steps split it further.
+        </p>
+        <div className="actions">
+          <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open Workspaces view</button>
+        </div>
+      </section>
+
       <section className="grid grid--top">
         <article className="card">
           <h2>API health</h2>
@@ -44,39 +58,29 @@ export function LegacyWorkspaceView() {
         </article>
 
         <article className="card">
-          <h2>Create workspace</h2>
-          <form className="form" onSubmit={workspaceData.handleCreateWorkspace}>
-            <label>
-              <span>Workspace key</span>
-              <input value={workspaceData.workspaceForm.workspaceKey} onChange={(event) => workspaceData.setWorkspaceForm((current) => ({ ...current, workspaceKey: event.target.value }))} placeholder="customs-core" />
-            </label>
-            <label>
-              <span>Name</span>
-              <input value={workspaceData.workspaceForm.name} onChange={(event) => workspaceData.setWorkspaceForm((current) => ({ ...current, name: event.target.value }))} placeholder="Swedish Customs Core" />
-            </label>
-            <label>
-              <span>Description</span>
-              <textarea value={workspaceData.workspaceForm.description} onChange={(event) => workspaceData.setWorkspaceForm((current) => ({ ...current, description: event.target.value }))} placeholder="Architecture review workspace for initial MVP repositories." />
-            </label>
-            <button type="submit">Create workspace</button>
-          </form>
+          <div className="section-heading">
+            <h2>Active workspace context</h2>
+            <span className="badge">Shared selection</span>
+          </div>
+          {workspaceData.selectedWorkspace ? (
+            <dl className="kv kv--compact">
+              <div><dt>Name</dt><dd>{workspaceData.selectedWorkspace.name}</dd></div>
+              <div><dt>Key</dt><dd>{workspaceData.selectedWorkspace.workspaceKey}</dd></div>
+              <div><dt>Status</dt><dd>{workspaceData.selectedWorkspace.status}</dd></div>
+            </dl>
+          ) : (
+            <p className="muted">No workspace selected yet. Use the dedicated Workspaces view to create or select one before working with repositories and snapshots.</p>
+          )}
+          <div className="actions">
+            <button type="button" onClick={onOpenWorkspaces}>Manage workspaces</button>
+          </div>
         </article>
       </section>
 
-      <section className="workspace-layout">
-        <WorkspaceSidebar
-          workspaces={workspaceData.workspaces}
-          selectedWorkspaceId={workspaceData.selectedWorkspaceId}
-          setSelectedWorkspaceId={workspaceData.setSelectedWorkspaceId}
-        />
-
-        <div className="content-stack">
-          <WorkspaceManagementSection
+      {workspaceData.selectedWorkspace ? (
+        <>
+          <RepositoryManagementSection
             selectedWorkspace={workspaceData.selectedWorkspace}
-            workspaceEditor={workspaceData.workspaceEditor}
-            setWorkspaceEditor={workspaceData.setWorkspaceEditor}
-            handleUpdateWorkspace={workspaceData.handleUpdateWorkspace}
-            handleArchiveWorkspace={workspaceData.handleArchiveWorkspace}
             repositories={workspaceData.repositories}
             repositoryForm={workspaceData.repositoryForm}
             setRepositoryForm={workspaceData.setRepositoryForm}
@@ -164,8 +168,16 @@ export function LegacyWorkspaceView() {
             retentionPreview={workspaceData.retentionPreview}
             auditEvents={workspaceData.auditEvents}
           />
-        </div>
-      </section>
+        </>
+      ) : (
+        <article className="card empty-state-card">
+          <h2>No workspace selected</h2>
+          <p className="muted">Choose a workspace in the Workspaces view to continue with repository registration, snapshots, and operations.</p>
+          <div className="actions">
+            <button type="button" onClick={onOpenWorkspaces}>Go to Workspaces</button>
+          </div>
+        </article>
+      )}
     </div>
   );
 }
