@@ -3,7 +3,7 @@ import type { AppRoutePath } from '../routing/appRoutes';
 import { getRouteMeta } from '../routing/appRoutes';
 
 type RoutePlaceholderViewProps = {
-  path: Exclude<AppRoutePath, '/legacy' | '/workspaces' | '/repositories' | '/snapshots' | '/browser'>;
+  path: Exclude<AppRoutePath, '/legacy' | '/workspaces' | '/repositories' | '/snapshots' | '/browser' | '/compare' | '/operations'>;
   onOpenLegacy: () => void;
 };
 
@@ -17,7 +17,7 @@ export function RoutePlaceholderView({ path, onOpenLegacy }: RoutePlaceholderVie
       <h2>{route.label}</h2>
       <p className="lead placeholder-view__lead">{route.description}</p>
       <p className="muted">
-The route shell and persistent app context are in place, and the dedicated Workspaces, Repositories, Snapshots, Browser, and Compare views are now live. The current stacked screen remains available while the Operations route is implemented.
+The route shell and persistent app context are in place, and the dedicated Workspaces, Repositories, Snapshots, Browser, Compare, and Operations views are now live.
       </p>
       <div className="selection-summary selection-summary--compact">
         <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

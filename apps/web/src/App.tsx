@@ -9,6 +9,7 @@ import { BrowserView } from './views/BrowserView';
 import { CompareView } from './views/CompareView';
 import { SnapshotsView } from './views/SnapshotsView';
 import { WorkspacesView } from './views/WorkspacesView';
+import { OperationsView } from './views/OperationsView';
 
 function readCurrentRoute(): AppRoutePath {
   if (typeof window === 'undefined') {
@@ -50,7 +51,7 @@ export function App() {
 
   const routeContent = useMemo(() => {
     if (currentPath === '/legacy') {
-      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenSnapshots={() => handleNavigate('/snapshots')} />;
+      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenOperations={() => handleNavigate('/operations')} />;
     }
     if (currentPath === '/workspaces') {
       return <WorkspacesView />;
@@ -67,6 +68,9 @@ export function App() {
     if (currentPath === '/compare') {
       return <CompareView onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenBrowser={() => handleNavigate('/browser')} onOpenLegacy={() => handleNavigate('/legacy')} />;
     }
+    if (currentPath === '/operations') {
+      return <OperationsView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/repositories')} onOpenSnapshots={() => handleNavigate('/snapshots')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+    }
     return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
 
@@ -76,7 +80,7 @@ export function App() {
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>
         <p className="lead">
-          Steps 6–9 introduce dedicated Browser and Compare routes so architecture exploration and snapshot delta analysis now have focused shells while Operations remains to be moved out of the temporary stacked screen.
+          Steps 6–10 introduce dedicated Browser, Compare, and Operations routes so architecture exploration, snapshot delta analysis, and operational administration now have focused shells.
         </p>
         <div className="selection-summary">
           <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

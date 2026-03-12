@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { SnapshotCatalogSection } from '../components/SnapshotCatalogSection';
-import { OperationsAndAuditSection } from '../components/OperationsAndAuditSection';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
@@ -9,9 +8,10 @@ type LegacyWorkspaceViewProps = {
   onOpenWorkspaces: () => void;
   onOpenRepositories: () => void;
   onOpenSnapshots: () => void;
+  onOpenOperations: () => void;
 };
 
-export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOpenSnapshots }: LegacyWorkspaceViewProps) {
+export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOpenSnapshots, onOpenOperations }: LegacyWorkspaceViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -38,12 +38,13 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOp
         <p className="eyebrow">Current workspace</p>
         <h2>Snapshot and operations flow</h2>
         <p className="lead">
-          Workspace lifecycle management now lives in Workspaces, repository registration plus run requests now live in Repositories, and snapshot selection now lives in Snapshots. This temporary screen is reduced to detailed snapshot exploration and operations for the currently selected snapshot until the Browser and Operations routes are implemented.
+          Workspace lifecycle management now lives in Workspaces, repository registration plus run requests now live in Repositories, and snapshot selection now lives in Snapshots. This temporary screen is reduced to detailed snapshot exploration only. Operations and audit now live in their own dedicated route.
         </p>
         <div className="actions">
           <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open Workspaces view</button>
           <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Repositories view</button>
           <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots view</button>
+          <button type="button" className="button-secondary" onClick={onOpenOperations}>Open Operations view</button>
         </div>
       </section>
 
@@ -78,6 +79,7 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOp
             <button type="button" onClick={onOpenWorkspaces}>Manage workspaces</button>
             <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
             <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Choose snapshot</button>
+            <button type="button" className="button-secondary" onClick={onOpenOperations}>Open operations</button>
           </div>
         </article>
       </section>
@@ -147,17 +149,19 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOp
             showCatalogList={false}
           />
 
-          <OperationsAndAuditSection
-            recentRuns={workspaceData.recentRuns}
-            selectedWorkspace={workspaceData.selectedWorkspace}
-            operationsOverview={workspaceData.operationsOverview}
-            retentionForm={workspaceData.retentionForm}
-            setRetentionForm={workspaceData.setRetentionForm}
-            handlePreviewRetention={workspaceData.handlePreviewRetention}
-            handleApplyRetention={workspaceData.handleApplyRetention}
-            retentionPreview={workspaceData.retentionPreview}
-            auditEvents={workspaceData.auditEvents}
-          />
+
+          <article className="card section-note">
+            <div className="section-heading">
+              <h2>What moved out</h2>
+              <span className="badge">Step 10</span>
+            </div>
+            <p className="muted">
+              Operations, retention, failed run review, problematic snapshot visibility, and the audit trail now live in the dedicated Operations route so this temporary screen can stay focused on detailed snapshot exploration.
+            </p>
+            <div className="actions">
+              <button type="button" onClick={onOpenOperations}>Open Operations</button>
+            </div>
+          </article>
         </>
       ) : (
         <article className="card empty-state-card">

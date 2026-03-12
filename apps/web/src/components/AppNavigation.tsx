@@ -12,7 +12,7 @@ export function AppNavigation({ currentPath, onNavigate }: AppNavigationProps) {
         <p className="eyebrow">Navigation</p>
         <h2 className="app-nav__title">Platform views</h2>
         <p className="muted app-nav__lead">
-Steps 6–9 bring dedicated Browser and Compare routes online so architecture exploration and snapshot delta analysis now have focused shells while Operations continues migrating out of the temporary stacked screen.
+Steps 6–10 bring dedicated Browser, Compare, and Operations routes online so architecture exploration, snapshot delta analysis, and operational administration now have focused shells.
         </p>
       </div>
       <div className="app-nav__links">

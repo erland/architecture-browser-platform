@@ -5,7 +5,7 @@ export const appRoutes = [
   { path: '/snapshots', label: 'Snapshots', description: 'Dedicated snapshot catalog, selection, and handoff into Browser or Compare.' },
   { path: '/browser', label: 'Browser', description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.' },
   { path: '/compare', label: 'Compare', description: 'Dedicated snapshot comparison workflow for comparing the selected baseline snapshot with another imported snapshot.' },
-  { path: '/operations', label: 'Operations', description: 'Operational administration and audit views will move here.' },
+  { path: '/operations', label: 'Operations', description: 'Dedicated operational administration, retention, failure review, and audit view.' },
 ] as const;
 
 export type AppRoutePath = (typeof appRoutes)[number]['path'];
