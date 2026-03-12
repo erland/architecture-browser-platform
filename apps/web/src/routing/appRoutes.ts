@@ -3,7 +3,7 @@ export const appRoutes = [
   { path: '/workspaces', label: 'Workspaces', description: 'Dedicated workspace administration view.' },
   { path: '/repositories', label: 'Repositories', description: 'Dedicated repository registration and run request view.' },
   { path: '/snapshots', label: 'Snapshots', description: 'Dedicated snapshot catalog, selection, and handoff into Browser or Compare.' },
-  { path: '/browser', label: 'Browser', description: 'Focused architecture browser view will be introduced here.' },
+  { path: '/browser', label: 'Browser', description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.' },
   { path: '/compare', label: 'Compare', description: 'Snapshot comparison workflow will move here.' },
   { path: '/operations', label: 'Operations', description: 'Operational administration and audit views will move here.' },
 ] as const;

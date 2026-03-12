@@ -478,3 +478,75 @@ dd {
   margin-top: 14px;
   margin-bottom: 14px;
 }
+
+.badge--warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde68a;
+}
+
+.badge--danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+}
+
+.app-nav__title {
+  margin-bottom: 6px;
+}
+
+.app-nav__lead {
+  margin-bottom: 0;
+}
+
+.browser-context-header__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.browser-context-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.browser-tab-nav__links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.browser-main-content {
+  min-height: 360px;
+}
+
+.selection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selection-summary--compact {
+  margin-bottom: 16px;
+}
+
+.placeholder-view__lead {
+  margin-bottom: 16px;
+}
+
+.route-content {
+  margin-top: 20px;
+}
+
+.empty-state-card {
+  text-align: left;
+}
+
+.hero--compact {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .workspace-layout {
+    grid-template-columns: 1fr;
+  }
+}

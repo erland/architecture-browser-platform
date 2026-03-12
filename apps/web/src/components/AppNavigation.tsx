@@ -12,7 +12,7 @@ export function AppNavigation({ currentPath, onNavigate }: AppNavigationProps) {
         <p className="eyebrow">Navigation</p>
         <h2 className="app-nav__title">Platform views</h2>
         <p className="muted app-nav__lead">
-          Step 5 moves snapshot catalog and selection into their own view while detailed browsing and operations continue migrating out of the temporary stacked screen.
+          Step 6 brings the dedicated Browser route online so architecture exploration now has its own focused shell while Compare and Operations continue migrating out of the temporary stacked screen.
         </p>
       </div>
       <div className="app-nav__links">
