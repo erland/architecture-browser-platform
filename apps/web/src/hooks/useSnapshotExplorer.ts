@@ -1,27 +1,16 @@
 import { FormEvent, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { toDependencyEntityOptions } from "../dependencyViewModel";
-import { toEntryPointItemOptions } from "../entryPointViewModel";
-import { toSearchResultOptions } from "../searchViewModel";
 import { buildSavedViewRequest, parseSavedViewJson } from "../savedViewModel";
 import { comparisonSnapshotOptions } from "../compareViewModel";
+import { useBrowserExplorer } from "./useBrowserExplorer";
 import { platformApi } from "../platformApi";
 import {
-  containsScope,
   CustomizationOverview,
   DependencyDirection,
-  DependencyView,
-  EntityDetail,
   EntryCategory,
-  EntryPointView,
-  flattenLayout,
-  LayoutScopeDetail,
-  LayoutTree,
   OverlayKind,
   OverlayRecord,
   SavedViewRecord,
-  SearchView,
   SnapshotComparison,
-  SnapshotOverview,
   SnapshotSummary,
 } from "../appModel";
 
@@ -41,23 +30,49 @@ export function useSnapshotExplorer(
   setSelectedSnapshotId: Dispatch<SetStateAction<string | null>>,
   { setBusyMessage, setError }: FeedbackSetters,
 ) {
-  const [snapshotOverview, setSnapshotOverview] = useState<SnapshotOverview | null>(null);
-  const [layoutTree, setLayoutTree] = useState<LayoutTree | null>(null);
-  const [selectedLayoutScopeId, setSelectedLayoutScopeId] = useState<string | null>(null);
-  const [layoutScopeDetail, setLayoutScopeDetail] = useState<LayoutScopeDetail | null>(null);
-  const [dependencyView, setDependencyView] = useState<DependencyView | null>(null);
-  const [selectedDependencyScopeId, setSelectedDependencyScopeId] = useState<string>("");
-  const [dependencyDirection, setDependencyDirection] = useState<DependencyDirection>("ALL");
-  const [focusedDependencyEntityId, setFocusedDependencyEntityId] = useState<string>("");
-  const [entryPointView, setEntryPointView] = useState<EntryPointView | null>(null);
-  const [selectedEntryPointScopeId, setSelectedEntryPointScopeId] = useState<string>("");
-  const [entryCategory, setEntryCategory] = useState<EntryCategory>("ALL");
-  const [focusedEntryPointId, setFocusedEntryPointId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedSearchScopeId, setSelectedSearchScopeId] = useState<string>("");
-  const [searchView, setSearchView] = useState<SearchView | null>(null);
-  const [selectedSearchEntityId, setSelectedSearchEntityId] = useState<string>("");
-  const [entityDetail, setEntityDetail] = useState<EntityDetail | null>(null);
+  const browserExplorer = useBrowserExplorer({
+    selectedWorkspaceId,
+    snapshots,
+    selectedSnapshotId,
+    setSelectedSnapshotId,
+    feedback: { setError },
+  });
+
+  const {
+    selectedSnapshot,
+    snapshotOverview,
+    flattenedLayoutNodes,
+    selectedLayoutScopeId,
+    setSelectedLayoutScopeId,
+    layoutTree,
+    layoutScopeDetail,
+    selectedDependencyScopeId,
+    setSelectedDependencyScopeId,
+    dependencyDirection,
+    setDependencyDirection,
+    dependencyView,
+    dependencyEntityOptions,
+    focusedDependencyEntityId,
+    setFocusedDependencyEntityId,
+    selectedEntryPointScopeId,
+    setSelectedEntryPointScopeId,
+    entryCategory,
+    setEntryCategory,
+    entryPointView,
+    entryPointOptions,
+    focusedEntryPointId,
+    setFocusedEntryPointId,
+    selectedSearchScopeId,
+    setSelectedSearchScopeId,
+    searchQuery,
+    setSearchQuery,
+    searchView,
+    searchResultOptions,
+    selectedSearchEntityId,
+    setSelectedSearchEntityId,
+    entityDetail,
+  } = browserExplorer;
+
   const [customizationOverview, setCustomizationOverview] = useState<CustomizationOverview | null>(null);
   const [overlayName, setOverlayName] = useState<string>("");
   const [overlayKind, setOverlayKind] = useState<OverlayKind>("ANNOTATION");
@@ -68,44 +83,16 @@ export function useSnapshotExplorer(
   const [comparisonSnapshotId, setComparisonSnapshotId] = useState<string>("");
   const [snapshotComparison, setSnapshotComparison] = useState<SnapshotComparison | null>(null);
 
-  const selectedSnapshot = useMemo(
-    () => snapshots.find((snapshot) => snapshot.id === selectedSnapshotId) ?? null,
-    [selectedSnapshotId, snapshots],
-  );
-
-  const flattenedLayoutNodes = useMemo(() => flattenLayout(layoutTree?.roots ?? []), [layoutTree]);
-  const dependencyEntityOptions = useMemo(() => toDependencyEntityOptions(dependencyView?.entities ?? []), [dependencyView]);
-  const entryPointOptions = useMemo(() => toEntryPointItemOptions(entryPointView?.items ?? []), [entryPointView]);
-  const searchResultOptions = useMemo(() => toSearchResultOptions(searchView?.results ?? []), [searchView]);
   const comparisonOptions = useMemo(() => comparisonSnapshotOptions(snapshots, selectedSnapshotId), [snapshots, selectedSnapshotId]);
 
-  useEffect(() => {
-    setSelectedSnapshotId((current) => (current && snapshots.some((snapshot) => snapshot.id === current) ? current : (snapshots[0]?.id ?? null)));
-  }, [snapshots, setSelectedSnapshotId]);
+
 
   useEffect(() => {
     if (selectedWorkspaceId && selectedSnapshotId) {
-      void loadSnapshotOverview(selectedWorkspaceId, selectedSnapshotId);
-      void loadLayoutTree(selectedWorkspaceId, selectedSnapshotId);
       void loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       return;
     }
 
-    setSnapshotOverview(null);
-    setLayoutTree(null);
-    setSelectedLayoutScopeId(null);
-    setLayoutScopeDetail(null);
-    setDependencyView(null);
-    setSelectedDependencyScopeId("");
-    setFocusedDependencyEntityId("");
-    setEntryPointView(null);
-    setSelectedEntryPointScopeId("");
-    setFocusedEntryPointId("");
-    setSearchQuery("");
-    setSelectedSearchScopeId("");
-    setSearchView(null);
-    setSelectedSearchEntityId("");
-    setEntityDetail(null);
     setCustomizationOverview(null);
     setOverlayName("");
     setOverlayKind("ANNOTATION");
@@ -118,46 +105,6 @@ export function useSnapshotExplorer(
   }, [selectedWorkspaceId, selectedSnapshotId]);
 
   useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId && selectedLayoutScopeId) {
-      void loadLayoutScopeDetail(selectedWorkspaceId, selectedSnapshotId, selectedLayoutScopeId);
-      return;
-    }
-    setLayoutScopeDetail(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, selectedLayoutScopeId]);
-
-  useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId) {
-      void loadDependencyView(selectedWorkspaceId, selectedSnapshotId, selectedDependencyScopeId || undefined, dependencyDirection, focusedDependencyEntityId || undefined);
-      return;
-    }
-    setDependencyView(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, selectedDependencyScopeId, dependencyDirection, focusedDependencyEntityId]);
-
-  useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId) {
-      void loadEntryPointView(selectedWorkspaceId, selectedSnapshotId, selectedEntryPointScopeId || undefined, entryCategory, focusedEntryPointId || undefined);
-      return;
-    }
-    setEntryPointView(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, selectedEntryPointScopeId, entryCategory, focusedEntryPointId]);
-
-  useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId) {
-      void loadSearchView(selectedWorkspaceId, selectedSnapshotId, searchQuery, selectedSearchScopeId || undefined);
-      return;
-    }
-    setSearchView(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, searchQuery, selectedSearchScopeId]);
-
-  useEffect(() => {
-    if (selectedWorkspaceId && selectedSnapshotId && selectedSearchEntityId) {
-      void loadEntityDetail(selectedWorkspaceId, selectedSnapshotId, selectedSearchEntityId);
-      return;
-    }
-    setEntityDetail(null);
-  }, [selectedWorkspaceId, selectedSnapshotId, selectedSearchEntityId]);
-
-  useEffect(() => {
     if (selectedWorkspaceId && selectedSnapshotId && comparisonSnapshotId) {
       void loadSnapshotComparison(selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId);
       return;
@@ -165,78 +112,6 @@ export function useSnapshotExplorer(
     setSnapshotComparison(null);
   }, [selectedWorkspaceId, selectedSnapshotId, comparisonSnapshotId]);
 
-  async function loadSnapshotOverview(workspaceId: string, snapshotId: string) {
-    try {
-      const payload = await platformApi.getSnapshotOverview<SnapshotOverview>(workspaceId, snapshotId);
-      setSnapshotOverview(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadLayoutTree(workspaceId: string, snapshotId: string) {
-    try {
-      const payload = await platformApi.getLayoutTree<LayoutTree>(workspaceId, snapshotId);
-      setLayoutTree(payload);
-      const firstScope = payload.roots[0]?.externalId ?? null;
-      setSelectedLayoutScopeId((current) => (current && containsScope(payload.roots, current) ? current : firstScope));
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadLayoutScopeDetail(workspaceId: string, snapshotId: string, scopeId: string) {
-    try {
-      const payload = await platformApi.getLayoutScopeDetail<LayoutScopeDetail>(workspaceId, snapshotId, scopeId);
-      setLayoutScopeDetail(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadDependencyView(workspaceId: string, snapshotId: string, scopeId?: string, direction: DependencyDirection = "ALL", focusEntityId?: string) {
-    try {
-      const payload = await platformApi.getDependencyView<DependencyView>(workspaceId, snapshotId, direction, scopeId, focusEntityId);
-      setDependencyView(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadEntryPointView(workspaceId: string, snapshotId: string, scopeId?: string, category: EntryCategory = "ALL", focusEntityId?: string) {
-    try {
-      const payload = await platformApi.getEntryPointView<EntryPointView>(workspaceId, snapshotId, category, scopeId, focusEntityId);
-      setEntryPointView(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadSearchView(workspaceId: string, snapshotId: string, queryText: string, scopeId?: string) {
-    try {
-      const payload = await platformApi.searchSnapshot<SearchView>(workspaceId, snapshotId, queryText, scopeId, 25);
-      setSearchView(payload);
-      setSelectedSearchEntityId((current) => (current && payload.results.some((result) => result.externalId === current) ? current : ""));
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
-
-  async function loadEntityDetail(workspaceId: string, snapshotId: string, entityId: string) {
-    try {
-      const payload = await platformApi.getEntityDetail<EntityDetail>(workspaceId, snapshotId, entityId);
-      setEntityDetail(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    }
-  }
 
   async function loadCustomizationOverview(workspaceId: string, snapshotId: string) {
     try {

@@ -7,7 +7,7 @@ import { SearchTab } from '../browser/SearchTab';
 import { BrowserTabNav, isBrowserTabKey, type BrowserTabKey } from '../components/BrowserTabNav';
 import { ContextHeader } from '../components/ContextHeader';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
-import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
+import { useBrowserExplorer } from '../hooks/useBrowserExplorer';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 
 const DEFAULT_BROWSER_TAB: BrowserTabKey = 'overview';
@@ -41,13 +41,13 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     setBusyMessage,
     setError,
   });
-  const snapshotExplorer = useSnapshotExplorer(
-    workspaceData.selectedWorkspaceId,
-    workspaceData.snapshots,
-    selection.selectedSnapshotId,
-    selection.setSelectedSnapshotId,
-    { setBusyMessage, setError },
-  );
+  const browserExplorer = useBrowserExplorer({
+    selectedWorkspaceId: workspaceData.selectedWorkspaceId,
+    snapshots: workspaceData.snapshots,
+    selectedSnapshotId: selection.selectedSnapshotId,
+    setSelectedSnapshotId: selection.setSelectedSnapshotId,
+    feedback: { setError },
+  });
 
   useEffect(() => {
     const handlePopState = () => {
@@ -77,16 +77,16 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     if (bySelection) {
       return bySelection;
     }
-    if (!snapshotExplorer.selectedSnapshot) {
+    if (!browserExplorer.selectedSnapshot) {
       return null;
     }
-    return workspaceData.repositories.find((repository) => repository.id === snapshotExplorer.selectedSnapshot?.repositoryRegistrationId) ?? null;
-  }, [workspaceData.repositories, selection.selectedRepositoryId, snapshotExplorer.selectedSnapshot]);
+    return workspaceData.repositories.find((repository) => repository.id === browserExplorer.selectedSnapshot?.repositoryRegistrationId) ?? null;
+  }, [workspaceData.repositories, selection.selectedRepositoryId, browserExplorer.selectedSnapshot]);
 
   const repositoryLabel = selectedRepository?.name
-    ?? snapshotExplorer.selectedSnapshot?.repositoryName
-    ?? snapshotExplorer.selectedSnapshot?.repositoryKey
-    ?? snapshotExplorer.selectedSnapshot?.repositoryRegistrationId
+    ?? browserExplorer.selectedSnapshot?.repositoryName
+    ?? browserExplorer.selectedSnapshot?.repositoryKey
+    ?? browserExplorer.selectedSnapshot?.repositoryRegistrationId
     ?? '—';
 
   let tabContent;
@@ -101,7 +101,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
         </div>
       </article>
     );
-  } else if (!snapshotExplorer.selectedSnapshot || !snapshotExplorer.snapshotOverview) {
+  } else if (!browserExplorer.selectedSnapshot || !browserExplorer.snapshotOverview) {
     tabContent = (
       <article className="card empty-state-card">
         <h2>No snapshot selected</h2>
@@ -115,61 +115,61 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
   } else if (activeTab === 'overview') {
     tabContent = (
       <OverviewTab
-        selectedSnapshot={snapshotExplorer.selectedSnapshot}
-        snapshotOverview={snapshotExplorer.snapshotOverview}
+        selectedSnapshot={browserExplorer.selectedSnapshot}
+        snapshotOverview={browserExplorer.snapshotOverview}
       />
     );
   } else if (activeTab === 'layout') {
     tabContent = (
       <LayoutTab
-        flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
-        selectedLayoutScopeId={snapshotExplorer.selectedLayoutScopeId}
-        setSelectedLayoutScopeId={snapshotExplorer.setSelectedLayoutScopeId}
-        layoutTree={snapshotExplorer.layoutTree}
-        layoutScopeDetail={snapshotExplorer.layoutScopeDetail}
+        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
+        selectedLayoutScopeId={browserExplorer.selectedLayoutScopeId}
+        setSelectedLayoutScopeId={browserExplorer.setSelectedLayoutScopeId}
+        layoutTree={browserExplorer.layoutTree}
+        layoutScopeDetail={browserExplorer.layoutScopeDetail}
       />
     );
   } else if (activeTab === 'dependencies') {
     tabContent = (
       <DependenciesTab
-        flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
-        selectedDependencyScopeId={snapshotExplorer.selectedDependencyScopeId}
-        setSelectedDependencyScopeId={snapshotExplorer.setSelectedDependencyScopeId}
-        dependencyDirection={snapshotExplorer.dependencyDirection}
-        setDependencyDirection={snapshotExplorer.setDependencyDirection}
-        dependencyView={snapshotExplorer.dependencyView}
-        dependencyEntityOptions={snapshotExplorer.dependencyEntityOptions}
-        focusedDependencyEntityId={snapshotExplorer.focusedDependencyEntityId}
-        setFocusedDependencyEntityId={snapshotExplorer.setFocusedDependencyEntityId}
+        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
+        selectedDependencyScopeId={browserExplorer.selectedDependencyScopeId}
+        setSelectedDependencyScopeId={browserExplorer.setSelectedDependencyScopeId}
+        dependencyDirection={browserExplorer.dependencyDirection}
+        setDependencyDirection={browserExplorer.setDependencyDirection}
+        dependencyView={browserExplorer.dependencyView}
+        dependencyEntityOptions={browserExplorer.dependencyEntityOptions}
+        focusedDependencyEntityId={browserExplorer.focusedDependencyEntityId}
+        setFocusedDependencyEntityId={browserExplorer.setFocusedDependencyEntityId}
       />
     );
   } else if (activeTab === 'entry-points') {
     tabContent = (
       <EntryPointsTab
-        flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
-        selectedEntryPointScopeId={snapshotExplorer.selectedEntryPointScopeId}
-        setSelectedEntryPointScopeId={snapshotExplorer.setSelectedEntryPointScopeId}
-        entryCategory={snapshotExplorer.entryCategory}
-        setEntryCategory={snapshotExplorer.setEntryCategory}
-        entryPointView={snapshotExplorer.entryPointView}
-        entryPointOptions={snapshotExplorer.entryPointOptions}
-        focusedEntryPointId={snapshotExplorer.focusedEntryPointId}
-        setFocusedEntryPointId={snapshotExplorer.setFocusedEntryPointId}
+        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
+        selectedEntryPointScopeId={browserExplorer.selectedEntryPointScopeId}
+        setSelectedEntryPointScopeId={browserExplorer.setSelectedEntryPointScopeId}
+        entryCategory={browserExplorer.entryCategory}
+        setEntryCategory={browserExplorer.setEntryCategory}
+        entryPointView={browserExplorer.entryPointView}
+        entryPointOptions={browserExplorer.entryPointOptions}
+        focusedEntryPointId={browserExplorer.focusedEntryPointId}
+        setFocusedEntryPointId={browserExplorer.setFocusedEntryPointId}
       />
     );
   } else {
     tabContent = (
       <SearchTab
-        flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
-        selectedSearchScopeId={snapshotExplorer.selectedSearchScopeId}
-        setSelectedSearchScopeId={snapshotExplorer.setSelectedSearchScopeId}
-        searchQuery={snapshotExplorer.searchQuery}
-        setSearchQuery={snapshotExplorer.setSearchQuery}
-        searchView={snapshotExplorer.searchView}
-        searchResultOptions={snapshotExplorer.searchResultOptions}
-        selectedSearchEntityId={snapshotExplorer.selectedSearchEntityId}
-        setSelectedSearchEntityId={snapshotExplorer.setSelectedSearchEntityId}
-        entityDetail={snapshotExplorer.entityDetail}
+        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
+        selectedSearchScopeId={browserExplorer.selectedSearchScopeId}
+        setSelectedSearchScopeId={browserExplorer.setSelectedSearchScopeId}
+        searchQuery={browserExplorer.searchQuery}
+        setSearchQuery={browserExplorer.setSearchQuery}
+        searchView={browserExplorer.searchView}
+        searchResultOptions={browserExplorer.searchResultOptions}
+        selectedSearchEntityId={browserExplorer.selectedSearchEntityId}
+        setSelectedSearchEntityId={browserExplorer.setSelectedSearchEntityId}
+        entityDetail={browserExplorer.entityDetail}
       />
     );
   }
@@ -180,7 +180,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
         <p className="eyebrow">Browser</p>
         <h2>Dedicated browser shell</h2>
         <p className="lead">
-          Step 7 keeps the dedicated Browser route from Step 6 and now wraps each browser panel in a tab-specific screen so the user-facing tasks map cleanly to Overview, Layout, Dependencies, Entry points, and Search.
+          Step 8 keeps the dedicated Browser route but now drives it from a browser-specific orchestration hook instead of the broader legacy snapshot hook, making the Browser route a cleaner target for further refactoring.
         </p>
         <div className="actions">
           <button type="button" onClick={onOpenSnapshots}>Choose snapshot</button>
@@ -205,10 +205,10 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
         <article className="card">
           <div className="section-heading">
             <h2>Browser route status</h2>
-            <span className="badge">Step 7</span>
+            <span className="badge">Step 8</span>
           </div>
           <p className="muted">
-The Browser route now delegates each architecture task to a tab-specific wrapper. Compare, customization, and operations still stay outside the Browser shell until later refactoring steps move them out cleanly.
+The Browser route now uses dedicated browser orchestration. The legacy snapshot hook still handles customization and comparison for the temporary stacked flow, which reduces coupling before Compare and Operations move into their own routes.
           </p>
         </article>
       </section>
@@ -216,8 +216,8 @@ The Browser route now delegates each architecture task to a tab-specific wrapper
       <ContextHeader
         selectedWorkspace={workspaceData.selectedWorkspace}
         repositoryLabel={repositoryLabel}
-        selectedSnapshot={snapshotExplorer.selectedSnapshot}
-        snapshotOverview={snapshotExplorer.snapshotOverview}
+        selectedSnapshot={browserExplorer.selectedSnapshot}
+        snapshotOverview={browserExplorer.snapshotOverview}
       />
 
       <BrowserTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
