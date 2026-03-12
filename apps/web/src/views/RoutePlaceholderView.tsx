@@ -3,7 +3,7 @@ import type { AppRoutePath } from '../routing/appRoutes';
 import { getRouteMeta } from '../routing/appRoutes';
 
 type RoutePlaceholderViewProps = {
-  path: Exclude<AppRoutePath, '/legacy' | '/workspaces'>;
+  path: Exclude<AppRoutePath, '/legacy' | '/workspaces' | '/repositories'>;
   onOpenLegacy: () => void;
 };
 
@@ -17,7 +17,7 @@ export function RoutePlaceholderView({ path, onOpenLegacy }: RoutePlaceholderVie
       <h2>{route.label}</h2>
       <p className="lead placeholder-view__lead">{route.description}</p>
       <p className="muted">
-        The route shell and persistent app context are in place, and the dedicated Workspaces view is now live. The current end-to-end workspace remains available while the
+        The route shell and persistent app context are in place, and the dedicated Workspaces plus Repositories views are now live. The current stacked snapshot/operations flow remains available while the
         rest of the refactor moves each workflow into its own view.
       </p>
       <div className="selection-summary selection-summary--compact">

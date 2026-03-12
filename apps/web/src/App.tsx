@@ -3,6 +3,7 @@ import { AppNavigation } from './components/AppNavigation';
 import { useAppSelectionContext } from './contexts/AppSelectionContext';
 import { normalizeRoutePath, type AppRoutePath } from './routing/appRoutes';
 import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
+import { RepositoriesView } from './views/RepositoriesView';
 import { RoutePlaceholderView } from './views/RoutePlaceholderView';
 import { WorkspacesView } from './views/WorkspacesView';
 
@@ -46,10 +47,13 @@ export function App() {
 
   const routeContent = useMemo(() => {
     if (currentPath === '/legacy') {
-      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} />;
+      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/repositories')} />;
     }
     if (currentPath === '/workspaces') {
       return <WorkspacesView />;
+    }
+    if (currentPath === '/repositories') {
+      return <RepositoriesView />;
     }
     return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
@@ -60,7 +64,7 @@ export function App() {
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>
         <p className="lead">
-          Step 3 introduces a dedicated Workspaces view while keeping shared workspace, repository, and snapshot context available across routes.
+          Step 4 introduces a dedicated Repositories view so repository registration and run requests no longer live in the temporary stacked screen.
         </p>
         <div className="selection-summary">
           <span className="badge">Workspace: {selection.selectedWorkspaceId ?? '—'}</span>

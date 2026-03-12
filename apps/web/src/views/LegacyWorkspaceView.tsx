@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { RepositoryManagementSection } from '../components/RepositoryManagementSection';
 import { SnapshotCatalogSection } from '../components/SnapshotCatalogSection';
 import { OperationsAndAuditSection } from '../components/OperationsAndAuditSection';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
@@ -8,9 +7,10 @@ import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 
 type LegacyWorkspaceViewProps = {
   onOpenWorkspaces: () => void;
+  onOpenRepositories: () => void;
 };
 
-export function LegacyWorkspaceView({ onOpenWorkspaces }: LegacyWorkspaceViewProps) {
+export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories }: LegacyWorkspaceViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -35,12 +35,13 @@ export function LegacyWorkspaceView({ onOpenWorkspaces }: LegacyWorkspaceViewPro
     <div className="content-stack">
       <section className="card section-intro">
         <p className="eyebrow">Current workspace</p>
-        <h2>Repository, snapshot, and operations flow</h2>
+        <h2>Snapshot and operations flow</h2>
         <p className="lead">
-          Workspace creation and editing now live in the dedicated Workspaces view. This screen continues to host the remaining stacked flow until the next steps split it further.
+          Workspace lifecycle management now lives in Workspaces, and repository registration plus run requests now live in Repositories. This temporary screen is reduced to snapshot exploration and operations until the next steps split it further.
         </p>
         <div className="actions">
           <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open Workspaces view</button>
+          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Repositories view</button>
         </div>
       </section>
 
@@ -73,28 +74,13 @@ export function LegacyWorkspaceView({ onOpenWorkspaces }: LegacyWorkspaceViewPro
           )}
           <div className="actions">
             <button type="button" onClick={onOpenWorkspaces}>Manage workspaces</button>
+            <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
           </div>
         </article>
       </section>
 
       {workspaceData.selectedWorkspace ? (
         <>
-          <RepositoryManagementSection
-            selectedWorkspace={workspaceData.selectedWorkspace}
-            repositories={workspaceData.repositories}
-            repositoryForm={workspaceData.repositoryForm}
-            setRepositoryForm={workspaceData.setRepositoryForm}
-            handleCreateRepository={workspaceData.handleCreateRepository}
-            repositoryEditor={workspaceData.repositoryEditor}
-            setRepositoryEditor={workspaceData.setRepositoryEditor}
-            handleUpdateRepository={workspaceData.handleUpdateRepository}
-            runRequestForm={workspaceData.runRequestForm}
-            setRunRequestForm={workspaceData.setRunRequestForm}
-            latestRunByRepository={workspaceData.latestRunByRepository}
-            selectRepositoryForEdit={workspaceData.selectRepositoryForEdit}
-            handleRequestRun={workspaceData.handleRequestRun}
-            handleArchiveRepository={workspaceData.handleArchiveRepository}
-          />
 
           <SnapshotCatalogSection
             snapshots={workspaceData.snapshots}

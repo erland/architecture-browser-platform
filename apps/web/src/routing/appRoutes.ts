@@ -1,7 +1,7 @@
 export const appRoutes = [
   { path: '/legacy', label: 'Current workspace', description: 'Temporary stacked screen for repository, snapshot, and operations workflows.' },
   { path: '/workspaces', label: 'Workspaces', description: 'Dedicated workspace administration view.' },
-  { path: '/repositories', label: 'Repositories', description: 'Repository registration and run flows will move here.' },
+  { path: '/repositories', label: 'Repositories', description: 'Dedicated repository registration and run request view.' },
   { path: '/snapshots', label: 'Snapshots', description: 'Snapshot catalog and selection will move here.' },
   { path: '/browser', label: 'Browser', description: 'Focused architecture browser view will be introduced here.' },
   { path: '/compare', label: 'Compare', description: 'Snapshot comparison workflow will move here.' },
