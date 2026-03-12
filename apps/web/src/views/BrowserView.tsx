@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DependencyPanel } from '../components/DependencyPanel';
-import { EntryPointPanel } from '../components/EntryPointPanel';
-import { LayoutExplorerPanel } from '../components/LayoutExplorerPanel';
-import { RecentDiagnosticsPanel } from '../components/RecentDiagnosticsPanel';
-import { SearchDetailPanel } from '../components/SearchDetailPanel';
-import { SnapshotOverviewPanel } from '../components/SnapshotOverviewPanel';
+import { DependenciesTab } from '../browser/DependenciesTab';
+import { EntryPointsTab } from '../browser/EntryPointsTab';
+import { LayoutTab } from '../browser/LayoutTab';
+import { OverviewTab } from '../browser/OverviewTab';
+import { SearchTab } from '../browser/SearchTab';
 import { BrowserTabNav, isBrowserTabKey, type BrowserTabKey } from '../components/BrowserTabNav';
 import { ContextHeader } from '../components/ContextHeader';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
@@ -115,14 +114,14 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     );
   } else if (activeTab === 'overview') {
     tabContent = (
-      <div className="content-stack">
-        <SnapshotOverviewPanel selectedSnapshot={snapshotExplorer.selectedSnapshot} snapshotOverview={snapshotExplorer.snapshotOverview} />
-        <RecentDiagnosticsPanel snapshotOverview={snapshotExplorer.snapshotOverview} />
-      </div>
+      <OverviewTab
+        selectedSnapshot={snapshotExplorer.selectedSnapshot}
+        snapshotOverview={snapshotExplorer.snapshotOverview}
+      />
     );
   } else if (activeTab === 'layout') {
     tabContent = (
-      <LayoutExplorerPanel
+      <LayoutTab
         flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
         selectedLayoutScopeId={snapshotExplorer.selectedLayoutScopeId}
         setSelectedLayoutScopeId={snapshotExplorer.setSelectedLayoutScopeId}
@@ -132,7 +131,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     );
   } else if (activeTab === 'dependencies') {
     tabContent = (
-      <DependencyPanel
+      <DependenciesTab
         flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
         selectedDependencyScopeId={snapshotExplorer.selectedDependencyScopeId}
         setSelectedDependencyScopeId={snapshotExplorer.setSelectedDependencyScopeId}
@@ -146,7 +145,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     );
   } else if (activeTab === 'entry-points') {
     tabContent = (
-      <EntryPointPanel
+      <EntryPointsTab
         flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
         selectedEntryPointScopeId={snapshotExplorer.selectedEntryPointScopeId}
         setSelectedEntryPointScopeId={snapshotExplorer.setSelectedEntryPointScopeId}
@@ -160,7 +159,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
     );
   } else {
     tabContent = (
-      <SearchDetailPanel
+      <SearchTab
         flattenedLayoutNodes={snapshotExplorer.flattenedLayoutNodes}
         selectedSearchScopeId={snapshotExplorer.selectedSearchScopeId}
         setSelectedSearchScopeId={snapshotExplorer.setSelectedSearchScopeId}
@@ -181,7 +180,7 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
         <p className="eyebrow">Browser</p>
         <h2>Dedicated browser shell</h2>
         <p className="lead">
-          Step 6 turns architecture browsing into its own route. The existing overview, layout, dependency, entry-point, and search panels now live behind tabbed browser navigation instead of being buried in the temporary stacked screen.
+          Step 7 keeps the dedicated Browser route from Step 6 and now wraps each browser panel in a tab-specific screen so the user-facing tasks map cleanly to Overview, Layout, Dependencies, Entry points, and Search.
         </p>
         <div className="actions">
           <button type="button" onClick={onOpenSnapshots}>Choose snapshot</button>
@@ -206,10 +205,10 @@ export function BrowserView({ onOpenSnapshots, onOpenRepositories, onOpenLegacy 
         <article className="card">
           <div className="section-heading">
             <h2>Browser route status</h2>
-            <span className="badge">Step 6</span>
+            <span className="badge">Step 7</span>
           </div>
           <p className="muted">
-            The Browser route is now live and uses most of the screen for architecture tooling. Compare, customization, and operations stay in other routes or the temporary stacked screen until later steps move them out cleanly.
+The Browser route now delegates each architecture task to a tab-specific wrapper. Compare, customization, and operations still stay outside the Browser shell until later refactoring steps move them out cleanly.
           </p>
         </article>
       </section>
