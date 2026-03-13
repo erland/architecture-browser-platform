@@ -7,7 +7,9 @@ import { SearchTab } from '../browser/SearchTab';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { ContextHeader } from '../components/ContextHeader';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
+import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useBrowserExplorer } from '../hooks/useBrowserExplorer';
+import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { buildBrowserTabSearch, DEFAULT_BROWSER_TAB, readBrowserTabFromSearch } from '../routing/browserTabState';
 import { type BrowserTabKey } from '../routing/browserTabs';
@@ -33,6 +35,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTabKey>(() => readBrowserTabFromLocation());
   const selection = useAppSelectionContext();
+  const browserSession = useBrowserSession();
 
   const workspaceData = useWorkspaceData({
     selectedWorkspaceId: selection.selectedWorkspaceId,
@@ -48,6 +51,11 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     selectedSnapshotId: selection.selectedSnapshotId,
     setSelectedSnapshotId: selection.setSelectedSnapshotId,
     feedback: { setError },
+  });
+  const browserSessionBootstrap = useBrowserSessionBootstrap({
+    workspaceId: workspaceData.selectedWorkspaceId,
+    repositoryId: selection.selectedRepositoryId,
+    snapshot: browserExplorer.selectedSnapshot,
   });
 
   useEffect(() => {
@@ -82,6 +90,12 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     ?? browserExplorer.selectedSnapshot?.repositoryKey
     ?? browserExplorer.selectedSnapshot?.repositoryRegistrationId
     ?? '—';
+
+  const browserSessionSummary = browserSession.state.activeSnapshot ? [
+    `${browserSession.state.canvasNodes.length} canvas nodes`,
+    `${browserSession.state.canvasEdges.length} canvas edges`,
+    `${browserSession.state.searchResults.length} local search hits`,
+  ].join(' · ') : null;
 
   let tabContent;
   if (!workspaceData.selectedWorkspace) {
@@ -177,6 +191,12 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           <p className="muted browser-shell-header__lead">
             Use the left rail to navigate between focused browser tools. Keep repository and snapshot changes in their dedicated views so the main pane can stay centered on exploration.
           </p>
+          {browserSessionBootstrap.message ? (
+            <p className={browserSessionBootstrap.status === 'failed' ? 'error' : 'notice'}>{browserSessionBootstrap.message}</p>
+          ) : null}
+          {browserSessionSummary ? (
+            <p className="muted">Local Browser session: {browserSessionSummary}</p>
+          ) : null}
         </div>
         <div className="browser-shell-header__actions">
           <button type="button" onClick={onOpenSnapshots}>Change snapshot</button>
@@ -186,6 +206,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         <div className="browser-health-bar browser-health-bar--compact">
           <span className="badge">API {workspaceData.health.status}</span>
           <span className="badge">{workspaceData.health.service}</span>
+          {browserSession.state.activeSnapshot ? <span className="badge">Session {browserSession.state.activeSnapshot.snapshotKey}</span> : null}
           {busyMessage ? <span className="badge badge--warning">{busyMessage}</span> : null}
           {error ? <span className="badge badge--danger">{error}</span> : null}
         </div>

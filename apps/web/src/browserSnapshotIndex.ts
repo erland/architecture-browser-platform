@@ -247,14 +247,37 @@ function buildSearchableDocuments(index: BrowserSnapshotIndex) {
     [scope.externalId, scope.kind, scope.name, scope.displayName, index.scopePathById.get(scope.externalId)],
   ));
 
-  const entityDocuments = index.payload.entities.map((entity) => createSearchDocument(
-    "entity",
-    entity.externalId,
-    displayNameOf(entity),
-    [entity.kind, entity.scopeId ? index.scopePathById.get(entity.scopeId) : null].filter(Boolean).join(" • "),
-    entity.scopeId,
-    [entity.externalId, entity.kind, entity.origin, entity.name, entity.displayName, entity.scopeId ? index.scopePathById.get(entity.scopeId) : null],
-  ));
+  const entityDocuments = index.payload.entities.map((entity) => {
+    const relatedRelationshipIds = [
+      ...(index.inboundRelationshipIdsByEntityId.get(entity.externalId) ?? []),
+      ...(index.outboundRelationshipIdsByEntityId.get(entity.externalId) ?? []),
+    ];
+    const relatedTerms = relatedRelationshipIds.flatMap((relationshipId) => {
+      const relationship = index.relationshipsById.get(relationshipId);
+      if (!relationship) {
+        return [];
+      }
+      const fromEntity = index.entitiesById.get(relationship.fromEntityId);
+      const toEntity = index.entitiesById.get(relationship.toEntityId);
+      return [
+        relationship.kind,
+        relationship.label,
+        relationship.externalId,
+        fromEntity?.name,
+        fromEntity?.displayName,
+        toEntity?.name,
+        toEntity?.displayName,
+      ];
+    });
+    return createSearchDocument(
+      "entity",
+      entity.externalId,
+      displayNameOf(entity),
+      [entity.kind, entity.scopeId ? index.scopePathById.get(entity.scopeId) : null].filter(Boolean).join(" • "),
+      entity.scopeId,
+      [entity.externalId, entity.kind, entity.origin, entity.name, entity.displayName, entity.scopeId ? index.scopePathById.get(entity.scopeId) : null, ...relatedTerms],
+    );
+  });
 
   const relationshipDocuments = index.payload.relationships.map((relationship) => {
     const fromEntity = index.entitiesById.get(relationship.fromEntityId);

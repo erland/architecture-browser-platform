@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { formatDateTime } from '../appModel';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
+import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { useBrowserSnapshotPreparation } from '../hooks/useBrowserSnapshotPreparation';
+import { getBrowserSnapshotCache } from '../snapshotCache';
 
 type SnapshotsViewProps = {
   onOpenBrowser: () => void;
@@ -26,6 +28,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
   const [error, setError] = useState<string | null>(null);
   const [openingBrowser, setOpeningBrowser] = useState(false);
   const selection = useAppSelectionContext();
+  const browserSession = useBrowserSession();
 
   const workspaceData = useWorkspaceData({
     selectedWorkspaceId: selection.selectedWorkspaceId,
@@ -54,7 +57,17 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
     setOpeningBrowser(true);
     try {
       const prepared = browserPreparation.isReady ? true : await browserPreparation.prepareSnapshot();
-      if (prepared) {
+      if (prepared && workspaceData.selectedWorkspaceId) {
+        const cached = await getBrowserSnapshotCache().getSnapshot(selectedSnapshot.id);
+        if (cached) {
+          browserSession.openSnapshotSession({
+            workspaceId: workspaceData.selectedWorkspaceId,
+            repositoryId: selectedSnapshot.repositoryRegistrationId,
+            payload: cached.payload,
+            preparedAt: cached.cachedAt,
+            keepViewState: browserSession.state.activeSnapshot?.snapshotId === selectedSnapshot.id,
+          });
+        }
         onOpenBrowser();
       }
     } finally {
