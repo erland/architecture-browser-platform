@@ -4,6 +4,7 @@ import { EntryPointsTab } from '../browser/EntryPointsTab';
 import { LayoutTab } from '../browser/LayoutTab';
 import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
+import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
@@ -169,6 +170,18 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     browserSession.focusElement(null);
     browserSession.openFactsPanel('hidden', 'right');
     setActiveTab('search');
+  };
+
+  const handleAddScopeEntitiesToCanvas = (scopeId: string) => {
+    const entityIds = browserSession.state.index?.entityIdsByScopeId.get(scopeId) ?? [];
+    entityIds.slice(0, 24).forEach((entityId) => {
+      browserSession.addEntityToCanvas(entityId);
+    });
+    if (entityIds[0]) {
+      browserSession.focusElement({ kind: 'entity', id: entityIds[0] });
+      browserSession.openFactsPanel('entity', 'right');
+    }
+    setActiveTab('layout');
   };
 
   let tabContent;
@@ -354,7 +367,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               <p className="eyebrow">Focused mode</p>
               <h3>{activeTabMeta.label}</h3>
               <p className="muted">{activeTabMeta.description}</p>
-              <p className="muted browser-workspace__mode-note">The left rail now provides the primary scope tree and the top bar now owns local search. Mode switching remains available here as a secondary Browser tool selector until the canvas and facts workflow fully replaces the old explorer tabs.</p>
+              <p className="muted browser-workspace__mode-note">The local canvas now owns the Browser center stage. Mode switching still exposes the old detail tooling underneath as a migration tray while later steps complete the move to canvas and facts-driven analysis.</p>
             </div>
             <div className="browser-workspace__mode-meta">
               {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
@@ -364,7 +377,61 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           </section>
 
           <div className="browser-workspace__stage">
-            {tabContent}
+            <BrowserGraphWorkspace
+              state={browserSession.state}
+              activeModeLabel={activeTabMeta.label}
+              onAddSelectedScope={() => {
+                if (!browserSession.state.selectedScopeId) {
+                  return;
+                }
+                browserSession.addScopeToCanvas(browserSession.state.selectedScopeId);
+                browserSession.focusElement({ kind: 'scope', id: browserSession.state.selectedScopeId });
+                browserSession.openFactsPanel('scope', 'right');
+              }}
+              onAddScopeEntities={handleAddScopeEntitiesToCanvas}
+              onFocusScope={(scopeId) => {
+                browserSession.selectScope(scopeId);
+                browserSession.focusElement({ kind: 'scope', id: scopeId });
+                browserSession.openFactsPanel('scope', 'right');
+                setActiveTab('layout');
+              }}
+              onFocusEntity={(entityId) => {
+                browserSession.focusElement({ kind: 'entity', id: entityId });
+                browserSession.openFactsPanel('entity', 'right');
+                setActiveTab('search');
+              }}
+              onFocusRelationship={(relationshipId) => {
+                browserSession.focusElement({ kind: 'relationship', id: relationshipId });
+                browserSession.openFactsPanel('relationship', 'right');
+                setActiveTab('dependencies');
+              }}
+              onExpandEntityDependencies={(entityId) => {
+                browserSession.addDependenciesToCanvas(entityId);
+                browserSession.focusElement({ kind: 'entity', id: entityId });
+                browserSession.openFactsPanel('entity', 'right');
+                setActiveTab('dependencies');
+              }}
+              onRemoveEntity={(entityId) => browserSession.removeEntityFromCanvas(entityId)}
+              onClearCanvas={browserSession.clearCanvas}
+              onFitView={browserSession.fitCanvasView}
+            />
+
+            <section className="card browser-workspace__detail-tray">
+              <div className="browser-workspace__detail-tray-header">
+                <div>
+                  <p className="eyebrow">Migration detail tray</p>
+                  <h3>{activeTabMeta.label} details</h3>
+                  <p className="muted">The old Browser explorer components remain available here during the transition so you can compare the new local canvas workflow with the existing tab-specific detail views.</p>
+                </div>
+                <div className="browser-workspace__detail-tray-meta">
+                  <span className="badge">Legacy detail surface</span>
+                  {browserSession.state.focusedElement ? <span className="badge">Focused {browserSession.state.focusedElement.kind}</span> : null}
+                </div>
+              </div>
+              <div className="browser-workspace__detail-tray-body">
+                {tabContent}
+              </div>
+            </section>
           </div>
         </section>
 
@@ -408,7 +475,8 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             <ul className="browser-workspace__hint-list">
               <li>Step 8 is now in place with a local scope tree as the primary left-rail navigator.</li>
               <li>Step 9 is now in place with local search in the top bar.</li>
-              <li>Steps 10–11 will turn the center/right areas into canvas and facts surfaces.</li>
+              <li>Step 10 is now in place with a local graph canvas in the Browser center stage.</li>
+              <li>Step 11 will turn the right side into a dedicated facts/details surface.</li>
             </ul>
           </section>
         </aside>
