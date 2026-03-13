@@ -397,9 +397,14 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
                 setActiveTab('layout');
               }}
               onFocusEntity={(entityId) => {
+                browserSession.selectCanvasEntity(entityId);
                 browserSession.focusElement({ kind: 'entity', id: entityId });
                 browserSession.openFactsPanel('entity', 'right');
                 setActiveTab('search');
+              }}
+              onSelectEntity={(entityId, additive) => {
+                browserSession.selectCanvasEntity(entityId, additive);
+                browserSession.openFactsPanel('entity', 'right');
               }}
               onFocusRelationship={(relationshipId) => {
                 browserSession.focusElement({ kind: 'relationship', id: relationshipId });
@@ -408,11 +413,30 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               }}
               onExpandEntityDependencies={(entityId) => {
                 browserSession.addDependenciesToCanvas(entityId);
+                browserSession.selectCanvasEntity(entityId);
+                browserSession.focusElement({ kind: 'entity', id: entityId });
+                browserSession.openFactsPanel('entity', 'right');
+                setActiveTab('dependencies');
+              }}
+              onExpandInboundDependencies={(entityId) => {
+                browserSession.addDependenciesToCanvas(entityId, 'INBOUND');
+                browserSession.selectCanvasEntity(entityId);
+                browserSession.focusElement({ kind: 'entity', id: entityId });
+                browserSession.openFactsPanel('entity', 'right');
+                setActiveTab('dependencies');
+              }}
+              onExpandOutboundDependencies={(entityId) => {
+                browserSession.addDependenciesToCanvas(entityId, 'OUTBOUND');
+                browserSession.selectCanvasEntity(entityId);
                 browserSession.focusElement({ kind: 'entity', id: entityId });
                 browserSession.openFactsPanel('entity', 'right');
                 setActiveTab('dependencies');
               }}
               onRemoveEntity={(entityId) => browserSession.removeEntityFromCanvas(entityId)}
+              onRemoveSelection={browserSession.removeCanvasSelection}
+              onIsolateSelection={browserSession.isolateCanvasSelection}
+              onTogglePinNode={browserSession.toggleCanvasNodePin}
+              onRelayoutCanvas={browserSession.relayoutCanvas}
               onClearCanvas={browserSession.clearCanvas}
               onFitView={browserSession.fitCanvasView}
             />
@@ -449,6 +473,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             }}
             onFocusEntity={(entityId) => {
               browserSession.addEntityToCanvas(entityId);
+              browserSession.selectCanvasEntity(entityId);
               browserSession.focusElement({ kind: 'entity', id: entityId });
               browserSession.openFactsPanel('entity', 'right');
               setActiveTab('search');
@@ -458,6 +483,9 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               browserSession.openFactsPanel('relationship', 'right');
               setActiveTab('dependencies');
             }}
+            onTogglePinNode={browserSession.toggleCanvasNodePin}
+            onIsolateSelection={browserSession.isolateCanvasSelection}
+            onRemoveSelection={browserSession.removeCanvasSelection}
             onClose={() => browserSession.openFactsPanel('hidden', 'right')}
           />
 

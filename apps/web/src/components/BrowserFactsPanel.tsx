@@ -185,10 +185,13 @@ export type BrowserFactsPanelProps = {
   onSelectScope: (scopeId: string | null) => void;
   onFocusEntity: (entityId: string) => void;
   onFocusRelationship: (relationshipId: string) => void;
+  onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  onIsolateSelection: () => void;
+  onRemoveSelection: () => void;
   onClose: () => void;
 };
 
-export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocusRelationship, onClose }: BrowserFactsPanelProps) {
+export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocusRelationship, onTogglePinNode, onIsolateSelection, onRemoveSelection, onClose }: BrowserFactsPanelProps) {
   const model = buildBrowserFactsPanelModel(state);
 
   if (!model) {
@@ -214,6 +217,13 @@ export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocus
 
       <div className="browser-facts-panel__badges">
         {model.badges.map((badge) => <span key={badge} className="badge">{badge}</span>)}
+      </div>
+
+      <div className="browser-facts-panel__actions">
+        {model.mode === 'scope' && model.scopeFacts ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: model.scopeFacts!.scope.externalId })}>{state.canvasNodes.find((node) => node.kind === 'scope' && node.id === model.scopeFacts!.scope.externalId)?.pinned ? 'Unpin scope' : 'Pin scope'}</button> : null}
+        {model.mode === 'entity' && model.entityFacts ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: model.entityFacts!.entity.externalId })}>{state.canvasNodes.find((node) => node.kind === 'entity' && node.id === model.entityFacts!.entity.externalId)?.pinned ? 'Unpin entity' : 'Pin entity'}</button> : null}
+        {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
+        {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}
       </div>
 
       <div className="browser-facts-panel__summary">

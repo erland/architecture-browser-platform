@@ -12,14 +12,19 @@ import {
   clearCanvas,
   focusBrowserElement,
   hydrateBrowserSessionState,
+  isolateCanvasSelection,
   openFactsPanel,
   openSnapshotSession,
   persistBrowserSession,
   readPersistedBrowserSession,
+  relayoutCanvas,
+  removeCanvasSelection,
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectBrowserScope,
+  selectCanvasEntity,
   setBrowserSearch,
+  toggleCanvasNodePin,
 } from '../browserSessionStore';
 
 export type OpenBrowserSessionOptions = {
@@ -37,10 +42,15 @@ export type BrowserSessionContextValue = {
   setSearch: (query: string, scopeId?: string | null) => void;
   addScopeToCanvas: (scopeId: string) => void;
   addEntityToCanvas: (entityId: string) => void;
+  selectCanvasEntity: (entityId: string, additive?: boolean) => void;
   addDependenciesToCanvas: (entityId: string, direction?: BrowserDependencyDirection) => void;
   removeEntityFromCanvas: (entityId: string) => void;
   focusElement: (focusedElement: BrowserFocusedElement) => void;
   openFactsPanel: (mode: BrowserFactsPanelMode, location?: BrowserFactsPanelLocation) => void;
+  isolateCanvasSelection: () => void;
+  removeCanvasSelection: () => void;
+  toggleCanvasNodePin: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  relayoutCanvas: () => void;
   clearCanvas: () => void;
   fitCanvasView: () => void;
 };
@@ -61,10 +71,15 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     setSearch: (query, scopeId) => setState((current) => setBrowserSearch(current, query, scopeId)),
     addScopeToCanvas: (scopeId) => setState((current) => addScopeToCanvas(current, scopeId)),
     addEntityToCanvas: (entityId) => setState((current) => addEntityToCanvas(current, entityId)),
+    selectCanvasEntity: (entityId, additive) => setState((current) => selectCanvasEntity(current, entityId, additive)),
     addDependenciesToCanvas: (entityId, direction) => setState((current) => addDependenciesToCanvas(current, entityId, direction)),
     removeEntityFromCanvas: (entityId) => setState((current) => removeEntityFromCanvas(current, entityId)),
     focusElement: (focusedElement) => setState((current) => focusBrowserElement(current, focusedElement)),
     openFactsPanel: (mode, location) => setState((current) => openFactsPanel(current, mode, location)),
+    isolateCanvasSelection: () => setState((current) => isolateCanvasSelection(current)),
+    removeCanvasSelection: () => setState((current) => removeCanvasSelection(current)),
+    toggleCanvasNodePin: (node) => setState((current) => toggleCanvasNodePin(current, node)),
+    relayoutCanvas: () => setState((current) => relayoutCanvas(current)),
     clearCanvas: () => setState((current) => clearCanvas(current)),
     fitCanvasView: () => setState((current) => requestFitCanvasView(current)),
   }), [state]);

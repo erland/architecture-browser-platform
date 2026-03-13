@@ -7,12 +7,17 @@ import {
   createPersistedBrowserSessionState,
   focusBrowserElement,
   hydrateBrowserSessionState,
+  isolateCanvasSelection,
   openSnapshotSession,
   openFactsPanel,
+  relayoutCanvas,
+  removeCanvasSelection,
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectBrowserScope,
+  selectCanvasEntity,
   setBrowserSearch,
+  toggleCanvasNodePin,
 } from '../browserSessionStore';
 import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 
@@ -135,6 +140,30 @@ describe('browserSessionStore', () => {
     expect(fitRequested.fitViewRequestedAt).not.toBeNull();
   });
 
+  test('canvas interaction helpers support multi-select, isolate, remove, pin, and relayout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = toggleCanvasNodePin(state, { kind: 'entity', id: 'entity:browser' });
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = selectCanvasEntity(state, 'entity:browser');
+    state = selectCanvasEntity(state, 'entity:search', true);
+
+    const isolated = isolateCanvasSelection(state);
+    const relaidOut = relayoutCanvas(isolated);
+    const afterRemoval = removeCanvasSelection(relaidOut);
+
+    expect(isolated.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
+    expect(isolated.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
+    expect(isolated.canvasNodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
+    expect(relaidOut.canvasLayoutMode).toBe('radial');
+    expect(afterRemoval.canvasNodes).toEqual([]);
+    expect(afterRemoval.selectedEntityIds).toEqual([]);
+  });
+
   test('persisted session state can be hydrated without carrying stale payload data', () => {
     const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
@@ -148,6 +177,7 @@ describe('browserSessionStore', () => {
 
     expect(hydrated.activeSnapshot?.snapshotId).toBe(snapshotSummary.id);
     expect(hydrated.canvasNodes.map((node) => node.id)).toEqual(['entity:browser']);
+    expect(hydrated.canvasLayoutMode).toBe('grid');
     expect(hydrated.payload).toBeNull();
     expect(hydrated.index).toBeNull();
   });

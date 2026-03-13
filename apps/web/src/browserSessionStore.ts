@@ -24,6 +24,8 @@ export type BrowserCanvasNode = {
   pinned?: boolean;
 };
 
+export type BrowserCanvasLayoutMode = 'grid' | 'radial';
+
 export type BrowserCanvasEdge = {
   relationshipId: string;
   fromEntityId: string;
@@ -60,6 +62,7 @@ export type BrowserSessionState = {
   factsPanelMode: BrowserFactsPanelMode;
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
+  canvasLayoutMode: BrowserCanvasLayoutMode;
   fitViewRequestedAt: string | null;
 };
 
@@ -75,6 +78,7 @@ export type PersistedBrowserSessionState = {
   factsPanelMode: BrowserFactsPanelMode;
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
+  canvasLayoutMode: BrowserCanvasLayoutMode;
 };
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
@@ -93,6 +97,7 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
     factsPanelMode: 'hidden',
     factsPanelLocation: 'right',
     graphExpansionActions: [],
+    canvasLayoutMode: 'grid',
     fitViewRequestedAt: null,
   };
 }
@@ -110,6 +115,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     factsPanelMode: state.factsPanelMode,
     factsPanelLocation: state.factsPanelLocation,
     graphExpansionActions: state.graphExpansionActions.map((action) => ({ ...action })),
+    canvasLayoutMode: state.canvasLayoutMode,
   };
 }
 
@@ -131,6 +137,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     factsPanelMode: persisted.factsPanelMode ?? state.factsPanelMode,
     factsPanelLocation: persisted.factsPanelLocation ?? state.factsPanelLocation,
     graphExpansionActions: [...(persisted.graphExpansionActions ?? state.graphExpansionActions)],
+    canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
   };
 }
 
@@ -144,13 +151,38 @@ function upsertCanvasNode(nodes: BrowserCanvasNode[], nextNode: BrowserCanvasNod
     return [...nodes, nextNode];
   }
   const updated = [...nodes];
-  updated[existingIndex] = { ...updated[existingIndex], ...nextNode };
+  updated[existingIndex] = {
+    ...updated[existingIndex],
+    ...nextNode,
+    pinned: nextNode.pinned ?? updated[existingIndex].pinned,
+  };
   return updated;
 }
 
 function upsertCanvasEdge(edges: BrowserCanvasEdge[], nextEdge: BrowserCanvasEdge) {
   const existing = edges.find((edge) => edge.relationshipId === nextEdge.relationshipId);
   return existing ? edges : [...edges, nextEdge];
+}
+
+
+function upsertSelectedEntityIds(selectedEntityIds: string[], entityId: string, additive: boolean) {
+  if (additive) {
+    return selectedEntityIds.includes(entityId)
+      ? selectedEntityIds.filter((current) => current !== entityId)
+      : [...selectedEntityIds, entityId];
+  }
+  return [entityId];
+}
+
+function upsertPinnedCanvasNode(nodes: BrowserCanvasNode[], kind: BrowserCanvasNode['kind'], id: string, pinned: boolean) {
+  const existing = nodes.find((node) => node.kind === kind && node.id === id);
+  if (!existing && !pinned) {
+    return nodes;
+  }
+  if (!existing) {
+    return [...nodes, { kind, id, pinned }];
+  }
+  return nodes.map((node) => node.kind === kind && node.id === id ? { ...node, pinned } : node);
 }
 
 function computeSearchResults(index: BrowserSnapshotIndex | null, query: string, scopeId: string | null) {
@@ -376,4 +408,76 @@ export function persistBrowserSession(state: BrowserSessionState, storage: Pick<
     return;
   }
   storage.setItem(STORAGE_KEY, JSON.stringify(createPersistedBrowserSessionState(state)));
+}
+
+
+export function selectCanvasEntity(state: BrowserSessionState, entityId: string, additive = false): BrowserSessionState {
+  if (!state.index?.entitiesById.has(entityId)) {
+    return state;
+  }
+  return {
+    ...state,
+    selectedEntityIds: upsertSelectedEntityIds(state.selectedEntityIds, entityId, additive),
+    focusedElement: { kind: 'entity', id: entityId },
+    factsPanelMode: 'entity',
+  };
+}
+
+export function isolateCanvasSelection(state: BrowserSessionState): BrowserSessionState {
+  const selectedEntityIds = state.selectedEntityIds.filter((entityId) => state.index?.entitiesById.has(entityId));
+  const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : state.selectedScopeId;
+  const allowedEntityIds = new Set(selectedEntityIds);
+  const allowedScopeIds = new Set<string>();
+  if (focusedScopeId && state.index?.scopesById.has(focusedScopeId)) {
+    allowedScopeIds.add(focusedScopeId);
+  }
+  if (allowedEntityIds.size === 0 && allowedScopeIds.size === 0) {
+    return state;
+  }
+  const canvasNodes = state.canvasNodes.filter((node) => node.kind === 'entity' ? allowedEntityIds.has(node.id) : allowedScopeIds.has(node.id));
+  const canvasEdges = state.canvasEdges.filter((edge) => allowedEntityIds.has(edge.fromEntityId) && allowedEntityIds.has(edge.toEntityId));
+  const focusedElement = state.focusedElement && ((state.focusedElement.kind === 'entity' && allowedEntityIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'scope' && allowedScopeIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'relationship' && canvasEdges.some((edge) => edge.relationshipId === state.focusedElement?.id)))
+    ? state.focusedElement
+    : (selectedEntityIds[0] ? { kind: 'entity' as const, id: selectedEntityIds[0] } : focusedScopeId ? { kind: 'scope' as const, id: focusedScopeId } : null);
+  return {
+    ...state,
+    canvasNodes,
+    canvasEdges,
+    selectedEntityIds,
+    focusedElement,
+    factsPanelMode: focusedElement ? focusedElement.kind === 'relationship' ? 'relationship' : focusedElement.kind : 'hidden',
+  };
+}
+
+export function removeCanvasSelection(state: BrowserSessionState): BrowserSessionState {
+  const selectedEntityIds = new Set(state.selectedEntityIds);
+  const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
+  const canvasNodes = state.canvasNodes.filter((node) => node.kind === 'entity' ? !selectedEntityIds.has(node.id) : node.id !== focusedScopeId);
+  const canvasEdges = state.canvasEdges.filter((edge) => !selectedEntityIds.has(edge.fromEntityId) && !selectedEntityIds.has(edge.toEntityId));
+  const focusedElement = state.focusedElement && ((state.focusedElement.kind === 'entity' && selectedEntityIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'scope' && state.focusedElement.id === focusedScopeId)) ? null : state.focusedElement;
+  return {
+    ...state,
+    canvasNodes,
+    canvasEdges,
+    selectedEntityIds: [],
+    focusedElement,
+    factsPanelMode: focusedElement ? state.factsPanelMode : 'hidden',
+  };
+}
+
+export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: BrowserCanvasNode['kind']; id: string }): BrowserSessionState {
+  const existing = state.canvasNodes.find((current) => current.kind === node.kind && current.id === node.id);
+  const nextPinned = !existing?.pinned;
+  return {
+    ...state,
+    canvasNodes: upsertPinnedCanvasNode(state.canvasNodes, node.kind, node.id, nextPinned),
+  };
+}
+
+export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
+  return {
+    ...state,
+    canvasLayoutMode: state.canvasLayoutMode === 'grid' ? 'radial' : 'grid',
+    fitViewRequestedAt: new Date().toISOString(),
+  };
 }

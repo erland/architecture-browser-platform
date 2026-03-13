@@ -1696,3 +1696,9 @@ dd {
 .browser-count-grid--facts {
   margin-top: 0;
 }
+
+.browser-facts-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

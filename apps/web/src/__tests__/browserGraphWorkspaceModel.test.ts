@@ -1,7 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
-import { createEmptyBrowserSessionState, openSnapshotSession, addScopeToCanvas, addEntityToCanvas, addDependenciesToCanvas, focusBrowserElement } from '../browserSessionStore';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, relayoutCanvas, toggleCanvasNodePin } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-graph-1',
@@ -75,11 +75,28 @@ describe('browserGraphWorkspaceModel', () => {
 
     const model = buildBrowserGraphWorkspaceModel(state);
 
-    expect(model.nodes.map((node) => node.id)).toEqual(['scope:web', 'entity:browser', 'entity:tree', 'entity:search']);
+    expect(model.nodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search', 'entity:tree', 'scope:web'].sort());
     expect(model.edges.map((edge) => edge.relationshipId).sort()).toEqual(['rel:1', 'rel:2']);
     expect(model.nodes.find((node) => node.id === 'entity:browser')?.focused).toBe(false);
     expect(model.edges.find((edge) => edge.relationshipId === 'rel:1')?.focused).toBe(true);
     expect(model.width).toBeGreaterThan(600);
     expect(model.height).toBeGreaterThan(300);
+  });
+
+  test('relayout switches to radial positioning and keeps pinned nodes marked', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = toggleCanvasNodePin(state, { kind: 'entity', id: 'entity:browser' });
+    state = addDependenciesToCanvas(state, 'entity:browser');
+
+    const gridModel = buildBrowserGraphWorkspaceModel(state);
+    const radialModel = buildBrowserGraphWorkspaceModel(relayoutCanvas(state));
+
+    expect(gridModel.nodes.find((node) => node.id === 'entity:browser')?.x).not.toBe(radialModel.nodes.find((node) => node.id === 'entity:browser')?.x);
+    expect(radialModel.nodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
   });
 });
