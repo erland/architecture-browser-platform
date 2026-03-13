@@ -77,8 +77,16 @@ export function App() {
 
   const isBrowserRoute = currentPath === '/browser';
 
+  if (isBrowserRoute) {
+    return (
+      <main className="page page--browser">
+        {routeContent}
+      </main>
+    );
+  }
+
   return (
-    <main className={isBrowserRoute ? "page page--browser" : "page"}>
+    <main className="page">
       <section className="hero hero--compact">
         <p className="eyebrow">Architecture Browser Platform</p>
         <h1>Route-capable platform shell</h1>

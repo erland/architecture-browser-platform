@@ -10,17 +10,17 @@ type BrowserTabNavProps = {
 
 export function BrowserTabNav({ activeTab, onSelectTab, onOpenCompare, onOpenOperations, onOpenLegacy }: BrowserTabNavProps) {
   return (
-    <nav className="card browser-tab-nav browser-tab-nav--compact" aria-label="Browser tools">
+    <nav className="card browser-tab-nav browser-tab-nav--compact" aria-label="Browser modes">
       <div className="browser-tab-nav__header">
-        <p className="eyebrow">Browse</p>
-        <h2 className="app-nav__title">Navigation</h2>
+        <p className="eyebrow">Workspace modes</p>
+        <h2 className="app-nav__title">Analysis tools</h2>
         <p className="muted app-nav__lead">
-          Choose one focused browser task at a time.
+          Use these focused modes until the tree, top search, canvas, and facts panel replace them step by step.
         </p>
       </div>
 
       <div className="browser-tab-nav__section">
-        <p className="browser-tab-nav__section-label">Browser tools</p>
+        <p className="browser-tab-nav__section-label">Current Browser capabilities</p>
         <div className="browser-tab-nav__links">
           {browserTabs.map((tab) => {
             const isActive = tab.key === activeTab;
@@ -52,8 +52,8 @@ export function BrowserTabNav({ activeTab, onSelectTab, onOpenCompare, onOpenOpe
             <span className="nav-link__description">Review failed runs, retention, and audit events.</span>
           </button>
           <button type="button" className="nav-link" onClick={onOpenLegacy}>
-            <span className="nav-link__label">Current workspace</span>
-            <span className="nav-link__description">Open the temporary stacked view for legacy exploration.</span>
+            <span className="nav-link__label">Legacy workspace</span>
+            <span className="nav-link__description">Leave the focused Browser shell and return to the previous stacked workspace.</span>
           </button>
         </div>
       </div>
