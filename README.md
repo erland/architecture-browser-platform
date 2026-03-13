@@ -184,6 +184,15 @@ docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/
 - API health: `http://localhost:8080/api/health`
 - Indexer health: `http://localhost:8082/health`
 
+## Browser local workspace docs
+
+The Browser refactor from backend-driven explorer to local analysis workspace is documented here:
+
+- `docs/browser-local-refactor-summary.md`
+- `docs/browser-local-continuation-notes.md`
+- `docs/browser-local-only-browser.md`
+- `docs/browser-automated-tests.md`
+
 ## Notes
 
 - Dev and test now have separate Docker Compose files.
