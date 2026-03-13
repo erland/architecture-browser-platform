@@ -6,6 +6,7 @@ import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { BrowserTabNav } from '../components/BrowserTabNav';
+import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useBrowserExplorer } from '../hooks/useBrowserExplorer';
@@ -102,6 +103,8 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     ?? browserExplorer.selectedSnapshot?.repositoryRegistrationId
     ?? '—';
 
+  const [topSearchScopeMode, setTopSearchScopeMode] = useState<BrowserTopSearchScopeMode>('selected-scope');
+
   const browserSessionSummary = browserSession.state.activeSnapshot ? [
     `${browserSession.state.canvasNodes.length} canvas nodes`,
     `${browserSession.state.canvasEdges.length} canvas edges`,
@@ -115,6 +118,58 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     relationships: browserSession.state.payload.relationships.length,
     diagnostics: browserSession.state.payload.diagnostics.length,
   } : null;
+
+
+  const selectedScopeLabel = useMemo(() => {
+    if (!browserSession.state.index || !browserSession.state.selectedScopeId) {
+      return null;
+    }
+    return browserSession.state.index.scopePathById.get(browserSession.state.selectedScopeId)
+      ?? browserSession.state.selectedScopeId
+      ?? null;
+  }, [browserSession.state.index, browserSession.state.selectedScopeId]);
+
+  const effectiveTopSearchScopeId = topSearchScopeMode === 'selected-scope'
+    ? browserSession.state.selectedScopeId
+    : null;
+
+  useEffect(() => {
+    if (topSearchScopeMode !== 'selected-scope') {
+      return;
+    }
+    if (browserSession.state.searchScopeId === browserSession.state.selectedScopeId) {
+      return;
+    }
+    browserSession.setSearch(browserSession.state.searchQuery, browserSession.state.selectedScopeId);
+  }, [browserSession.state.searchQuery, browserSession.state.searchScopeId, browserSession.state.selectedScopeId, topSearchScopeMode]);
+
+  const handleTopSearchResult = (action: BrowserTopSearchResultAction) => {
+    if (action.scopeId) {
+      browserSession.selectScope(action.scopeId);
+    }
+    if (action.type === 'select-scope') {
+      browserSession.focusElement({ kind: 'scope', id: action.id });
+      browserSession.openFactsPanel('scope', 'right');
+      setActiveTab('layout');
+      return;
+    }
+    if (action.type === 'open-entity') {
+      browserSession.addEntityToCanvas(action.id);
+      browserSession.focusElement({ kind: 'entity', id: action.id });
+      browserSession.openFactsPanel('entity', 'right');
+      setActiveTab('search');
+      return;
+    }
+    if (action.type === 'open-relationship') {
+      browserSession.focusElement({ kind: 'relationship', id: action.id });
+      browserSession.openFactsPanel('relationship', 'right');
+      setActiveTab('dependencies');
+      return;
+    }
+    browserSession.focusElement(null);
+    browserSession.openFactsPanel('hidden', 'right');
+    setActiveTab('search');
+  };
 
   let tabContent;
   if (!workspaceData.selectedWorkspace) {
@@ -209,7 +264,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             <p className="eyebrow">Browser</p>
             <h2>Analysis workspace</h2>
             <p className="muted browser-workspace__lead">
-              Browser is now treated as a dedicated workspace with reduced chrome so the analysis surface can use most of the viewport, matching the Step 7 target architecture.
+              Browser is now treated as a dedicated workspace with reduced chrome and top-level local search so the analysis surface can use most of the viewport while keeping navigation and discovery close at hand.
             </p>
           </div>
           <div className="browser-workspace__context-strip" aria-label="Current browser context">
@@ -220,6 +275,20 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             {browserSession.state.activeSnapshot ? <span className="badge badge--status">Prepared locally</span> : null}
           </div>
         </div>
+        <BrowserTopSearch
+          query={browserSession.state.searchQuery}
+          onQueryChange={(query) => browserSession.setSearch(query, effectiveTopSearchScopeId)}
+          scopeMode={topSearchScopeMode}
+          onScopeModeChange={(mode) => {
+            setTopSearchScopeMode(mode);
+            const nextScopeId = mode === 'selected-scope' ? browserSession.state.selectedScopeId : null;
+            browserSession.setSearch(browserSession.state.searchQuery, nextScopeId);
+          }}
+          selectedScopeLabel={selectedScopeLabel}
+          results={browserSession.state.searchResults}
+          onActivateResult={handleTopSearchResult}
+          disabled={!browserSession.state.index}
+        />
         <div className="browser-workspace__topbar-actions">
           <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Change snapshot</button>
           <button type="button" className="button-secondary" onClick={onOpenRepositories}>Repositories</button>
@@ -285,7 +354,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               <p className="eyebrow">Focused mode</p>
               <h3>{activeTabMeta.label}</h3>
               <p className="muted">{activeTabMeta.description}</p>
-              <p className="muted browser-workspace__mode-note">The left rail now provides the primary scope tree. Mode switching remains available here as a secondary Browser tool selector until the canvas and facts workflow fully replaces the old explorer tabs.</p>
+              <p className="muted browser-workspace__mode-note">The left rail now provides the primary scope tree and the top bar now owns local search. Mode switching remains available here as a secondary Browser tool selector until the canvas and facts workflow fully replaces the old explorer tabs.</p>
             </div>
             <div className="browser-workspace__mode-meta">
               {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
@@ -338,7 +407,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             <p className="eyebrow">Next shell upgrades</p>
             <ul className="browser-workspace__hint-list">
               <li>Step 8 is now in place with a local scope tree as the primary left-rail navigator.</li>
-              <li>Step 9 will move local search into the top bar.</li>
+              <li>Step 9 is now in place with local search in the top bar.</li>
               <li>Steps 10–11 will turn the center/right areas into canvas and facts surfaces.</li>
             </ul>
           </section>

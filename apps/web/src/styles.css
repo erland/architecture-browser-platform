@@ -1136,7 +1136,7 @@ dd {
 
 .browser-workspace__topbar-main {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -1149,6 +1149,116 @@ dd {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+
+.browser-top-search {
+  display: grid;
+  gap: 10px;
+}
+
+.browser-top-search__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.browser-top-search__field {
+  display: grid;
+  gap: 6px;
+}
+
+.browser-top-search__field input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  padding: 0.75rem 0.9rem;
+}
+
+.browser-top-search__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browser-top-search__toggle {
+  white-space: nowrap;
+}
+
+.browser-top-search__toggle--active {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.4);
+}
+
+.browser-top-search__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.browser-top-search__meta p {
+  margin: 0;
+}
+
+.browser-top-search__results {
+  padding: 10px 12px;
+}
+
+.browser-top-search__result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.browser-top-search__result {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  color: inherit;
+  text-align: left;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.browser-top-search__result:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.browser-top-search__result-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.browser-top-search__result-main strong,
+.browser-top-search__result-main span {
+  overflow-wrap: anywhere;
+}
+
+.browser-top-search__result-meta {
+  color: #93c5fd;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.browser-top-search__empty {
+  margin: 0;
+}
+
+.browser-workspace__topbar > .browser-top-search {
+  grid-column: 1 / -1;
 }
 
 .browser-workspace__topbar-actions {
@@ -1302,7 +1412,9 @@ dd {
 
   .browser-workspace__topbar,
   .browser-workspace__mode-header,
-  .browser-workspace__layout {
+  .browser-workspace__layout,
+  .browser-top-search__row,
+  .browser-top-search__result {
     grid-template-columns: 1fr;
   }
 
