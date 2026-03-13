@@ -81,6 +81,9 @@ export type BrowserSnapshotIndex = {
   diagnosticsById: Map<string, FullSnapshotDiagnostic>;
   childScopeIdsByParentId: Map<string | null, string[]>;
   entityIdsByScopeId: Map<string | null, string[]>;
+  subtreeEntityIdsByScopeId: Map<string, string[]>;
+  containingScopeIdsByEntityId: Map<string, string[]>;
+  containedEntityIdsByEntityId: Map<string, string[]>;
   inboundRelationshipIdsByEntityId: Map<string, string[]>;
   outboundRelationshipIdsByEntityId: Map<string, string[]>;
   diagnosticIdsByScopeId: Map<string, string[]>;
@@ -163,6 +166,14 @@ function compareEntityIds(index: BrowserSnapshotIndex, leftEntityId: string, rig
   return compareByDisplayName(left, right);
 }
 
+function sortScopeIds(index: BrowserSnapshotIndex, scopeIds: Iterable<string>) {
+  return [...new Set(scopeIds)].sort((a, b) => compareScopeIds(index, a, b));
+}
+
+function sortEntityIds(index: BrowserSnapshotIndex, entityIds: Iterable<string>) {
+  return [...new Set(entityIds)].sort((a, b) => compareEntityIds(index, a, b));
+}
+
 function buildScopePath(scope: FullSnapshotScope, scopesById: Map<string, FullSnapshotScope>) {
   const segments: string[] = [];
   const seen = new Set<string>();
@@ -194,19 +205,47 @@ function collectDescendantStats(index: BrowserSnapshotIndex, scopeId: string): {
   return stats;
 }
 
+function collectSubtreeEntityIds(index: BrowserSnapshotIndex, scopeId: string, cache: Map<string, string[]>) {
+  const cached = cache.get(scopeId);
+  if (cached) {
+    return cached;
+  }
+  const directEntityIds = index.entityIdsByScopeId.get(scopeId) ?? [];
+  const childScopeIds = index.childScopeIdsByParentId.get(scopeId) ?? [];
+  const entityIds = [...directEntityIds];
+  for (const childScopeId of childScopeIds) {
+    entityIds.push(...collectSubtreeEntityIds(index, childScopeId, cache));
+  }
+  const sorted = sortEntityIds(index, entityIds);
+  cache.set(scopeId, sorted);
+  return sorted;
+}
+
+function buildContainingScopeIds(index: BrowserSnapshotIndex, entity: FullSnapshotEntity) {
+  const scopeIds: string[] = [];
+  const seen = new Set<string>();
+  let currentScopeId = entity.scopeId;
+  while (currentScopeId && !seen.has(currentScopeId)) {
+    seen.add(currentScopeId);
+    scopeIds.push(currentScopeId);
+    currentScopeId = index.scopesById.get(currentScopeId)?.parentScopeId ?? null;
+  }
+  return scopeIds;
+}
+
 function buildScopeTree(index: BrowserSnapshotIndex, parentScopeId: string | null = null, depth = 0): BrowserScopeTreeNode[] {
   const cached = index.scopeNodesByParentId.get(parentScopeId);
   if (cached) {
     return cached;
   }
-  const scopeIds = [...(index.childScopeIdsByParentId.get(parentScopeId) ?? [])].sort((a, b) => compareScopeIds(index, a, b));
+  const scopeIds = sortScopeIds(index, index.childScopeIdsByParentId.get(parentScopeId) ?? []);
   const nodes = scopeIds.map((scopeId) => {
     const scope = index.scopesById.get(scopeId);
     if (!scope) {
       throw new Error(`Missing scope '${scopeId}' while building scope tree.`);
     }
-    const childScopeIds = [...(index.childScopeIdsByParentId.get(scopeId) ?? [])].sort((a, b) => compareScopeIds(index, a, b));
-    const directEntityIds = [...(index.entityIdsByScopeId.get(scopeId) ?? [])].sort((a, b) => compareEntityIds(index, a, b));
+    const childScopeIds = sortScopeIds(index, index.childScopeIdsByParentId.get(scopeId) ?? []);
+    const directEntityIds = sortEntityIds(index, index.entityIdsByScopeId.get(scopeId) ?? []);
     const descendants = collectDescendantStats(index, scopeId);
     return {
       scopeId,
@@ -402,6 +441,9 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
     diagnosticsById,
     childScopeIdsByParentId,
     entityIdsByScopeId,
+    subtreeEntityIdsByScopeId: new Map(),
+    containingScopeIdsByEntityId: new Map(),
+    containedEntityIdsByEntityId: new Map(),
     inboundRelationshipIdsByEntityId,
     outboundRelationshipIdsByEntityId,
     diagnosticIdsByScopeId,
@@ -412,6 +454,24 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
     scopeTree: [],
     searchableDocuments: [],
   };
+
+  for (const entity of payload.entities) {
+    index.containingScopeIdsByEntityId.set(entity.externalId, buildContainingScopeIds(index, entity));
+  }
+
+  for (const relationship of payload.relationships) {
+    if (relationship.kind === "CONTAINS") {
+      pushToMapArray(index.containedEntityIdsByEntityId, relationship.fromEntityId, relationship.toEntityId);
+    }
+  }
+
+  for (const [entityId, containedIds] of index.containedEntityIdsByEntityId.entries()) {
+    index.containedEntityIdsByEntityId.set(entityId, sortEntityIds(index, containedIds));
+  }
+
+  for (const scope of payload.scopes) {
+    index.subtreeEntityIdsByScopeId.set(scope.externalId, collectSubtreeEntityIds(index, scope.externalId, index.subtreeEntityIdsByScopeId));
+  }
 
   index.scopeTree = buildScopeTree(index);
   index.searchableDocuments = buildSearchableDocuments(index);
@@ -446,13 +506,93 @@ export function getScopeChildren(index: BrowserSnapshotIndex, parentScopeId: str
   return index.scopeNodesByParentId.get(parentScopeId) ?? [];
 }
 
+export function getDirectEntitiesForScope(index: BrowserSnapshotIndex, scopeId: string) {
+  return sortEntityIds(index, index.entityIdsByScopeId.get(scopeId) ?? [])
+    .map((entityId) => index.entitiesById.get(entityId))
+    .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
+}
+
+export function getSubtreeEntitiesForScope(index: BrowserSnapshotIndex, scopeId: string) {
+  return sortEntityIds(index, index.subtreeEntityIdsByScopeId.get(scopeId) ?? [])
+    .map((entityId) => index.entitiesById.get(entityId))
+    .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
+}
+
+export function getChildScopes(index: BrowserSnapshotIndex, scopeId: string | null) {
+  return sortScopeIds(index, index.childScopeIdsByParentId.get(scopeId) ?? [])
+    .map((childScopeId) => index.scopesById.get(childScopeId))
+    .filter((scope): scope is FullSnapshotScope => Boolean(scope));
+}
+
+export function getContainingScopesForEntity(index: BrowserSnapshotIndex, entityId: string) {
+  return (index.containingScopeIdsByEntityId.get(entityId) ?? [])
+    .map((scopeId) => index.scopesById.get(scopeId))
+    .filter((scope): scope is FullSnapshotScope => Boolean(scope));
+}
+
+export function getContainedEntitiesForEntity(index: BrowserSnapshotIndex, entityId: string) {
+  return sortEntityIds(index, index.containedEntityIdsByEntityId.get(entityId) ?? [])
+    .map((containedEntityId) => index.entitiesById.get(containedEntityId))
+    .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
+}
+
+function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
+  if (!kinds || kinds.length === 0) {
+    return entities;
+  }
+  const allowedKinds = new Set(kinds);
+  return entities.filter((entity) => allowedKinds.has(entity.kind));
+}
+
+export function getDirectEntitiesForScopeByKind(index: BrowserSnapshotIndex, scopeId: string, kinds?: string[]) {
+  return filterEntitiesByKinds(getDirectEntitiesForScope(index, scopeId), kinds);
+}
+
+export function getSubtreeEntitiesForScopeByKind(index: BrowserSnapshotIndex, scopeId: string, kinds?: string[]) {
+  return filterEntitiesByKinds(getSubtreeEntitiesForScope(index, scopeId), kinds);
+}
+
+export function getPrimaryEntitiesForScope(index: BrowserSnapshotIndex, scopeId: string) {
+  const scope = index.scopesById.get(scopeId);
+  if (!scope) {
+    return [];
+  }
+
+  // Centralized scope-to-entity resolution policy for the Browser UX.
+  if (scope.kind === "FILE" || scope.kind === "MODULE") {
+    return getDirectEntitiesForScopeByKind(index, scopeId, ["MODULE"]);
+  }
+
+  if (scope.kind === "DIRECTORY") {
+    const directFileChildScopeIds = getChildScopes(index, scopeId)
+      .filter((childScope) => childScope.kind === "FILE")
+      .map((childScope) => childScope.externalId);
+    const moduleEntityIds = directFileChildScopeIds.flatMap((fileScopeId) => (index.entityIdsByScopeId.get(fileScopeId) ?? []).filter((entityId) => index.entitiesById.get(entityId)?.kind === "MODULE"));
+    const directModuleEntityIds = (index.entityIdsByScopeId.get(scopeId) ?? []).filter((entityId) => index.entitiesById.get(entityId)?.kind === "MODULE");
+    return sortEntityIds(index, [...directModuleEntityIds, ...moduleEntityIds])
+      .map((entityId) => index.entitiesById.get(entityId))
+      .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
+  }
+
+  if (scope.kind === "PACKAGE") {
+    return getDirectEntitiesForScopeByKind(index, scopeId, ["PACKAGE"]);
+  }
+
+  const directModuleEntities = getDirectEntitiesForScopeByKind(index, scopeId, ["MODULE"]);
+  if (directModuleEntities.length > 0) {
+    return directModuleEntities;
+  }
+
+  return getDirectEntitiesForScope(index, scopeId);
+}
+
 export function getScopeFacts(index: BrowserSnapshotIndex, scopeId: string): BrowserScopeFacts | null {
   const scope = index.scopesById.get(scopeId);
   if (!scope) {
     return null;
   }
-  const childScopeIds = [...(index.childScopeIdsByParentId.get(scopeId) ?? [])].sort((a, b) => compareScopeIds(index, a, b));
-  const entityIds = [...(index.entityIdsByScopeId.get(scopeId) ?? [])].sort((a, b) => compareEntityIds(index, a, b));
+  const childScopeIds = sortScopeIds(index, index.childScopeIdsByParentId.get(scopeId) ?? []);
+  const entityIds = sortEntityIds(index, index.entityIdsByScopeId.get(scopeId) ?? []);
   const descendantStats = collectDescendantStats(index, scopeId);
   const diagnostics = (index.diagnosticIdsByScopeId.get(scopeId) ?? [])
     .map((id) => index.diagnosticsById.get(id))
@@ -517,49 +657,61 @@ export function getDependencyNeighborhood(index: BrowserSnapshotIndex, entityId:
       kind: relationship.kind,
       label: relationship.label,
     }));
-  const inboundEntityIds = [...new Set(inboundRelationshipIds.map((relationshipId) => index.relationshipsById.get(relationshipId)?.fromEntityId).filter((item): item is string => Boolean(item)))].sort((a, b) => compareEntityIds(index, a, b));
-  const outboundEntityIds = [...new Set(outboundRelationshipIds.map((relationshipId) => index.relationshipsById.get(relationshipId)?.toEntityId).filter((item): item is string => Boolean(item)))].sort((a, b) => compareEntityIds(index, a, b));
+  const inboundEntityIds = sortEntityIds(index, inboundRelationshipIds.map((relationshipId) => index.relationshipsById.get(relationshipId)?.fromEntityId).filter((item): item is string => Boolean(item)));
+  const outboundEntityIds = sortEntityIds(index, outboundRelationshipIds.map((relationshipId) => index.relationshipsById.get(relationshipId)?.toEntityId).filter((item): item is string => Boolean(item)));
+  const relatedEntityIds = sortEntityIds(index, [...inboundEntityIds, ...outboundEntityIds]);
   return {
     focusEntity,
     inboundEntityIds,
     outboundEntityIds,
-    relatedEntityIds: [...new Set([...inboundEntityIds, ...outboundEntityIds])],
+    relatedEntityIds,
     edges,
   };
 }
 
-export function searchBrowserSnapshotIndex(index: BrowserSnapshotIndex, queryText: string, options: { scopeId?: string | null; limit?: number } = {}) {
-  const normalizedQuery = normalizeSearchText(queryText);
-  const limit = Math.max(options.limit ?? 25, 1);
-  const allDocuments = index.searchableDocuments.filter((document) => isScopeWithin(index, options.scopeId ?? null, document.scopeId));
-  const matchingDocuments = normalizedQuery
-    ? allDocuments.filter((document) => document.normalizedText.includes(normalizedQuery))
-    : allDocuments;
-  return matchingDocuments
-    .map((document) => ({
+export function searchBrowserSnapshotIndex(index: BrowserSnapshotIndex, query: string, options?: { scopeId?: string | null; limit?: number }) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) {
+    return [];
+  }
+  const matches = index.searchableDocuments
+    .filter((document) => document.normalizedText.includes(normalizedQuery))
+    .filter((document) => isScopeWithin(index, options?.scopeId ?? null, document.scopeId))
+    .map<BrowserSearchResult>((document) => ({
       kind: document.kind,
       id: document.id,
       title: document.title,
       subtitle: document.subtitle,
       scopeId: document.scopeId,
-      score: scoreDocument(document, normalizedQuery),
+      score: scoreSearchDocument(document, normalizedQuery),
     }))
-    .sort((left, right) => right.score - left.score || left.title.localeCompare(right.title, undefined, { sensitivity: "base" }))
-    .slice(0, limit);
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return left.title.localeCompare(right.title, undefined, { sensitivity: "base" });
+    });
+  return typeof options?.limit === "number" ? matches.slice(0, options.limit) : matches;
 }
 
-function scoreDocument(document: BrowserSearchDocument, normalizedQuery: string) {
-  if (!normalizedQuery) {
-    return 1;
-  }
-  if (document.title.toLocaleLowerCase() === normalizedQuery) {
-    return 120;
-  }
-  if (document.title.toLocaleLowerCase().startsWith(normalizedQuery)) {
+function scoreSearchDocument(document: BrowserSearchDocument, query: string) {
+  const title = normalizeSearchText(document.title);
+  const subtitle = normalizeSearchText(document.subtitle);
+  const text = document.normalizedText;
+  if (title === query) {
     return 100;
   }
-  if (document.normalizedText.includes(normalizedQuery)) {
-    return 80;
+  if (title.startsWith(query)) {
+    return 90;
   }
-  return 10;
+  if (title.includes(query)) {
+    return 75;
+  }
+  if (subtitle.includes(query)) {
+    return 50;
+  }
+  if (text.includes(query)) {
+    return 25;
+  }
+  return 0;
 }
