@@ -73,6 +73,7 @@ export function createPlatformApi(client = httpClient) {
     getWorkspaceSnapshots: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots`, { method: "GET" }),
     getOperationsOverview: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/operations/overview`, { method: "GET" }),
     getSnapshotOverview: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overview`, { method: "GET" }),
+    getFullSnapshotPayload: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: "GET" }),
     getLayoutTree: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/tree`, { method: "GET" }),
     getLayoutScopeDetail: <T>(workspaceId: string, snapshotId: string, scopeId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/scopes/${encodeURIComponent(scopeId)}`, { method: "GET" }),
     getDependencyView: <T>(workspaceId: string, snapshotId: string, direction: string, scopeId?: string, focusEntityId?: string) =>

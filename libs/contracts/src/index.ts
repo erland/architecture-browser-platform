@@ -244,3 +244,114 @@ export interface AuditEventRecord {
   happenedAt: string;
   detailsJson: string;
 }
+
+export interface FullSnapshotSourceRef {
+  path: string | null;
+  startLine: number | null;
+  endLine: number | null;
+  snippet: string | null;
+  metadata: JsonObject;
+}
+
+export interface FullSnapshotScope {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  parentScopeId: string | null;
+  sourceRefs: FullSnapshotSourceRef[];
+  metadata: JsonObject;
+}
+
+export interface FullSnapshotEntity {
+  externalId: string;
+  kind: string;
+  origin: string | null;
+  name: string;
+  displayName: string | null;
+  scopeId: string | null;
+  sourceRefs: FullSnapshotSourceRef[];
+  metadata: JsonObject;
+}
+
+export interface FullSnapshotRelationship {
+  externalId: string;
+  kind: string;
+  fromEntityId: string;
+  toEntityId: string;
+  label: string | null;
+  sourceRefs: FullSnapshotSourceRef[];
+  metadata: JsonObject;
+}
+
+export interface FullSnapshotDiagnostic {
+  externalId: string;
+  severity: string;
+  phase: string | null;
+  code: string;
+  message: string;
+  fatal: boolean;
+  filePath: string | null;
+  scopeId: string | null;
+  entityId: string | null;
+  sourceRefs: FullSnapshotSourceRef[];
+  metadata: JsonObject;
+}
+
+export interface FullSnapshotPayload {
+  snapshot: {
+    id: string;
+    workspaceId: string;
+    repositoryRegistrationId: string;
+    repositoryKey: string | null;
+    repositoryName: string | null;
+    runId: string | null;
+    snapshotKey: string;
+    status: SnapshotStatus;
+    completenessStatus: CompletenessStatus;
+    derivedRunOutcome: RunOutcome;
+    schemaVersion: string;
+    indexerVersion: string;
+    sourceRevision: string | null;
+    sourceBranch: string | null;
+    importedAt: string;
+    scopeCount: number;
+    entityCount: number;
+    relationshipCount: number;
+    diagnosticCount: number;
+    indexedFileCount: number;
+    totalFileCount: number;
+    degradedFileCount: number;
+  };
+  source: {
+    repositoryId: string | null;
+    acquisitionType: string | null;
+    path: string | null;
+    remoteUrl: string | null;
+    branch: string | null;
+    revision: string | null;
+    acquiredAt: string | null;
+  };
+  run: {
+    startedAt: string | null;
+    completedAt: string | null;
+    outcome: string | null;
+    detectedTechnologies: string[];
+  };
+  completeness: {
+    status: string | null;
+    indexedFileCount: number;
+    totalFileCount: number;
+    degradedFileCount: number;
+    omittedPaths: string[];
+    notes: string[];
+  };
+  scopes: FullSnapshotScope[];
+  entities: FullSnapshotEntity[];
+  relationships: FullSnapshotRelationship[];
+  diagnostics: FullSnapshotDiagnostic[];
+  metadata: {
+    metadata: JsonObject;
+  };
+  warnings: string[];
+}

@@ -4,13 +4,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.CompletenessInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.DiagnosticSummary;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullDiagnostic;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullEntity;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullRelationship;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullScope;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullSnapshotPayloadResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.KindCount;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.MetadataEnvelope;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.NameCount;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.RunInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotDetailResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotOverviewResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceInfo;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceRef;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
 import info.isaksson.erland.architecturebrowser.platform.domain.ImportedFactEntity;
@@ -70,6 +77,23 @@ public class SnapshotCatalogService {
             toSummary(snapshot),
             toSourceInfo(document),
             toRunInfo(document),
+            collectWarnings(document)
+        );
+    }
+
+    public FullSnapshotPayloadResponse getFullSnapshotPayload(String workspaceId, String snapshotId) {
+        SnapshotEntity snapshot = requireSnapshot(workspaceId, snapshotId);
+        ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
+        return new FullSnapshotPayloadResponse(
+            toSummary(snapshot),
+            toSourceInfo(document),
+            toRunInfo(document),
+            toCompletenessInfo(document),
+            mapScopes(document),
+            mapEntities(document),
+            mapRelationships(document),
+            mapDiagnostics(document),
+            new MetadataEnvelope(defaultMap(document.metadata())),
             collectWarnings(document)
         );
     }
@@ -158,6 +182,9 @@ public class SnapshotCatalogService {
 
     private SourceInfo toSourceInfo(ArchitectureIndexDocument document) {
         ArchitectureIndexDocument.RepositorySource source = document.source();
+        if (source == null) {
+            return new SourceInfo(null, null, null, null, null, null, null);
+        }
         return new SourceInfo(
             source.repositoryId(),
             source.acquisitionType(),
@@ -184,6 +211,9 @@ public class SnapshotCatalogService {
 
     private CompletenessInfo toCompletenessInfo(ArchitectureIndexDocument document) {
         ArchitectureIndexDocument.CompletenessMetadata completeness = document.completeness();
+        if (completeness == null) {
+            return new CompletenessInfo(null, 0, 0, 0, List.of(), List.of());
+        }
         return new CompletenessInfo(
             completeness.status(),
             completeness.indexedFileCount(),
@@ -255,6 +285,83 @@ public class SnapshotCatalogService {
             warnings.addAll(document.completeness().notes());
         }
         return List.copyOf(warnings);
+    }
+
+    private List<FullScope> mapScopes(ArchitectureIndexDocument document) {
+        return Optional.ofNullable(document.scopes()).orElse(List.of()).stream()
+            .map(scope -> new FullScope(
+                scope.id(),
+                scope.kind(),
+                scope.name(),
+                scope.displayName(),
+                scope.parentScopeId(),
+                mapSourceRefs(scope.sourceRefs()),
+                defaultMap(scope.metadata())
+            ))
+            .toList();
+    }
+
+    private List<FullEntity> mapEntities(ArchitectureIndexDocument document) {
+        return Optional.ofNullable(document.entities()).orElse(List.of()).stream()
+            .map(entity -> new FullEntity(
+                entity.id(),
+                entity.kind(),
+                entity.origin(),
+                entity.name(),
+                entity.displayName(),
+                entity.scopeId(),
+                mapSourceRefs(entity.sourceRefs()),
+                defaultMap(entity.metadata())
+            ))
+            .toList();
+    }
+
+    private List<FullRelationship> mapRelationships(ArchitectureIndexDocument document) {
+        return Optional.ofNullable(document.relationships()).orElse(List.of()).stream()
+            .map(relationship -> new FullRelationship(
+                relationship.id(),
+                relationship.kind(),
+                relationship.fromEntityId(),
+                relationship.toEntityId(),
+                relationship.label(),
+                mapSourceRefs(relationship.sourceRefs()),
+                defaultMap(relationship.metadata())
+            ))
+            .toList();
+    }
+
+    private List<FullDiagnostic> mapDiagnostics(ArchitectureIndexDocument document) {
+        return Optional.ofNullable(document.diagnostics()).orElse(List.of()).stream()
+            .map(diagnostic -> new FullDiagnostic(
+                diagnostic.id(),
+                diagnostic.severity(),
+                diagnostic.phase(),
+                diagnostic.code(),
+                diagnostic.message(),
+                diagnostic.fatal(),
+                diagnostic.filePath(),
+                diagnostic.scopeId(),
+                diagnostic.entityId(),
+                mapSourceRefs(diagnostic.sourceRefs()),
+                defaultMap(diagnostic.metadata())
+            ))
+            .toList();
+    }
+
+    private List<SourceRef> mapSourceRefs(List<ArchitectureIndexDocument.SourceReference> sourceRefs) {
+        return Optional.ofNullable(sourceRefs).orElse(List.of()).stream()
+            .map(sourceRef -> new SourceRef(
+                sourceRef.path(),
+                sourceRef.startLine(),
+                sourceRef.endLine(),
+                sourceRef.snippet(),
+                defaultMap(sourceRef.metadata())
+            ))
+            .toList();
+    }
+
+    private Map<String, Object> defaultMap(Map<String, Object> metadata) {
+        return metadata == null ? Map.of() : Map.copyOf(metadata);
     }
 
     private String safeKey(String value) {

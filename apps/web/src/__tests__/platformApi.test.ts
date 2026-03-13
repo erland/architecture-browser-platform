@@ -13,6 +13,19 @@ describe("platformApi", () => {
     );
   });
 
+
+  test("getFullSnapshotPayload uses the dedicated one-shot snapshot endpoint", async () => {
+    const fetchJson = jest.fn(async () => ({ scopes: [] })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
+    const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });
+
+    await api.getFullSnapshotPayload("ws-1", "snap-1");
+
+    expect(fetchJson).toHaveBeenCalledWith(
+      "/api/workspaces/ws-1/snapshots/snap-1/full",
+      { method: "GET" },
+    );
+  });
+
   test("searchSnapshot trims empty query text but still keeps scope and limit", async () => {
     const fetchJson = jest.fn(async () => ({ results: [] })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
     const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });

@@ -141,6 +141,96 @@ export type SnapshotOverview = {
   warnings: string[];
 };
 
+
+
+export type SnapshotSourceRef = {
+  path: string | null;
+  startLine: number | null;
+  endLine: number | null;
+  snippet: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type FullSnapshotScope = {
+  externalId: string;
+  kind: string;
+  name: string;
+  displayName: string | null;
+  parentScopeId: string | null;
+  sourceRefs: SnapshotSourceRef[];
+  metadata: Record<string, unknown>;
+};
+
+export type FullSnapshotEntity = {
+  externalId: string;
+  kind: string;
+  origin: string | null;
+  name: string;
+  displayName: string | null;
+  scopeId: string | null;
+  sourceRefs: SnapshotSourceRef[];
+  metadata: Record<string, unknown>;
+};
+
+export type FullSnapshotRelationship = {
+  externalId: string;
+  kind: string;
+  fromEntityId: string;
+  toEntityId: string;
+  label: string | null;
+  sourceRefs: SnapshotSourceRef[];
+  metadata: Record<string, unknown>;
+};
+
+export type FullSnapshotDiagnostic = {
+  externalId: string;
+  severity: string;
+  phase: string | null;
+  code: string;
+  message: string;
+  fatal: boolean;
+  filePath: string | null;
+  scopeId: string | null;
+  entityId: string | null;
+  sourceRefs: SnapshotSourceRef[];
+  metadata: Record<string, unknown>;
+};
+
+export type FullSnapshotPayload = {
+  snapshot: SnapshotSummary;
+  source: {
+    repositoryId: string | null;
+    acquisitionType: string | null;
+    path: string | null;
+    remoteUrl: string | null;
+    branch: string | null;
+    revision: string | null;
+    acquiredAt: string | null;
+  };
+  run: {
+    startedAt: string | null;
+    completedAt: string | null;
+    outcome: string | null;
+    detectedTechnologies: string[];
+  };
+  completeness: {
+    status: string | null;
+    indexedFileCount: number;
+    totalFileCount: number;
+    degradedFileCount: number;
+    omittedPaths: string[];
+    notes: string[];
+  };
+  scopes: FullSnapshotScope[];
+  entities: FullSnapshotEntity[];
+  relationships: FullSnapshotRelationship[];
+  diagnostics: FullSnapshotDiagnostic[];
+  metadata: {
+    metadata: Record<string, unknown>;
+  };
+  warnings: string[];
+};
+
 export type LayoutNode = {
   externalId: string;
   parentScopeId: string | null;

@@ -60,6 +60,25 @@ class SnapshotCatalogResourceTest {
             .body("entityKinds.find { it.key == 'CLASS' }.count", equalTo(1))
             .body("relationshipKinds.find { it.key == 'EXPOSES' }.count", equalTo(1))
             .body("topScopes[0].name", notNullValue());
+
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("snapshot.id", equalTo(snapshotId))
+            .body("source.repositoryId", equalTo("fixture-java-backend"))
+            .body("run.detectedTechnologies", hasItem("java"))
+            .body("completeness.status", equalTo("COMPLETE"))
+            .body("scopes.size()", equalTo(2))
+            .body("scopes[0].externalId", equalTo("scope:repo"))
+            .body("entities.size()", equalTo(2))
+            .body("entities.find { it.externalId == 'entity:class:demo-controller' }.sourceRefs[0].path", equalTo("src/main/java/com/example/DemoController.java"))
+            .body("relationships.size()", equalTo(1))
+            .body("relationships[0].fromEntityId", equalTo("entity:class:demo-controller"))
+            .body("diagnostics.size()", equalTo(0))
+            .body("metadata.metadata.size()", equalTo(0));
     }
 
     @Test
@@ -76,6 +95,17 @@ class SnapshotCatalogResourceTest {
             .body("snapshot.completenessStatus", equalTo("PARTIAL"))
             .body("warnings.size()", greaterThanOrEqualTo(1))
             .body("recentDiagnostics[0].code", equalTo("typescript.parse-error"));
+
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("snapshot.completenessStatus", equalTo("PARTIAL"))
+            .body("completeness.degradedFileCount", greaterThanOrEqualTo(1))
+            .body("diagnostics[0].code", equalTo("typescript.parse-error"))
+            .body("warnings.size()", greaterThanOrEqualTo(1));
     }
 
     private String importSnapshot(String workspaceId, String repositoryId, String resourcePath) throws Exception {

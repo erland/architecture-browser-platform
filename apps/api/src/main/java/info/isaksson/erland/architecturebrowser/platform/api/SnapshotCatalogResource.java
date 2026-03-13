@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullSnapshotPayloadResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotDetailResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotOverviewResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
@@ -44,5 +45,12 @@ public class SnapshotCatalogResource {
     public SnapshotOverviewResponse getOverview(@PathParam("workspaceId") String workspaceId,
                                                 @PathParam("snapshotId") String snapshotId) {
         return snapshotCatalogService.getOverview(workspaceId, snapshotId);
+    }
+
+    @GET
+    @Path("/snapshots/{snapshotId}/full")
+    public FullSnapshotPayloadResponse getFullSnapshotPayload(@PathParam("workspaceId") String workspaceId,
+                                                              @PathParam("snapshotId") String snapshotId) {
+        return snapshotCatalogService.getFullSnapshotPayload(workspaceId, snapshotId);
     }
 }
