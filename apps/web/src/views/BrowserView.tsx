@@ -4,6 +4,7 @@ import { EntryPointsTab } from '../browser/EntryPointsTab';
 import { LayoutTab } from '../browser/LayoutTab';
 import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
+import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
@@ -243,6 +244,13 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
       <div className="browser-workspace__layout">
         <aside className="browser-workspace__rail">
           <div className="browser-workspace__rail-sticky">
+            <BrowserNavigationTree
+              index={browserSession.state.index}
+              selectedScopeId={browserSession.state.selectedScopeId}
+              onSelectScope={browserSession.selectScope}
+              onAddScopeToCanvas={browserSession.addScopeToCanvas}
+            />
+
             <BrowserTabNav
               activeTab={activeTab}
               onSelectTab={setActiveTab}
@@ -277,6 +285,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               <p className="eyebrow">Focused mode</p>
               <h3>{activeTabMeta.label}</h3>
               <p className="muted">{activeTabMeta.description}</p>
+              <p className="muted browser-workspace__mode-note">The left rail now provides the primary scope tree. Mode switching remains available here as a secondary Browser tool selector until the canvas and facts workflow fully replaces the old explorer tabs.</p>
             </div>
             <div className="browser-workspace__mode-meta">
               {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
@@ -328,7 +337,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           <section className="card browser-workspace__inspector-card browser-workspace__inspector-card--hint">
             <p className="eyebrow">Next shell upgrades</p>
             <ul className="browser-workspace__hint-list">
-              <li>Step 8 will replace the mode rail with a true navigation tree.</li>
+              <li>Step 8 is now in place with a local scope tree as the primary left-rail navigator.</li>
               <li>Step 9 will move local search into the top bar.</li>
               <li>Steps 10–11 will turn the center/right areas into canvas and facts surfaces.</li>
             </ul>

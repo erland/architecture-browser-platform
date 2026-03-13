@@ -12,15 +12,15 @@ export function BrowserTabNav({ activeTab, onSelectTab, onOpenCompare, onOpenOpe
   return (
     <nav className="card browser-tab-nav browser-tab-nav--compact" aria-label="Browser modes">
       <div className="browser-tab-nav__header">
-        <p className="eyebrow">Workspace modes</p>
-        <h2 className="app-nav__title">Analysis tools</h2>
+        <p className="eyebrow">Browser tools</p>
+        <h2 className="app-nav__title">Mode switcher</h2>
         <p className="muted app-nav__lead">
-          Use these focused modes until the tree, top search, canvas, and facts panel replace them step by step.
+          The scope tree now owns the left-rail navigation. These mode switches remain available as secondary analysis tools while later steps move more work into tree, top search, canvas, and facts.
         </p>
       </div>
 
       <div className="browser-tab-nav__section">
-        <p className="browser-tab-nav__section-label">Current Browser capabilities</p>
+        <p className="browser-tab-nav__section-label">Secondary Browser tools</p>
         <div className="browser-tab-nav__links">
           {browserTabs.map((tab) => {
             const isActive = tab.key === activeTab;
