@@ -1,9 +1,9 @@
 export const browserTabs = [
-  { key: 'overview', label: 'Overview', description: 'Snapshot summary, counts, and recent diagnostics.' },
-  { key: 'layout', label: 'Layout', description: 'Scopes, tree structure, and scope detail.' },
-  { key: 'dependencies', label: 'Dependencies', description: 'Directional dependency exploration.' },
-  { key: 'entry-points', label: 'Entry points', description: 'Inbound edges and integration starting points.' },
-  { key: 'search', label: 'Search', description: 'Entity search and detailed drill-down.' },
+  { key: 'overview', label: 'Explore', description: 'General architecture exploration with the local tree, search, canvas, and facts panel.' },
+  { key: 'layout', label: 'Structure', description: 'Focus on scopes, containment, and how the model is organized locally.' },
+  { key: 'dependencies', label: 'Dependencies', description: 'Focus on relationship neighborhoods and dependency-driven expansion on the local canvas.' },
+  { key: 'entry-points', label: 'Entrypoints', description: 'Focus on likely starting points, boundaries, and integration edges using local facts and search.' },
+  { key: 'search', label: 'Inspect', description: 'Focus on selected entities, diagnostics, and detailed facts from the prepared snapshot.' },
 ] as const;
 
 export type BrowserTabKey = (typeof browserTabs)[number]['key'];

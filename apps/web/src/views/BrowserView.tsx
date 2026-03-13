@@ -1,9 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DependenciesTab } from '../browser/DependenciesTab';
-import { EntryPointsTab } from '../browser/EntryPointsTab';
-import { LayoutTab } from '../browser/LayoutTab';
-import { OverviewTab } from '../browser/OverviewTab';
-import { SearchTab } from '../browser/SearchTab';
 import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
@@ -12,7 +7,6 @@ import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
-import { useBrowserExplorer } from '../hooks/useBrowserExplorer';
 import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { buildBrowserTabSearch, DEFAULT_BROWSER_TAB, readBrowserTabFromSearch } from '../routing/browserTabState';
@@ -49,6 +43,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTabKey>(() => readBrowserTabFromLocation());
+  const [topSearchScopeMode, setTopSearchScopeMode] = useState<BrowserTopSearchScopeMode>('selected-scope');
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
 
@@ -60,17 +55,22 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     setBusyMessage,
     setError,
   });
-  const browserExplorer = useBrowserExplorer({
-    selectedWorkspaceId: workspaceData.selectedWorkspaceId,
-    snapshots: workspaceData.snapshots,
-    selectedSnapshotId: selection.selectedSnapshotId,
-    setSelectedSnapshotId: selection.setSelectedSnapshotId,
-    feedback: { setError },
-  });
+
+  const selectedSnapshot = useMemo(() => {
+    const sessionSnapshotId = browserSession.state.activeSnapshot?.snapshotId;
+    if (sessionSnapshotId) {
+      return workspaceData.snapshots.find((snapshot) => snapshot.id === sessionSnapshotId) ?? null;
+    }
+    if (selection.selectedSnapshotId) {
+      return workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
+    }
+    return null;
+  }, [browserSession.state.activeSnapshot?.snapshotId, selection.selectedSnapshotId, workspaceData.snapshots]);
+
   const browserSessionBootstrap = useBrowserSessionBootstrap({
     workspaceId: workspaceData.selectedWorkspaceId,
     repositoryId: selection.selectedRepositoryId,
-    snapshot: browserExplorer.selectedSnapshot,
+    snapshot: selectedSnapshot,
   });
 
   useEffect(() => {
@@ -94,19 +94,17 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     if (bySelection) {
       return bySelection;
     }
-    if (!browserExplorer.selectedSnapshot) {
+    if (!selectedSnapshot) {
       return null;
     }
-    return workspaceData.repositories.find((repository) => repository.id === browserExplorer.selectedSnapshot?.repositoryRegistrationId) ?? null;
-  }, [workspaceData.repositories, selection.selectedRepositoryId, browserExplorer.selectedSnapshot]);
+    return workspaceData.repositories.find((repository) => repository.id === selectedSnapshot.repositoryRegistrationId) ?? null;
+  }, [workspaceData.repositories, selection.selectedRepositoryId, selectedSnapshot]);
 
   const repositoryLabel = selectedRepository?.name
-    ?? browserExplorer.selectedSnapshot?.repositoryName
-    ?? browserExplorer.selectedSnapshot?.repositoryKey
-    ?? browserExplorer.selectedSnapshot?.repositoryRegistrationId
+    ?? selectedSnapshot?.repositoryName
+    ?? selectedSnapshot?.repositoryKey
+    ?? selectedSnapshot?.repositoryRegistrationId
     ?? '—';
-
-  const [topSearchScopeMode, setTopSearchScopeMode] = useState<BrowserTopSearchScopeMode>('selected-scope');
 
   const browserSessionSummary = browserSession.state.activeSnapshot ? [
     `${browserSession.state.canvasNodes.length} canvas nodes`,
@@ -121,7 +119,6 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     relationships: browserSession.state.payload.relationships.length,
     diagnostics: browserSession.state.payload.diagnostics.length,
   } : null;
-
 
   const selectedScopeLabel = useMemo(() => {
     if (!browserSession.state.index || !browserSession.state.selectedScopeId) {
@@ -186,90 +183,122 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     setActiveTab('layout');
   };
 
-  let tabContent;
-  if (!workspaceData.selectedWorkspace) {
-    tabContent = (
-      <article className="card empty-state-card browser-empty-state">
-        <h2>No workspace selected</h2>
-        <p className="muted">Choose a workspace first, then select a snapshot to enter the focused Browser experience.</p>
-        <div className="actions">
-          <button type="button" onClick={onOpenRepositories}>Open Repositories</button>
-          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots</button>
+  const selectedSnapshotLabel = selectedSnapshot?.snapshotKey
+    ?? browserSession.state.activeSnapshot?.snapshotKey
+    ?? '—';
+
+  const centerContent = !workspaceData.selectedWorkspace ? (
+    <article className="card empty-state-card browser-empty-state">
+      <h2>No workspace selected</h2>
+      <p className="muted">Choose a workspace first, then select a snapshot to enter the focused Browser experience.</p>
+      <div className="actions">
+        <button type="button" onClick={onOpenRepositories}>Open Repositories</button>
+        <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots</button>
+      </div>
+    </article>
+  ) : !selectedSnapshot ? (
+    <article className="card empty-state-card browser-empty-state">
+      <h2>No snapshot selected</h2>
+      <p className="muted">Use the Snapshots view to choose an imported snapshot, prepare it locally, then return here to browse the architecture fully in-browser.</p>
+      <div className="actions">
+        <button type="button" onClick={onOpenSnapshots}>Open Snapshots</button>
+        <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+      </div>
+    </article>
+  ) : !browserSession.state.index || !browserSession.state.payload ? (
+    <article className="card empty-state-card browser-empty-state">
+      <h2>Prepared Browser session required</h2>
+      <p className="muted">This Browser route now depends entirely on the prepared local snapshot payload and indexes. Prepare the snapshot from Snapshots before continuing.</p>
+      <div className="actions">
+        <button type="button" onClick={onOpenSnapshots}>Prepare snapshot</button>
+        <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+      </div>
+    </article>
+  ) : (
+    <>
+      <section className="card browser-workspace__mode-header">
+        <div>
+          <p className="eyebrow">Local analysis focus</p>
+          <h3>{activeTabMeta.label}</h3>
+          <p className="muted">{activeTabMeta.description}</p>
+          <p className="muted browser-workspace__mode-note">Browser now runs entirely on the prepared snapshot payload, local indexes, tree navigation, top search, canvas, and facts panel. The old server-computed Browser explorer tray has been removed from this route.</p>
         </div>
-      </article>
-    );
-  } else if (!browserExplorer.selectedSnapshot || !browserExplorer.snapshotOverview) {
-    tabContent = (
-      <article className="card empty-state-card browser-empty-state">
-        <h2>No snapshot selected</h2>
-        <p className="muted">Use the Snapshots view to choose an imported snapshot, then return here to browse architecture with dedicated tools.</p>
-        <div className="actions">
-          <button type="button" onClick={onOpenSnapshots}>Open Snapshots</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+        <div className="browser-workspace__mode-meta">
+          {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
+          {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
+          {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
+          <span className="badge badge--status">Local-only Browser</span>
         </div>
-      </article>
-    );
-  } else if (activeTab === 'overview') {
-    tabContent = (
-      <OverviewTab
-        selectedSnapshot={browserExplorer.selectedSnapshot}
-        snapshotOverview={browserExplorer.snapshotOverview}
-      />
-    );
-  } else if (activeTab === 'layout') {
-    tabContent = (
-      <LayoutTab
-        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
-        selectedLayoutScopeId={browserExplorer.selectedLayoutScopeId}
-        setSelectedLayoutScopeId={browserExplorer.setSelectedLayoutScopeId}
-        layoutTree={browserExplorer.layoutTree}
-        layoutScopeDetail={browserExplorer.layoutScopeDetail}
-      />
-    );
-  } else if (activeTab === 'dependencies') {
-    tabContent = (
-      <DependenciesTab
-        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
-        selectedDependencyScopeId={browserExplorer.selectedDependencyScopeId}
-        setSelectedDependencyScopeId={browserExplorer.setSelectedDependencyScopeId}
-        dependencyDirection={browserExplorer.dependencyDirection}
-        setDependencyDirection={browserExplorer.setDependencyDirection}
-        dependencyView={browserExplorer.dependencyView}
-        dependencyEntityOptions={browserExplorer.dependencyEntityOptions}
-        focusedDependencyEntityId={browserExplorer.focusedDependencyEntityId}
-        setFocusedDependencyEntityId={browserExplorer.setFocusedDependencyEntityId}
-      />
-    );
-  } else if (activeTab === 'entry-points') {
-    tabContent = (
-      <EntryPointsTab
-        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
-        selectedEntryPointScopeId={browserExplorer.selectedEntryPointScopeId}
-        setSelectedEntryPointScopeId={browserExplorer.setSelectedEntryPointScopeId}
-        entryCategory={browserExplorer.entryCategory}
-        setEntryCategory={browserExplorer.setEntryCategory}
-        entryPointView={browserExplorer.entryPointView}
-        entryPointOptions={browserExplorer.entryPointOptions}
-        focusedEntryPointId={browserExplorer.focusedEntryPointId}
-        setFocusedEntryPointId={browserExplorer.setFocusedEntryPointId}
-      />
-    );
-  } else {
-    tabContent = (
-      <SearchTab
-        flattenedLayoutNodes={browserExplorer.flattenedLayoutNodes}
-        selectedSearchScopeId={browserExplorer.selectedSearchScopeId}
-        setSelectedSearchScopeId={browserExplorer.setSelectedSearchScopeId}
-        searchQuery={browserExplorer.searchQuery}
-        setSearchQuery={browserExplorer.setSearchQuery}
-        searchView={browserExplorer.searchView}
-        searchResultOptions={browserExplorer.searchResultOptions}
-        selectedSearchEntityId={browserExplorer.selectedSearchEntityId}
-        setSelectedSearchEntityId={browserExplorer.setSelectedSearchEntityId}
-        entityDetail={browserExplorer.entityDetail}
-      />
-    );
-  }
+      </section>
+
+      <BrowserOverviewStrip state={browserSession.state} />
+
+      <div className="browser-workspace__stage">
+        <BrowserGraphWorkspace
+          state={browserSession.state}
+          activeModeLabel={activeTabMeta.label}
+          onAddSelectedScope={() => {
+            if (!browserSession.state.selectedScopeId) {
+              return;
+            }
+            browserSession.addScopeToCanvas(browserSession.state.selectedScopeId);
+            browserSession.focusElement({ kind: 'scope', id: browserSession.state.selectedScopeId });
+            browserSession.openFactsPanel('scope', 'right');
+          }}
+          onAddScopeEntities={handleAddScopeEntitiesToCanvas}
+          onFocusScope={(scopeId) => {
+            browserSession.selectScope(scopeId);
+            browserSession.focusElement({ kind: 'scope', id: scopeId });
+            browserSession.openFactsPanel('scope', 'right');
+            setActiveTab('layout');
+          }}
+          onFocusEntity={(entityId) => {
+            browserSession.selectCanvasEntity(entityId);
+            browserSession.focusElement({ kind: 'entity', id: entityId });
+            browserSession.openFactsPanel('entity', 'right');
+            setActiveTab('search');
+          }}
+          onSelectEntity={(entityId, additive) => {
+            browserSession.selectCanvasEntity(entityId, additive);
+            browserSession.openFactsPanel('entity', 'right');
+          }}
+          onFocusRelationship={(relationshipId) => {
+            browserSession.focusElement({ kind: 'relationship', id: relationshipId });
+            browserSession.openFactsPanel('relationship', 'right');
+            setActiveTab('dependencies');
+          }}
+          onExpandEntityDependencies={(entityId) => {
+            browserSession.addDependenciesToCanvas(entityId);
+            browserSession.selectCanvasEntity(entityId);
+            browserSession.focusElement({ kind: 'entity', id: entityId });
+            browserSession.openFactsPanel('entity', 'right');
+            setActiveTab('dependencies');
+          }}
+          onExpandInboundDependencies={(entityId) => {
+            browserSession.addDependenciesToCanvas(entityId, 'INBOUND');
+            browserSession.selectCanvasEntity(entityId);
+            browserSession.focusElement({ kind: 'entity', id: entityId });
+            browserSession.openFactsPanel('entity', 'right');
+            setActiveTab('dependencies');
+          }}
+          onExpandOutboundDependencies={(entityId) => {
+            browserSession.addDependenciesToCanvas(entityId, 'OUTBOUND');
+            browserSession.selectCanvasEntity(entityId);
+            browserSession.focusElement({ kind: 'entity', id: entityId });
+            browserSession.openFactsPanel('entity', 'right');
+            setActiveTab('dependencies');
+          }}
+          onRemoveEntity={(entityId) => browserSession.removeEntityFromCanvas(entityId)}
+          onRemoveSelection={browserSession.removeCanvasSelection}
+          onIsolateSelection={browserSession.isolateCanvasSelection}
+          onTogglePinNode={browserSession.toggleCanvasNodePin}
+          onRelayoutCanvas={browserSession.relayoutCanvas}
+          onClearCanvas={browserSession.clearCanvas}
+          onFitView={browserSession.fitCanvasView}
+        />
+      </div>
+    </>
+  );
 
   return (
     <div className="browser-workspace" aria-label="Browser analysis workspace">
@@ -279,13 +308,13 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             <p className="eyebrow">Browser</p>
             <h2>Analysis workspace</h2>
             <p className="muted browser-workspace__lead">
-              Browser is now treated as a dedicated workspace with reduced chrome and top-level local search so the analysis surface can use most of the viewport while keeping navigation and discovery close at hand.
+              Browser now uses a prepared local snapshot payload as its only analysis source. Tree navigation, top search, canvas, and facts stay in the browser so the analysis surface can use most of the viewport without backend Browser projections.
             </p>
           </div>
           <div className="browser-workspace__context-strip" aria-label="Current browser context">
             <span className="badge">Workspace {workspaceData.selectedWorkspace?.name ?? '—'}</span>
             <span className="badge">Repository {repositoryLabel}</span>
-            <span className="badge">Snapshot {browserExplorer.selectedSnapshot?.snapshotKey ?? '—'}</span>
+            <span className="badge">Snapshot {selectedSnapshotLabel}</span>
             <span className="badge">Mode {activeTabMeta.label}</span>
             {browserSession.state.activeSnapshot ? <span className="badge badge--status">Prepared locally</span> : null}
           </div>
@@ -356,7 +385,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
                 </div>
                 <div>
                   <span>Captured</span>
-                  <strong>{formatTimestamp(browserExplorer.selectedSnapshot?.importedAt)}</strong>
+                  <strong>{formatTimestamp(selectedSnapshot?.importedAt)}</strong>
                 </div>
               </div>
             </section>
@@ -364,103 +393,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         </aside>
 
         <section className="browser-workspace__center">
-          <section className="card browser-workspace__mode-header">
-            <div>
-              <p className="eyebrow">Focused mode</p>
-              <h3>{activeTabMeta.label}</h3>
-              <p className="muted">{activeTabMeta.description}</p>
-              <p className="muted browser-workspace__mode-note">The local canvas now owns the Browser center stage. Mode switching still exposes the old detail tooling underneath as a migration tray while later steps complete the move to canvas and facts-driven analysis.</p>
-            </div>
-            <div className="browser-workspace__mode-meta">
-              {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
-              {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
-              {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
-            </div>
-          </section>
-
-          <BrowserOverviewStrip state={browserSession.state} />
-
-          <div className="browser-workspace__stage">
-            <BrowserGraphWorkspace
-              state={browserSession.state}
-              activeModeLabel={activeTabMeta.label}
-              onAddSelectedScope={() => {
-                if (!browserSession.state.selectedScopeId) {
-                  return;
-                }
-                browserSession.addScopeToCanvas(browserSession.state.selectedScopeId);
-                browserSession.focusElement({ kind: 'scope', id: browserSession.state.selectedScopeId });
-                browserSession.openFactsPanel('scope', 'right');
-              }}
-              onAddScopeEntities={handleAddScopeEntitiesToCanvas}
-              onFocusScope={(scopeId) => {
-                browserSession.selectScope(scopeId);
-                browserSession.focusElement({ kind: 'scope', id: scopeId });
-                browserSession.openFactsPanel('scope', 'right');
-                setActiveTab('layout');
-              }}
-              onFocusEntity={(entityId) => {
-                browserSession.selectCanvasEntity(entityId);
-                browserSession.focusElement({ kind: 'entity', id: entityId });
-                browserSession.openFactsPanel('entity', 'right');
-                setActiveTab('search');
-              }}
-              onSelectEntity={(entityId, additive) => {
-                browserSession.selectCanvasEntity(entityId, additive);
-                browserSession.openFactsPanel('entity', 'right');
-              }}
-              onFocusRelationship={(relationshipId) => {
-                browserSession.focusElement({ kind: 'relationship', id: relationshipId });
-                browserSession.openFactsPanel('relationship', 'right');
-                setActiveTab('dependencies');
-              }}
-              onExpandEntityDependencies={(entityId) => {
-                browserSession.addDependenciesToCanvas(entityId);
-                browserSession.selectCanvasEntity(entityId);
-                browserSession.focusElement({ kind: 'entity', id: entityId });
-                browserSession.openFactsPanel('entity', 'right');
-                setActiveTab('dependencies');
-              }}
-              onExpandInboundDependencies={(entityId) => {
-                browserSession.addDependenciesToCanvas(entityId, 'INBOUND');
-                browserSession.selectCanvasEntity(entityId);
-                browserSession.focusElement({ kind: 'entity', id: entityId });
-                browserSession.openFactsPanel('entity', 'right');
-                setActiveTab('dependencies');
-              }}
-              onExpandOutboundDependencies={(entityId) => {
-                browserSession.addDependenciesToCanvas(entityId, 'OUTBOUND');
-                browserSession.selectCanvasEntity(entityId);
-                browserSession.focusElement({ kind: 'entity', id: entityId });
-                browserSession.openFactsPanel('entity', 'right');
-                setActiveTab('dependencies');
-              }}
-              onRemoveEntity={(entityId) => browserSession.removeEntityFromCanvas(entityId)}
-              onRemoveSelection={browserSession.removeCanvasSelection}
-              onIsolateSelection={browserSession.isolateCanvasSelection}
-              onTogglePinNode={browserSession.toggleCanvasNodePin}
-              onRelayoutCanvas={browserSession.relayoutCanvas}
-              onClearCanvas={browserSession.clearCanvas}
-              onFitView={browserSession.fitCanvasView}
-            />
-
-            <section className="card browser-workspace__detail-tray">
-              <div className="browser-workspace__detail-tray-header">
-                <div>
-                  <p className="eyebrow">Migration detail tray</p>
-                  <h3>{activeTabMeta.label} details</h3>
-                  <p className="muted">The old Browser explorer components remain available here during the transition so you can compare the new local canvas workflow with the existing tab-specific detail views.</p>
-                </div>
-                <div className="browser-workspace__detail-tray-meta">
-                  <span className="badge">Legacy detail surface</span>
-                  {browserSession.state.focusedElement ? <span className="badge">Focused {browserSession.state.focusedElement.kind}</span> : null}
-                </div>
-              </div>
-              <div className="browser-workspace__detail-tray-body">
-                {tabContent}
-              </div>
-            </section>
-          </div>
+          {centerContent}
         </section>
 
         <aside className="browser-workspace__inspector">

@@ -12,15 +12,15 @@ export function BrowserTabNav({ activeTab, onSelectTab, onOpenCompare, onOpenOpe
   return (
     <nav className="card browser-tab-nav browser-tab-nav--compact" aria-label="Browser modes">
       <div className="browser-tab-nav__header">
-        <p className="eyebrow">Browser tools</p>
-        <h2 className="app-nav__title">Mode switcher</h2>
+        <p className="eyebrow">Browser modes</p>
+        <h2 className="app-nav__title">Analysis focus</h2>
         <p className="muted app-nav__lead">
-          The scope tree now owns the left-rail navigation. These mode switches remain available as secondary analysis tools while later steps move more work into tree, top search, canvas, and facts.
+          Browser no longer depends on server-computed explorer tabs. These mode switches now only adjust local analysis emphasis while tree, top search, canvas, and facts stay primary.
         </p>
       </div>
 
       <div className="browser-tab-nav__section">
-        <p className="browser-tab-nav__section-label">Secondary Browser tools</p>
+        <p className="browser-tab-nav__section-label">Local analysis modes</p>
         <div className="browser-tab-nav__links">
           {browserTabs.map((tab) => {
             const isActive = tab.key === activeTab;
