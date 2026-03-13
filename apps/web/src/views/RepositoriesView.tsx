@@ -4,6 +4,7 @@ import { formatDateTime } from '../appModel';
 import { RepositoryManagementSection } from '../components/RepositoryManagementSection';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
+import { useBrowserSnapshotPreparation } from '../hooks/useBrowserSnapshotPreparation';
 
 type RunCompletionState = {
   requestedResult: StubRunResult;
@@ -27,6 +28,7 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [runCompletion, setRunCompletion] = useState<RunCompletionState>(null);
+  const [openingBrowser, setOpeningBrowser] = useState(false);
   const selection = useAppSelectionContext();
 
   const workspaceData = useWorkspaceData({
@@ -42,6 +44,29 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
     () => [...workspaceData.snapshots].sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt))[0] ?? null,
     [workspaceData.snapshots],
   );
+
+  const browserPreparation = useBrowserSnapshotPreparation({
+    workspaceId: workspaceData.selectedWorkspaceId,
+    snapshot: runCompletion?.snapshot ?? latestWorkspaceSnapshot,
+    autoPrepare: false,
+  });
+
+  async function handleOpenBrowserPrepared() {
+    const targetSnapshot = runCompletion?.snapshot ?? latestWorkspaceSnapshot;
+    if (!targetSnapshot || openingBrowser) {
+      return;
+    }
+    selection.setSelectedSnapshotId(targetSnapshot.id);
+    setOpeningBrowser(true);
+    try {
+      const prepared = browserPreparation.isReady ? true : await browserPreparation.prepareSnapshot();
+      if (prepared) {
+        onOpenBrowser();
+      }
+    } finally {
+      setOpeningBrowser(false);
+    }
+  }
 
   async function handleRepositoryRun(repository: Repository, requestedResult: StubRunResult) {
     const latestSnapshot = await workspaceData.handleRequestRun(repository, requestedResult);
@@ -85,8 +110,23 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
                 <div><dt>Imported</dt><dd>{formatDateTime(runCompletion.snapshot.importedAt)}</dd></div>
                 <div><dt>Status</dt><dd>{runCompletion.snapshot.completenessStatus} · {runCompletion.snapshot.derivedRunOutcome}</dd></div>
               </dl>
+              {browserPreparation.message ? (
+                <p className={browserPreparation.status === 'failed' ? 'error' : 'notice'}>{browserPreparation.message}</p>
+              ) : null}
               <div className="actions actions--wrap">
-                <button type="button" onClick={onOpenBrowser}>Open latest snapshot in Browser</button>
+                <button
+                  type="button"
+                  onClick={() => { void handleOpenBrowserPrepared(); }}
+                  disabled={openingBrowser || browserPreparation.status === 'downloading' || browserPreparation.status === 'preparing'}
+                >
+                  {openingBrowser
+                    ? 'Preparing Browser…'
+                    : browserPreparation.isReady
+                      ? 'Open latest snapshot in Browser'
+                      : browserPreparation.status === 'failed'
+                        ? 'Retry Browser preparation'
+                        : 'Prepare and open Browser'}
+                </button>
                 <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Review in Snapshots</button>
               </div>
             </>

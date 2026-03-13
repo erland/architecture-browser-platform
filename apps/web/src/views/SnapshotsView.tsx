@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { formatDateTime } from '../appModel';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
-import { useSnapshotCachePreload } from '../hooks/useSnapshotCachePreload';
+import { useBrowserSnapshotPreparation } from '../hooks/useBrowserSnapshotPreparation';
 
 type SnapshotsViewProps = {
   onOpenBrowser: () => void;
@@ -24,6 +24,7 @@ function completenessBadgeClass(completenessStatus: string) {
 export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOpenRepositories }: SnapshotsViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openingBrowser, setOpeningBrowser] = useState(false);
   const selection = useAppSelectionContext();
 
   const workspaceData = useWorkspaceData({
@@ -36,11 +37,38 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
   });
 
   const selectedSnapshot = workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
-  const snapshotCache = useSnapshotCachePreload(workspaceData.selectedWorkspaceId, selectedSnapshot);
+  const browserPreparation = useBrowserSnapshotPreparation({
+    workspaceId: workspaceData.selectedWorkspaceId,
+    snapshot: selectedSnapshot,
+  });
   const latestSnapshot = useMemo(
     () => [...workspaceData.snapshots].sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt))[0] ?? null,
     [workspaceData.snapshots],
   );
+
+  async function handleOpenBrowser() {
+    if (!selectedSnapshot || openingBrowser) {
+      return;
+    }
+
+    setOpeningBrowser(true);
+    try {
+      const prepared = browserPreparation.isReady ? true : await browserPreparation.prepareSnapshot();
+      if (prepared) {
+        onOpenBrowser();
+      }
+    } finally {
+      setOpeningBrowser(false);
+    }
+  }
+
+  const browserOpenLabel = openingBrowser
+    ? 'Preparing Browser…'
+    : browserPreparation.isReady
+      ? 'Open selected snapshot in Browser'
+      : browserPreparation.status === 'failed'
+        ? 'Retry Browser preparation'
+        : 'Prepare and open Browser';
 
   return (
     <div className="content-stack">
@@ -64,8 +92,8 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
           <p className="lead discoverability-callout__lead">
             You have already selected a snapshot. Continue into Browser for architecture exploration, or switch to Compare if you want to evaluate changes against another imported snapshot.
           </p>
-          {snapshotCache.message ? (
-            <p className={snapshotCache.status === 'error' ? 'error' : 'notice'}>{snapshotCache.message}</p>
+          {browserPreparation.message ? (
+            <p className={browserPreparation.status === 'failed' ? 'error' : 'notice'}>{browserPreparation.message}</p>
           ) : null}
           <div className="discoverability-stats">
             <span className="badge">{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</span>
@@ -75,7 +103,13 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
             <span className="badge">{selectedSnapshot.diagnosticCount} diagnostics</span>
           </div>
           <div className="actions actions--wrap">
-            <button type="button" onClick={onOpenBrowser}>Open selected snapshot in Browser</button>
+            <button
+              type="button"
+              onClick={() => { void handleOpenBrowser(); }}
+              disabled={openingBrowser || browserPreparation.status === 'downloading' || browserPreparation.status === 'preparing'}
+            >
+              {browserOpenLabel}
+            </button>
             <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare this snapshot</button>
             <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
           </div>
@@ -178,8 +212,8 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                       <h3>Selected snapshot</h3>
                       <span className={completenessBadgeClass(selectedSnapshot.completenessStatus)}>{selectedSnapshot.completenessStatus}</span>
                     </div>
-                    {snapshotCache.message ? (
-                      <p className={snapshotCache.status === 'error' ? 'error' : 'notice'}>{snapshotCache.message}</p>
+                    {browserPreparation.message ? (
+                      <p className={browserPreparation.status === 'failed' ? 'error' : 'notice'}>{browserPreparation.message}</p>
                     ) : null}
                     <dl className="kv kv--compact">
                       <div><dt>Repository</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</dd></div>
@@ -226,7 +260,13 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                       The selected snapshot is carried in shared app context. Browser uses it as the main exploration target, Compare uses it as the baseline snapshot, and the legacy route still shows the older stacked workflow.
                     </p>
                     <div className="actions actions--wrap">
-                      <button type="button" onClick={onOpenBrowser}>Open selected snapshot in Browser</button>
+                      <button
+              type="button"
+              onClick={() => { void handleOpenBrowser(); }}
+              disabled={openingBrowser || browserPreparation.status === 'downloading' || browserPreparation.status === 'preparing'}
+            >
+              {browserOpenLabel}
+            </button>
                       <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare selected snapshot</button>
                       <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
                     </div>
