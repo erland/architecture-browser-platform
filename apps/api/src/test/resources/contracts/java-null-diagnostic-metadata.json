@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:00:01Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java"],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "fixture-java-backend",
+    "acquisitionType": "local-path",
+    "path": "/fixtures/java-backend",
+    "remoteUrl": null,
+    "branch": "main",
+    "revision": "abc123",
+    "acquiredAt": "2026-03-10T12:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {
+      "id": "scope:repo",
+      "kind": "REPOSITORY",
+      "name": "fixture-java-backend",
+      "displayName": "fixture-java-backend",
+      "parentScopeId": null,
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "entities": [],
+  "relationships": [],
+  "diagnostics": [
+    {
+      "id": "diag:java:1",
+      "severity": "WARNING",
+      "phase": "EXTRACTION",
+      "code": "java.parse-warning",
+      "message": "Recovered from parse issue",
+      "fatal": false,
+      "filePath": "src/main/java/com/example/DemoController.java",
+      "scopeId": "scope:repo",
+      "entityId": null,
+      "sourceRefs": [],
+      "metadata": {
+        "path": "src/main/java/com/example/DemoController.java",
+        "symbol": "DemoController",
+        "optionalHint": null
+      }
+    }
+  ],
+  "completeness": {
+    "status": "PARTIAL",
+    "indexedFileCount": 3,
+    "totalFileCount": 4,
+    "degradedFileCount": 1,
+    "omittedPaths": [],
+    "notes": ["Recovered Java diagnostic metadata test fixture"]
+  },
+  "metadata": {}
+}

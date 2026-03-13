@@ -32,6 +32,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -361,7 +362,34 @@ public class SnapshotCatalogService {
     }
 
     private Map<String, Object> defaultMap(Map<String, Object> metadata) {
-        return metadata == null ? Map.of() : Map.copyOf(metadata);
+        if (metadata == null || metadata.isEmpty()) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> sanitized = new LinkedHashMap<>();
+        metadata.forEach((key, value) -> {
+            if (key != null) {
+                sanitized.put(key, sanitizeMetadataValue(value));
+            }
+        });
+        return Collections.unmodifiableMap(sanitized);
+    }
+
+    private Object sanitizeMetadataValue(Object value) {
+        if (value instanceof Map<?, ?> nestedMap) {
+            LinkedHashMap<String, Object> sanitized = new LinkedHashMap<>();
+            nestedMap.forEach((nestedKey, nestedValue) -> {
+                if (nestedKey != null) {
+                    sanitized.put(String.valueOf(nestedKey), sanitizeMetadataValue(nestedValue));
+                }
+            });
+            return Collections.unmodifiableMap(sanitized);
+        }
+        if (value instanceof List<?> nestedList) {
+            return nestedList.stream()
+                .map(this::sanitizeMetadataValue)
+                .toList();
+        }
+        return value;
     }
 
     private String safeKey(String value) {

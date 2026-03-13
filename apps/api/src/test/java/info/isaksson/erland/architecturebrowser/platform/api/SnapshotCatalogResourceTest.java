@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
 class SnapshotCatalogResourceTest {
@@ -106,6 +107,25 @@ class SnapshotCatalogResourceTest {
             .body("completeness.degradedFileCount", greaterThanOrEqualTo(1))
             .body("diagnostics[0].code", equalTo("typescript.parse-error"))
             .body("warnings.size()", greaterThanOrEqualTo(1));
+    }
+
+
+    @Test
+    void fullSnapshotToleratesNullDiagnosticMetadataValues() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-null-metadata", "Catalog Null Metadata");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/java-null-diagnostic-metadata.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("diagnostics.size()", equalTo(1))
+            .body("diagnostics[0].code", equalTo("java.parse-warning"))
+            .body("diagnostics[0].metadata.path", equalTo("src/main/java/com/example/DemoController.java"))
+            .body("diagnostics[0].metadata.symbol", equalTo("DemoController"))
+            .body("diagnostics[0].metadata.optionalHint", nullValue());
     }
 
     private String importSnapshot(String workspaceId, String repositoryId, String resourcePath) throws Exception {
