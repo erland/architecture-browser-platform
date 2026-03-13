@@ -2,6 +2,7 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import {
   addDependenciesToCanvas,
   addEntityToCanvas,
+  addPrimaryEntitiesForScope,
   clearCanvas,
   createEmptyBrowserSessionState,
   createPersistedBrowserSessionState,
@@ -122,6 +123,38 @@ describe('browserSessionStore', () => {
     expect(afterRemoval.canvasNodes.map((node) => node.id)).not.toContain('entity:search');
     expect(cleared.canvasNodes).toEqual([]);
     expect(cleared.canvasEdges).toEqual([]);
+  });
+
+
+  test('scope add defaults can resolve to primary entities instead of scope nodes', () => {
+    const payload = {
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:src', kind: 'DIRECTORY', name: 'src', displayName: 'src', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file-browser', kind: 'FILE', name: 'src/BrowserView.tsx', displayName: 'src/BrowserView.tsx', parentScopeId: 'scope:src', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:module-browser', kind: 'MODULE', origin: 'react', name: 'BrowserView.tsx', displayName: 'BrowserView.tsx', scopeId: 'scope:file-browser', sourceRefs: [], metadata: {} },
+        { externalId: 'entity:function-render', kind: 'FUNCTION', origin: 'react', name: 'renderBrowser', displayName: 'renderBrowser', scopeId: 'scope:file-browser', sourceRefs: [], metadata: {} },
+      ],
+      relationships: [],
+      diagnostics: [],
+    } satisfies FullSnapshotPayload;
+
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload,
+    });
+
+    const next = addPrimaryEntitiesForScope(opened, 'scope:file-browser');
+
+    expect(next.selectedScopeId).toBe('scope:file-browser');
+    expect(next.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:module-browser' }]);
+    expect(next.selectedEntityIds).toEqual(['entity:module-browser']);
+    expect(next.focusedElement).toEqual({ kind: 'entity', id: 'entity:module-browser' });
+    expect(next.factsPanelMode).toBe('entity');
   });
 
   test('facts panel focus and fit-view requests are session actions, not component-local state', () => {

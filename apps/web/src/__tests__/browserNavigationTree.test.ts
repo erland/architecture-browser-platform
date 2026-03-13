@@ -107,6 +107,26 @@ describe('browserNavigationTree helpers', () => {
     expect(index.scopeNodesByParentId.get('scope:dir')?.[0]?.displayName).toBe('App.test.tsx');
   });
 
+
+  test('primary-entity tree add policy resolves file, directory, and package scopes to analyzable entities', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:src', kind: 'DIRECTORY', name: 'src', displayName: 'src', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file-browser', kind: 'FILE', name: 'src/BrowserView.tsx', displayName: 'src/BrowserView.tsx', parentScopeId: 'scope:src', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg', kind: 'PACKAGE', name: 'browser', displayName: 'browser', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:module-browser', kind: 'MODULE', origin: 'react', name: 'BrowserView.tsx', displayName: 'BrowserView.tsx', scopeId: 'scope:file-browser', sourceRefs: [], metadata: {} },
+        { externalId: 'entity:function-browser', kind: 'FUNCTION', origin: 'react', name: 'renderBrowser', displayName: 'renderBrowser', scopeId: 'scope:file-browser', sourceRefs: [], metadata: {} },
+        { externalId: 'entity:pkg-browser', kind: 'PACKAGE', origin: 'react', name: 'browser', displayName: 'browser', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(index.scopeNodesByParentId.get('scope:src')?.[0]?.directEntityIds).toEqual(['entity:module-browser', 'entity:function-browser']);
+  });
+
   test('orders directories before files within the same parent scope', () => {
     const index = buildBrowserSnapshotIndex({
       ...createPayload(),

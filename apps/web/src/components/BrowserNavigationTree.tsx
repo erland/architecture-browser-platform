@@ -5,7 +5,7 @@ type BrowserNavigationTreeProps = {
   index: BrowserSnapshotIndex | null;
   selectedScopeId: string | null;
   onSelectScope: (scopeId: string) => void;
-  onAddScopeToCanvas: (scopeId: string) => void;
+  onAddScopeEntitiesToCanvas: (scopeId: string) => void;
 };
 
 type BrowserScopeCategoryGroup = {
@@ -94,7 +94,7 @@ function TreeBranch({
   expandedScopeIds,
   onToggle,
   onSelectScope,
-  onAddScopeToCanvas,
+  onAddScopeEntitiesToCanvas,
 }: {
   index: BrowserSnapshotIndex;
   node: BrowserScopeTreeNode;
@@ -102,7 +102,7 @@ function TreeBranch({
   expandedScopeIds: Set<string>;
   onToggle: (scopeId: string) => void;
   onSelectScope: (scopeId: string) => void;
-  onAddScopeToCanvas: (scopeId: string) => void;
+  onAddScopeEntitiesToCanvas: (scopeId: string) => void;
 }) {
   const children = getScopeChildren(index, node.scopeId);
   const isExpanded = expandedScopeIds.has(node.scopeId);
@@ -125,8 +125,8 @@ function TreeBranch({
           type="button"
           className="browser-tree__node-button"
           onClick={() => onSelectScope(node.scopeId)}
-          onDoubleClick={() => onAddScopeToCanvas(node.scopeId)}
-          title={`${node.displayName} — double-click to add to canvas`}
+          onDoubleClick={() => onAddScopeEntitiesToCanvas(node.scopeId)}
+          title={`${node.displayName} — double-click to add primary entities to canvas`}
         >
           <span className="browser-tree__node-title">{node.displayName}</span>
         </button>
@@ -134,9 +134,9 @@ function TreeBranch({
         <button
           type="button"
           className="browser-tree__canvas-button"
-          onClick={() => onAddScopeToCanvas(node.scopeId)}
-          aria-label={`Add ${node.displayName} to canvas`}
-          title={`Add ${node.displayName} to canvas`}
+          onClick={() => onAddScopeEntitiesToCanvas(node.scopeId)}
+          aria-label={`Add primary entities for ${node.displayName} to canvas`}
+          title={`Add primary entities for ${node.displayName} to canvas`}
         >
           +
         </button>
@@ -153,7 +153,7 @@ function TreeBranch({
               expandedScopeIds={expandedScopeIds}
               onToggle={onToggle}
               onSelectScope={onSelectScope}
-              onAddScopeToCanvas={onAddScopeToCanvas}
+              onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
             />
           ))}
         </ul>
@@ -162,7 +162,7 @@ function TreeBranch({
   );
 }
 
-export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, onAddScopeToCanvas }: BrowserNavigationTreeProps) {
+export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, onAddScopeEntitiesToCanvas }: BrowserNavigationTreeProps) {
   const [expandedScopeIds, setExpandedScopeIds] = useState<string[]>(() => computeDefaultExpandedScopeIds(index, selectedScopeId));
   const roots = useMemo(() => index ? getScopeChildren(index, null) : [], [index]);
   const categoryGroups = useMemo(() => buildScopeCategoryGroups(roots), [roots]);
@@ -279,7 +279,7 @@ export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, o
                       expandedScopeIds={expandedSet}
                       onToggle={toggleScope}
                       onSelectScope={onSelectScope}
-                      onAddScopeToCanvas={onAddScopeToCanvas}
+                      onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
                     />
                   ))}
                 </ul>

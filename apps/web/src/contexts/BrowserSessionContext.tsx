@@ -8,6 +8,8 @@ import {
   type BrowserSessionState,
   addDependenciesToCanvas,
   addEntityToCanvas,
+  addEntitiesToCanvas,
+  addPrimaryEntitiesForScope,
   addScopeToCanvas,
   clearCanvas,
   focusBrowserElement,
@@ -42,6 +44,8 @@ export type BrowserSessionContextValue = {
   setSearch: (query: string, scopeId?: string | null) => void;
   addScopeToCanvas: (scopeId: string) => void;
   addEntityToCanvas: (entityId: string) => void;
+  addEntitiesToCanvas: (entityIds: string[]) => void;
+  addPrimaryEntitiesForScope: (scopeId: string) => void;
   selectCanvasEntity: (entityId: string, additive?: boolean) => void;
   addDependenciesToCanvas: (entityId: string, direction?: BrowserDependencyDirection) => void;
   removeEntityFromCanvas: (entityId: string) => void;
@@ -71,6 +75,8 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     setSearch: (query, scopeId) => setState((current) => setBrowserSearch(current, query, scopeId)),
     addScopeToCanvas: (scopeId) => setState((current) => addScopeToCanvas(current, scopeId)),
     addEntityToCanvas: (entityId) => setState((current) => addEntityToCanvas(current, entityId)),
+    addEntitiesToCanvas: (entityIds) => setState((current) => addEntitiesToCanvas(current, entityIds)),
+    addPrimaryEntitiesForScope: (scopeId) => setState((current) => addPrimaryEntitiesForScope(current, scopeId)),
     selectCanvasEntity: (entityId, additive) => setState((current) => selectCanvasEntity(current, entityId, additive)),
     addDependenciesToCanvas: (entityId, direction) => setState((current) => addDependenciesToCanvas(current, entityId, direction)),
     removeEntityFromCanvas: (entityId) => setState((current) => removeEntityFromCanvas(current, entityId)),

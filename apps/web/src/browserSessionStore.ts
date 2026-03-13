@@ -5,6 +5,7 @@ import {
   type BrowserSnapshotIndex,
   getDependencyNeighborhood,
   getOrBuildBrowserSnapshotIndex,
+  getPrimaryEntitiesForScope,
   searchBrowserSnapshotIndex,
 } from './browserSnapshotIndex';
 
@@ -265,6 +266,45 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, entityId]),
     focusedElement: { kind: 'entity', id: entityId },
     factsPanelMode: 'entity',
+  };
+}
+
+export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: string[]): BrowserSessionState {
+  if (!state.index) {
+    return state;
+  }
+  const validEntityIds = [...new Set(entityIds)].filter((entityId) => state.index?.entitiesById.has(entityId));
+  if (validEntityIds.length === 0) {
+    return state;
+  }
+
+  let canvasNodes = [...state.canvasNodes];
+  for (const entityId of validEntityIds) {
+    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: entityId });
+  }
+
+  const focusEntityId = validEntityIds[0];
+  return {
+    ...state,
+    canvasNodes,
+    selectedEntityIds: uniqueValues([...state.selectedEntityIds, ...validEntityIds]),
+    focusedElement: { kind: 'entity', id: focusEntityId },
+    factsPanelMode: 'entity',
+  };
+}
+
+export function addPrimaryEntitiesForScope(state: BrowserSessionState, scopeId: string): BrowserSessionState {
+  if (!state.index?.scopesById.has(scopeId)) {
+    return state;
+  }
+  const primaryEntityIds = getPrimaryEntitiesForScope(state.index, scopeId).map((entity) => entity.externalId);
+  if (primaryEntityIds.length === 0) {
+    return state;
+  }
+  const nextState = addEntitiesToCanvas(state, primaryEntityIds);
+  return {
+    ...nextState,
+    selectedScopeId: scopeId,
   };
 }
 

@@ -3,6 +3,7 @@ import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
+import { getPrimaryEntitiesForScope } from '../browserSnapshotIndex';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
@@ -233,12 +234,30 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
 
   const handleAddScopeEntitiesToCanvas = (scopeId: string) => {
     const entityIds = browserSession.state.index?.entityIdsByScopeId.get(scopeId) ?? [];
-    entityIds.slice(0, 24).forEach((entityId) => {
-      browserSession.addEntityToCanvas(entityId);
-    });
+    browserSession.addEntitiesToCanvas(entityIds.slice(0, 24));
     if (entityIds[0]) {
       browserSession.focusElement({ kind: 'entity', id: entityIds[0] });
       browserSession.openFactsPanel('entity', 'right');
+    }
+    setActiveTab('layout');
+  };
+
+  const handleAddPrimaryScopeEntitiesToCanvas = (scopeId: string) => {
+    const index = browserSession.state.index;
+    if (!index) {
+      return;
+    }
+    const primaryEntityIds = getPrimaryEntitiesForScope(index, scopeId)
+      .map((entity) => entity.externalId)
+      .slice(0, 24);
+    browserSession.addEntitiesToCanvas(primaryEntityIds);
+    browserSession.selectScope(scopeId);
+    if (primaryEntityIds[0]) {
+      browserSession.focusElement({ kind: 'entity', id: primaryEntityIds[0] });
+      browserSession.openFactsPanel('entity', 'right');
+    } else {
+      browserSession.focusElement({ kind: 'scope', id: scopeId });
+      browserSession.openFactsPanel('scope', 'right');
     }
     setActiveTab('layout');
   };
@@ -459,7 +478,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               index={browserSession.state.index}
               selectedScopeId={browserSession.state.selectedScopeId}
               onSelectScope={browserSession.selectScope}
-              onAddScopeToCanvas={browserSession.addScopeToCanvas}
+              onAddScopeEntitiesToCanvas={handleAddPrimaryScopeEntitiesToCanvas}
             />
 
             <BrowserTabNav
