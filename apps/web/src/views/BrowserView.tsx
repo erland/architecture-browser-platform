@@ -6,6 +6,7 @@ import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
 import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
+import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
@@ -376,6 +377,8 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
             </div>
           </section>
+
+          <BrowserOverviewStrip state={browserSession.state} />
 
           <div className="browser-workspace__stage">
             <BrowserGraphWorkspace
