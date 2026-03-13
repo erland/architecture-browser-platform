@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { formatDateTime } from '../appModel';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
+import { useSnapshotCachePreload } from '../hooks/useSnapshotCachePreload';
 
 type SnapshotsViewProps = {
   onOpenBrowser: () => void;
@@ -35,6 +36,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
   });
 
   const selectedSnapshot = workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
+  const snapshotCache = useSnapshotCachePreload(workspaceData.selectedWorkspaceId, selectedSnapshot);
   const latestSnapshot = useMemo(
     () => [...workspaceData.snapshots].sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt))[0] ?? null,
     [workspaceData.snapshots],
@@ -62,6 +64,9 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
           <p className="lead discoverability-callout__lead">
             You have already selected a snapshot. Continue into Browser for architecture exploration, or switch to Compare if you want to evaluate changes against another imported snapshot.
           </p>
+          {snapshotCache.message ? (
+            <p className={snapshotCache.status === 'error' ? 'error' : 'notice'}>{snapshotCache.message}</p>
+          ) : null}
           <div className="discoverability-stats">
             <span className="badge">{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</span>
             <span className="badge">{selectedSnapshot.snapshotKey}</span>
@@ -173,6 +178,9 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                       <h3>Selected snapshot</h3>
                       <span className={completenessBadgeClass(selectedSnapshot.completenessStatus)}>{selectedSnapshot.completenessStatus}</span>
                     </div>
+                    {snapshotCache.message ? (
+                      <p className={snapshotCache.status === 'error' ? 'error' : 'notice'}>{snapshotCache.message}</p>
+                    ) : null}
                     <dl className="kv kv--compact">
                       <div><dt>Repository</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</dd></div>
                       <div><dt>Snapshot key</dt><dd>{selectedSnapshot.snapshotKey}</dd></div>
