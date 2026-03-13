@@ -10,6 +10,7 @@ import type {
 export type BrowserNodeKind = "scope" | "entity";
 export type BrowserSearchResultKind = BrowserNodeKind | "relationship" | "diagnostic";
 export type BrowserDependencyDirection = "ALL" | "INBOUND" | "OUTBOUND";
+export type BrowserTreeMode = 'filesystem' | 'package' | 'advanced';
 
 export type BrowserScopeTreeNode = {
   scopeId: string;
@@ -511,6 +512,84 @@ export function getScopeTreeRoots(index: BrowserSnapshotIndex) {
 
 export function getScopeChildren(index: BrowserSnapshotIndex, parentScopeId: string | null) {
   return index.scopeNodesByParentId.get(parentScopeId) ?? [];
+}
+
+const browserTreeModeKinds: Record<Exclude<BrowserTreeMode, 'advanced'>, Set<string>> = {
+  filesystem: new Set(['DIRECTORY', 'FILE']),
+  package: new Set(['PACKAGE']),
+};
+
+function matchesTreeModeScopeKind(kind: string, mode: BrowserTreeMode) {
+  if (mode === 'advanced') {
+    return true;
+  }
+  return browserTreeModeKinds[mode].has(kind);
+}
+
+function collectTreeModeNodes(index: BrowserSnapshotIndex, parentScopeId: string | null, mode: BrowserTreeMode): BrowserScopeTreeNode[] {
+  const children = getScopeChildren(index, parentScopeId);
+  if (mode === 'advanced') {
+    return children;
+  }
+
+  const collected: BrowserScopeTreeNode[] = [];
+  for (const child of children) {
+    if (matchesTreeModeScopeKind(child.kind, mode)) {
+      collected.push(child);
+      continue;
+    }
+    collected.push(...collectTreeModeNodes(index, child.scopeId, mode));
+  }
+  return collected;
+}
+
+export function getScopeTreeNodesForMode(index: BrowserSnapshotIndex, parentScopeId: string | null, mode: BrowserTreeMode) {
+  return collectTreeModeNodes(index, parentScopeId, mode);
+}
+
+export function isScopeVisibleInTreeMode(index: BrowserSnapshotIndex, scopeId: string, mode: BrowserTreeMode) {
+  if (mode === 'advanced') {
+    return index.scopesById.has(scopeId);
+  }
+  const scope = index.scopesById.get(scopeId);
+  if (!scope) {
+    return false;
+  }
+  if (matchesTreeModeScopeKind(scope.kind, mode)) {
+    return true;
+  }
+  return getScopeTreeNodesForMode(index, scopeId, mode).length > 0;
+}
+
+export function collectVisibleAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | null, mode: BrowserTreeMode) {
+  if (!scopeId || mode === 'advanced') {
+    return [] as string[];
+  }
+  const visibleAncestors: string[] = [];
+  const seen = new Set<string>();
+  let current = index.scopesById.get(scopeId);
+  while (current?.parentScopeId && !seen.has(current.parentScopeId)) {
+    seen.add(current.parentScopeId);
+    const parentScopeId = current.parentScopeId;
+    if (matchesTreeModeScopeKind(index.scopesById.get(parentScopeId)?.kind ?? '', mode)) {
+      visibleAncestors.unshift(parentScopeId);
+    }
+    current = index.scopesById.get(parentScopeId);
+  }
+  return visibleAncestors;
+}
+
+export function detectDefaultBrowserTreeMode(index: BrowserSnapshotIndex): BrowserTreeMode {
+  const packageScopeCount = index.payload.scopes.filter((scope) => scope.kind === 'PACKAGE').length;
+  const fileScopeCount = index.payload.scopes.filter((scope) => scope.kind === 'FILE').length;
+  const directoryScopeCount = index.payload.scopes.filter((scope) => scope.kind === 'DIRECTORY').length;
+  const javaFileCount = index.payload.scopes.filter((scope) => scope.kind === 'FILE' && /\.java$/i.test(scope.name || scope.displayName || '')).length;
+  const detectedTechnologies = new Set((index.payload.run.detectedTechnologies ?? []).map((technology) => technology.toLocaleLowerCase()));
+
+  if (packageScopeCount > 0 && (javaFileCount > 0 || detectedTechnologies.has('java') || packageScopeCount >= Math.max(3, Math.floor((fileScopeCount + directoryScopeCount) / 2)))) {
+    return 'package';
+  }
+  return 'filesystem';
 }
 
 export function getDirectEntitiesForScope(index: BrowserSnapshotIndex, scopeId: string) {

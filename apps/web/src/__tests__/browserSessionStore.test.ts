@@ -89,6 +89,27 @@ describe('browserSessionStore', () => {
     expect(opened.activeSnapshot?.snapshotId).toBe(snapshotSummary.id);
     expect(opened.index?.snapshotId).toBe(snapshotSummary.id);
     expect(opened.selectedScopeId).toBe('scope:repo');
+    expect(opened.treeMode).toBe('filesystem');
+  });
+
+
+  test('openSnapshotSession chooses package tree mode by default for Java-oriented snapshots', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: ['java'] },
+        scopes: [
+          { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+          { externalId: 'scope:module', kind: 'MODULE', name: 'backend', displayName: 'Backend', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+          { externalId: 'scope:pkg:root', kind: 'PACKAGE', name: 'com.example', displayName: 'com.example', parentScopeId: 'scope:module', sourceRefs: [], metadata: {} },
+          { externalId: 'scope:file', kind: 'FILE', name: 'src/main/java/com/example/Browser.java', displayName: 'Browser.java', parentScopeId: 'scope:pkg:root', sourceRefs: [], metadata: {} },
+        ],
+      },
+    });
+
+    expect(opened.treeMode).toBe('package');
   });
 
   test('scope selection and local search stay inside the Browser session store', () => {

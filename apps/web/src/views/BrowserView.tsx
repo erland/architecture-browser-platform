@@ -482,8 +482,10 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             <BrowserNavigationTree
               index={browserSession.state.index}
               selectedScopeId={browserSession.state.selectedScopeId}
+              treeMode={browserSession.state.treeMode}
               onSelectScope={browserSession.selectScope}
               onAddScopeEntitiesToCanvas={handleAddPrimaryScopeEntitiesToCanvas}
+              onTreeModeChange={browserSession.setTreeMode}
             />
 
             <BrowserTabNav

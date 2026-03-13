@@ -3,6 +3,8 @@ import {
   type BrowserDependencyDirection,
   type BrowserSearchResult,
   type BrowserSnapshotIndex,
+  type BrowserTreeMode,
+  detectDefaultBrowserTreeMode,
   getDependencyNeighborhood,
   getOrBuildBrowserSnapshotIndex,
   getPrimaryEntitiesForScope,
@@ -64,6 +66,7 @@ export type BrowserSessionState = {
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
   canvasLayoutMode: BrowserCanvasLayoutMode;
+  treeMode: BrowserTreeMode;
   fitViewRequestedAt: string | null;
 };
 
@@ -80,6 +83,7 @@ export type PersistedBrowserSessionState = {
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
   canvasLayoutMode: BrowserCanvasLayoutMode;
+  treeMode: BrowserTreeMode;
 };
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
@@ -99,6 +103,7 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
     factsPanelLocation: 'right',
     graphExpansionActions: [],
     canvasLayoutMode: 'grid',
+    treeMode: 'filesystem',
     fitViewRequestedAt: null,
   };
 }
@@ -117,6 +122,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     factsPanelLocation: state.factsPanelLocation,
     graphExpansionActions: state.graphExpansionActions.map((action) => ({ ...action })),
     canvasLayoutMode: state.canvasLayoutMode,
+    treeMode: state.treeMode,
   };
 }
 
@@ -139,6 +145,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     factsPanelLocation: persisted.factsPanelLocation ?? state.factsPanelLocation,
     graphExpansionActions: [...(persisted.graphExpansionActions ?? state.graphExpansionActions)],
     canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
+    treeMode: persisted.treeMode ?? state.treeMode,
   };
 }
 
@@ -220,6 +227,7 @@ export function openSnapshotSession(
   const canvasNodes = nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id));
   const canvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
   const searchResults = computeSearchResults(index, nextState.searchQuery, nextState.searchScopeId);
+  const treeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);
 
   return {
     ...nextState,
@@ -231,6 +239,7 @@ export function openSnapshotSession(
     canvasNodes,
     canvasEdges,
     searchResults,
+    treeMode,
   };
 }
 
@@ -409,6 +418,13 @@ export function openFactsPanel(state: BrowserSessionState, mode: BrowserFactsPan
     ...state,
     factsPanelMode: mode,
     factsPanelLocation: location ?? state.factsPanelLocation,
+  };
+}
+
+export function setBrowserTreeMode(state: BrowserSessionState, treeMode: BrowserTreeMode): BrowserSessionState {
+  return {
+    ...state,
+    treeMode,
   };
 }
 

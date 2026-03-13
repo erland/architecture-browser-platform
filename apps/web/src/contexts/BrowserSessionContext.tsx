@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { BrowserDependencyDirection } from '../browserSnapshotIndex';
+import type { BrowserDependencyDirection, BrowserTreeMode } from '../browserSnapshotIndex';
 import type { FullSnapshotPayload } from '../appModel';
 import {
   type BrowserFactsPanelLocation,
@@ -24,6 +24,7 @@ import {
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectBrowserScope,
+  setBrowserTreeMode,
   selectCanvasEntity,
   setBrowserSearch,
   toggleCanvasNodePin,
@@ -57,6 +58,7 @@ export type BrowserSessionContextValue = {
   relayoutCanvas: () => void;
   clearCanvas: () => void;
   fitCanvasView: () => void;
+  setTreeMode: (treeMode: BrowserTreeMode) => void;
 };
 
 const BrowserSessionContext = createContext<BrowserSessionContextValue | null>(null);
@@ -88,6 +90,7 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     relayoutCanvas: () => setState((current) => relayoutCanvas(current)),
     clearCanvas: () => setState((current) => clearCanvas(current)),
     fitCanvasView: () => setState((current) => requestFitCanvasView(current)),
+    setTreeMode: (treeMode) => setState((current) => setBrowserTreeMode(current, treeMode)),
   }), [state]);
 
   return <BrowserSessionContext.Provider value={value}>{children}</BrowserSessionContext.Provider>;
