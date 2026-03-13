@@ -106,13 +106,13 @@ function buildGridLayout(state: BrowserSessionState, scopeNodes: ReturnType<type
   const nodes: BrowserWorkspaceNodeModel[] = [];
   const nodePositions = new Map<string, { x: number; y: number; width: number; height: number }>();
   const scopeColumnX = 56;
-  const entityBaseX = scopeNodes.length > 0 ? 344 : 72;
+  const entityBaseX = scopeNodes.length > 0 ? 300 : 56;
 
   scopeNodes.forEach((node, indexPosition) => {
     const x = scopeColumnX;
-    const y = 72 + indexPosition * 132;
-    const width = 228;
-    const height = 96;
+    const y = 64 + indexPosition * 112;
+    const width = 204;
+    const height = 82;
     nodes.push({
       ...node,
       x,
@@ -129,10 +129,10 @@ function buildGridLayout(state: BrowserSessionState, scopeNodes: ReturnType<type
     const pinned = node.pinned;
     const column = pinned ? 0 : indexPosition % 3;
     const row = pinned ? Math.floor(indexPosition / 1) : Math.floor(indexPosition / 3);
-    const x = pinned ? entityBaseX : entityBaseX + column * 268;
-    const y = pinned ? 72 + row * 132 : 72 + row * 152;
-    const width = 236;
-    const height = 108;
+    const x = pinned ? entityBaseX : entityBaseX + column * 224;
+    const y = pinned ? 64 + row * 104 : 64 + row * 120;
+    const width = 196;
+    const height = 84;
     nodes.push({
       ...node,
       x,
@@ -156,9 +156,9 @@ function buildRadialLayout(state: BrowserSessionState, scopeNodes: ReturnType<ty
 
   scopeNodes.forEach((node, indexPosition) => {
     const x = 40;
-    const y = 56 + indexPosition * 116;
-    const width = 220;
-    const height = 92;
+    const y = 48 + indexPosition * 100;
+    const width = 196;
+    const height = 80;
     nodes.push({
       ...node,
       x,
@@ -178,8 +178,8 @@ function buildRadialLayout(state: BrowserSessionState, scopeNodes: ReturnType<ty
   const centerNode = ordered[0] ?? null;
 
   ordered.forEach((node, indexPosition) => {
-    const width = 236;
-    const height = 108;
+    const width = 196;
+    const height = 84;
     let x = centerX;
     let y = centerY;
     if (indexPosition > 0) {

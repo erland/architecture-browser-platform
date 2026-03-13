@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getScopeChildren, getScopeFacts, type BrowserSnapshotIndex, type BrowserScopeTreeNode } from '../browserSnapshotIndex';
+import { getScopeChildren, type BrowserSnapshotIndex, type BrowserScopeTreeNode } from '../browserSnapshotIndex';
 
 type BrowserNavigationTreeProps = {
   index: BrowserSnapshotIndex | null;
@@ -8,7 +8,13 @@ type BrowserNavigationTreeProps = {
   onAddScopeToCanvas: (scopeId: string) => void;
 };
 
-function collectAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | null) {
+type BrowserScopeCategoryGroup = {
+  kind: string;
+  label: string;
+  nodes: BrowserScopeTreeNode[];
+};
+
+export function collectAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | null) {
   if (!scopeId) {
     return [] as string[];
   }
@@ -23,12 +29,62 @@ function collectAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | 
   return ancestors;
 }
 
-function computeDefaultExpandedScopeIds(index: BrowserSnapshotIndex | null, selectedScopeId: string | null) {
+export function computeDefaultExpandedScopeIds(index: BrowserSnapshotIndex | null, selectedScopeId: string | null) {
   if (!index) {
     return [] as string[];
   }
   const rootIds = getScopeChildren(index, null).map((node) => node.scopeId);
   return [...new Set([...rootIds, ...collectAncestorScopeIds(index, selectedScopeId), ...(selectedScopeId ? [selectedScopeId] : [])])];
+}
+
+function toCategoryLabel(kind: string) {
+  return kind.replace(/_/g, ' ').toLocaleLowerCase().replace(/(^|\s)\S/g, (char) => char.toLocaleUpperCase());
+}
+
+export function buildScopeCategoryGroups(nodes: BrowserScopeTreeNode[]) {
+  const grouped = new Map<string, BrowserScopeTreeNode[]>();
+  for (const node of nodes) {
+    const current = grouped.get(node.kind);
+    if (current) {
+      current.push(node);
+    } else {
+      grouped.set(node.kind, [node]);
+    }
+  }
+  return [...grouped.entries()]
+    .map(([kind, groupNodes]) => ({
+      kind,
+      label: toCategoryLabel(kind),
+      nodes: groupNodes,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }));
+}
+
+function findTopLevelScopeKind(index: BrowserSnapshotIndex, scopeId: string | null) {
+  if (!scopeId) {
+    return null;
+  }
+  const seen = new Set<string>();
+  let current = index.scopesById.get(scopeId);
+  while (current && !seen.has(current.externalId)) {
+    seen.add(current.externalId);
+    if (!current.parentScopeId) {
+      return current.kind;
+    }
+    current = index.scopesById.get(current.parentScopeId);
+  }
+  return null;
+}
+
+export function computeDefaultExpandedCategories(groups: BrowserScopeCategoryGroup[], index: BrowserSnapshotIndex | null, selectedScopeId: string | null) {
+  if (!groups.length) {
+    return [] as string[];
+  }
+  const selectedKind = index ? findTopLevelScopeKind(index, selectedScopeId) : null;
+  if (!selectedKind) {
+    return groups.map((group) => group.kind);
+  }
+  return groups.map((group) => group.kind === selectedKind ? group.kind : group.kind).filter((kind, position, values) => values.indexOf(kind) === position);
 }
 
 function TreeBranch({
@@ -51,8 +107,6 @@ function TreeBranch({
   const children = getScopeChildren(index, node.scopeId);
   const isExpanded = expandedScopeIds.has(node.scopeId);
   const isSelected = selectedScopeId === node.scopeId;
-  const facts = getScopeFacts(index, node.scopeId);
-
   return (
     <li className="browser-tree__item">
       <div className={isSelected ? 'browser-tree__row browser-tree__row--active' : 'browser-tree__row'}>
@@ -67,28 +121,26 @@ function TreeBranch({
           {children.length > 0 ? (isExpanded ? '▾' : '▸') : '•'}
         </button>
 
-        <button type="button" className="browser-tree__node-button" onClick={() => onSelectScope(node.scopeId)}>
+        <button
+          type="button"
+          className="browser-tree__node-button"
+          onClick={() => onSelectScope(node.scopeId)}
+          onDoubleClick={() => onAddScopeToCanvas(node.scopeId)}
+          title={`${node.displayName} — double-click to add to canvas`}
+        >
           <span className="browser-tree__node-title">{node.displayName}</span>
-          <span className="browser-tree__node-meta">{node.kind} · {node.directEntityIds.length} direct entities · {node.descendantScopeCount} child scopes</span>
         </button>
 
         <button
           type="button"
-          className="button-secondary browser-tree__canvas-button"
+          className="browser-tree__canvas-button"
           onClick={() => onAddScopeToCanvas(node.scopeId)}
           aria-label={`Add ${node.displayName} to canvas`}
+          title={`Add ${node.displayName} to canvas`}
         >
-          Add
+          +
         </button>
       </div>
-
-      {isSelected && facts ? (
-        <div className="browser-tree__facts-inline">
-          <span>{facts.path}</span>
-          <span>{facts.descendantEntityCount} entities in subtree</span>
-          {facts.diagnostics.length > 0 ? <span>{facts.diagnostics.length} diagnostics</span> : null}
-        </div>
-      ) : null}
 
       {children.length > 0 && isExpanded ? (
         <ul className="browser-tree__children" role="group">
@@ -112,6 +164,9 @@ function TreeBranch({
 
 export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, onAddScopeToCanvas }: BrowserNavigationTreeProps) {
   const [expandedScopeIds, setExpandedScopeIds] = useState<string[]>(() => computeDefaultExpandedScopeIds(index, selectedScopeId));
+  const roots = useMemo(() => index ? getScopeChildren(index, null) : [], [index]);
+  const categoryGroups = useMemo(() => buildScopeCategoryGroups(roots), [roots]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(() => computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId));
 
   useEffect(() => {
     setExpandedScopeIds((current) => {
@@ -123,8 +178,18 @@ export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, o
     });
   }, [index, selectedScopeId]);
 
-  const roots = useMemo(() => index ? getScopeChildren(index, null) : [], [index]);
+  useEffect(() => {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      for (const kind of computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId)) {
+        next.add(kind);
+      }
+      return categoryGroups.map((group) => group.kind).filter((kind) => next.has(kind));
+    });
+  }, [categoryGroups, index, selectedScopeId]);
+
   const expandedSet = useMemo(() => new Set(expandedScopeIds), [expandedScopeIds]);
+  const expandedCategorySet = useMemo(() => new Set(expandedCategories), [expandedCategories]);
   const totalDescendants = useMemo(() => roots.reduce((sum, node) => sum + node.descendantScopeCount, 0), [roots]);
   const totalDirectEntities = useMemo(() => roots.reduce((sum, node) => sum + node.directEntityIds.length, 0), [roots]);
 
@@ -134,15 +199,23 @@ export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, o
       : [...current, scopeId]);
   };
 
+  const toggleCategory = (kind: string) => {
+    setExpandedCategories((current) => current.includes(kind)
+      ? current.filter((candidate) => candidate !== kind)
+      : [...current, kind]);
+  };
+
   const expandAll = () => {
     if (!index) {
       return;
     }
     setExpandedScopeIds(index.payload.scopes.map((scope) => scope.externalId));
+    setExpandedCategories(categoryGroups.map((group) => group.kind));
   };
 
   const collapseToSelection = () => {
     setExpandedScopeIds(computeDefaultExpandedScopeIds(index, selectedScopeId));
+    setExpandedCategories(computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId));
   };
 
   if (!index) {
@@ -161,9 +234,6 @@ export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, o
         <div>
           <p className="eyebrow">Navigation tree</p>
           <h2 className="app-nav__title">Scope explorer</h2>
-          <p className="muted app-nav__lead">
-            The left rail now prioritizes scope navigation from the prepared local snapshot instead of server-driven Browser modes.
-          </p>
         </div>
         <div className="browser-navigation-tree__actions">
           <button type="button" className="button-secondary" onClick={expandAll}>Expand all</button>
@@ -179,21 +249,46 @@ export function BrowserNavigationTree({ index, selectedScopeId, onSelectScope, o
       </div>
 
       <ul className="browser-tree" role="tree">
-        {roots.map((root) => (
-          <TreeBranch
-            key={root.scopeId}
-            index={index}
-            node={root}
-            selectedScopeId={selectedScopeId}
-            expandedScopeIds={expandedSet}
-            onToggle={toggleScope}
-            onSelectScope={onSelectScope}
-            onAddScopeToCanvas={onAddScopeToCanvas}
-          />
-        ))}
+        {categoryGroups.map((group) => {
+          const isExpanded = expandedCategorySet.has(group.kind);
+          return (
+            <li key={group.kind} className="browser-tree__item">
+              <div className="browser-tree__row browser-tree__row--category">
+                <button
+                  type="button"
+                  className="browser-tree__toggle"
+                  onClick={() => toggleCategory(group.kind)}
+                  aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${group.label}`}
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? '▾' : '▸'}
+                </button>
+                <div className="browser-tree__node-button browser-tree__node-button--static">
+                  <span className="browser-tree__node-title">{group.label}</span>
+                </div>
+              </div>
+
+              {isExpanded ? (
+                <ul className="browser-tree__children" role="group">
+                  {group.nodes.map((root) => (
+                    <TreeBranch
+                      key={root.scopeId}
+                      index={index}
+                      node={root}
+                      selectedScopeId={selectedScopeId}
+                      expandedScopeIds={expandedSet}
+                      onToggle={toggleScope}
+                      onSelectScope={onSelectScope}
+                      onAddScopeToCanvas={onAddScopeToCanvas}
+                    />
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
 
-export { collectAncestorScopeIds, computeDefaultExpandedScopeIds };

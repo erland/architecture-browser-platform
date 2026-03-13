@@ -13,8 +13,10 @@ function scopeActionLabel(index: BrowserSnapshotIndex | null, scopeId: string | 
 type BrowserGraphWorkspaceProps = {
   state: BrowserSessionState;
   activeModeLabel: string;
-  onAddSelectedScope: () => void;
+  onAddSelectedScope: (scopeId?: string) => void;
   onAddScopeEntities: (scopeId: string) => void;
+  onAddChildScopes: (scopeId: string) => void;
+  onAddSubtreeEntities: (scopeId: string) => void;
   onFocusScope: (scopeId: string) => void;
   onFocusEntity: (entityId: string) => void;
   onSelectEntity: (entityId: string, additive?: boolean) => void;
@@ -36,6 +38,8 @@ export function BrowserGraphWorkspace({
   activeModeLabel,
   onAddSelectedScope,
   onAddScopeEntities,
+  onAddChildScopes,
+  onAddSubtreeEntities,
   onFocusScope,
   onFocusEntity,
   onSelectEntity,
@@ -56,6 +60,11 @@ export function BrowserGraphWorkspace({
   const selectedScopeEntityCount = state.selectedScopeId ? (state.index?.entityIdsByScopeId.get(state.selectedScopeId)?.length ?? 0) : 0;
   const focusedEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
   const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
+  const scopeActionScopeId = focusedScopeId ?? state.selectedScopeId;
+  const scopeTreeNode = scopeActionScopeId ? state.index?.scopeTree.find((node) => node.scopeId === scopeActionScopeId) ?? null : null;
+  const scopeChildCount = scopeActionScopeId ? (state.index?.childScopeIdsByParentId.get(scopeActionScopeId)?.length ?? 0) : 0;
+  const scopeDirectEntityCount = scopeActionScopeId ? (state.index?.entityIdsByScopeId.get(scopeActionScopeId)?.length ?? 0) : 0;
+  const scopeSubtreeEntityCount = scopeTreeNode?.descendantEntityCount ?? 0;
   const selectedEntityCount = state.selectedEntityIds.length;
   const pinnedNodeCount = state.canvasNodes.filter((node) => node.pinned).length;
 
@@ -78,9 +87,6 @@ export function BrowserGraphWorkspace({
         <div>
           <p className="eyebrow">Canvas workspace</p>
           <h3>Local graph surface</h3>
-          <p className="muted browser-canvas__lead">
-            The Browser center stage is now a local canvas. Step 12 adds analysis interactions so you can grow a graph from one element, compare neighborhoods, isolate a subset, and re-layout the result without touching the old backend explorer endpoints.
-          </p>
         </div>
         <div className="browser-canvas__header-meta">
           <span className="badge">{model.nodes.length} nodes</span>
@@ -93,12 +99,12 @@ export function BrowserGraphWorkspace({
       </header>
 
       <div className="browser-canvas__toolbar">
-        <button type="button" className="button-secondary" onClick={onAddSelectedScope} disabled={!state.selectedScopeId}>Add selected scope</button>
+        <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(scopeActionScopeId ?? undefined)} disabled={!scopeActionScopeId}>Add selected scope</button>
         <button
           type="button"
           className="button-secondary"
-          onClick={() => state.selectedScopeId ? onAddScopeEntities(state.selectedScopeId) : undefined}
-          disabled={!state.selectedScopeId || selectedScopeEntityCount === 0}
+          onClick={() => scopeActionScopeId ? onAddScopeEntities(scopeActionScopeId) : undefined}
+          disabled={!scopeActionScopeId || (focusedScopeId ? scopeDirectEntityCount === 0 : selectedScopeEntityCount === 0)}
         >
           Add scope entities
         </button>
@@ -122,38 +128,38 @@ export function BrowserGraphWorkspace({
       </div>
 
       <div className="browser-canvas__helper-row">
-        <p className="muted">Selected branch: {scopeActionLabel(state.index, state.selectedScopeId)}</p>
-        {focusedEntityId ? (
-          <div className="actions">
-            <button type="button" className="button-secondary" onClick={() => onExpandInboundDependencies(focusedEntityId)}>
-              Who depends on this?
-            </button>
-            <button type="button" className="button-secondary" onClick={() => onExpandOutboundDependencies(focusedEntityId)}>
-              What does this depend on?
-            </button>
-            <button type="button" className="button-secondary" onClick={() => onExpandEntityDependencies(focusedEntityId)}>
-              What is around this?
-            </button>
-            <button type="button" className="button-secondary" onClick={() => onRemoveEntity(focusedEntityId)}>
-              Remove focused entity
-            </button>
-            <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: focusedEntityId })}>
-              {state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntityId)?.pinned ? 'Unpin focused entity' : 'Pin focused entity'}
-            </button>
-          </div>
-        ) : focusedScopeId ? (
-          <div className="actions">
-            <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
-              {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin focused scope' : 'Pin focused scope'}
-            </button>
-          </div>
-        ) : null}
+        <p className="muted">Selected branch: {scopeActionLabel(state.index, scopeActionScopeId)}</p>
+        <div className="actions browser-canvas__selection-toolbar">
+          {focusedEntityId ? (
+            <>
+              <button type="button" className="button-secondary" onClick={() => onExpandInboundDependencies(focusedEntityId)}>Inbound</button>
+              <button type="button" className="button-secondary" onClick={() => onExpandOutboundDependencies(focusedEntityId)}>Outbound</button>
+              <button type="button" className="button-secondary" onClick={() => onExpandEntityDependencies(focusedEntityId)}>Around</button>
+              <button type="button" className="button-secondary" onClick={() => onRemoveEntity(focusedEntityId)}>Remove</button>
+              <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: focusedEntityId })}>
+                {state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntityId)?.pinned ? 'Unpin' : 'Pin'}
+              </button>
+            </>
+          ) : focusedScopeId ? (
+            <>
+              <button type="button" className="button-secondary" onClick={() => onAddChildScopes(focusedScopeId)} disabled={scopeChildCount === 0}>Children{scopeChildCount > 0 ? ` (${scopeChildCount})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onAddScopeEntities(focusedScopeId)} disabled={scopeDirectEntityCount === 0}>Entities{scopeDirectEntityCount > 0 ? ` (${Math.min(scopeDirectEntityCount, 24)})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onAddSubtreeEntities(focusedScopeId)} disabled={scopeSubtreeEntityCount === 0}>Subtree{scopeSubtreeEntityCount > 0 ? ` (${Math.min(scopeSubtreeEntityCount, 24)})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
+                {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin scope' : 'Pin scope'}
+              </button>
+              <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(focusedScopeId)}>Add scope</button>
+            </>
+          ) : (
+            <span className="muted">Select a canvas node to see actions here.</span>
+          )}
+        </div>
       </div>
 
       {model.nodes.length === 0 ? (
         <div className="browser-canvas__empty">
           <h4>Start with a scope or entity</h4>
-          <p className="muted">Use the left tree’s “＋” buttons, local search results, or the toolbar above to seed the canvas. Shift-click additional entities on the canvas to multi-select, then isolate or remove a subset as you analyze it.</p>
+          <p className="muted">Use the left tree, search results, or the toolbar above to seed the canvas. Select a node to work with it from the action toolbar.</p>
         </div>
       ) : (
         <div className="browser-canvas__viewport">
@@ -222,17 +228,7 @@ export function BrowserGraphWorkspace({
                   <strong>{node.title}</strong>
                   <span className="muted">{node.subtitle}</span>
                 </button>
-                <div className="browser-canvas__node-actions">
-                  <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: node.kind, id: node.id })}>{node.pinned ? 'Unpin' : 'Pin'}</button>
-                  {node.kind === 'entity' ? (
-                    <>
-                      <button type="button" className="button-secondary" onClick={() => onExpandEntityDependencies(node.id)}>Around</button>
-                      <button type="button" className="button-secondary" onClick={() => onExpandInboundDependencies(node.id)}>Inbound</button>
-                      <button type="button" className="button-secondary" onClick={() => onExpandOutboundDependencies(node.id)}>Outbound</button>
-                      <button type="button" className="button-secondary" onClick={() => onRemoveEntity(node.id)}>Remove</button>
-                    </>
-                  ) : null}
-                </div>
+
               </article>
             ))}
           </div>

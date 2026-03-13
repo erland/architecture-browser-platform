@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
-import { collectAncestorScopeIds, computeDefaultExpandedScopeIds } from '../components/BrowserNavigationTree';
+import { buildScopeCategoryGroups, collectAncestorScopeIds, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from '../components/BrowserNavigationTree';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-tree-1',
@@ -64,5 +64,62 @@ describe('browserNavigationTree helpers', () => {
     const index = buildBrowserSnapshotIndex(createPayload());
 
     expect(computeDefaultExpandedScopeIds(index, 'scope:browser')).toEqual(['scope:repo', 'scope:web', 'scope:browser']);
+  });
+
+  test('groups root scopes by kind so the left rail can expand categories first', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:module', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:dir', kind: 'DIRECTORY', name: 'src', displayName: 'src', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'main.tsx', displayName: 'main.tsx', parentScopeId: 'scope:dir', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(buildScopeCategoryGroups(index.scopeTree).map((group) => [group.kind, group.nodes.map((node) => node.scopeId)])).toEqual([
+      ['DIRECTORY', ['scope:dir']],
+      ['MODULE', ['scope:module']],
+      ['REPOSITORY', ['scope:repo']],
+    ]);
+  });
+
+  test('keeps category groups expanded when focusing a selected scope branch', () => {
+    const index = buildBrowserSnapshotIndex(createPayload());
+    const groups = buildScopeCategoryGroups(index.scopeTree);
+
+    expect(computeDefaultExpandedCategories(groups, index, 'scope:browser')).toEqual(['REPOSITORY']);
+  });
+
+  test('compacts file and directory labels to their basename in the tree', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:dir', kind: 'DIRECTORY', name: 'src/__tests__', displayName: 'src/__tests__', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'src/__tests__/App.test.tsx', displayName: 'src/__tests__/App.test.tsx', parentScopeId: 'scope:dir', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(index.scopePathById.get('scope:file')).toBe('Platform / __tests__ / App.test.tsx');
+    expect(index.scopeTree[0]?.displayName).toBe('Platform');
+    expect(index.scopeNodesByParentId.get('scope:repo')?.[0]?.displayName).toBe('__tests__');
+    expect(index.scopeNodesByParentId.get('scope:dir')?.[0]?.displayName).toBe('App.test.tsx');
+  });
+
+  test('orders directories before files within the same parent scope', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'README.md', displayName: 'README.md', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:dir', kind: 'DIRECTORY', name: 'src', displayName: 'src', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(index.scopeNodesByParentId.get('scope:repo')?.map((node) => [node.kind, node.displayName])).toEqual([
+      ['DIRECTORY', 'src'],
+      ['FILE', 'README.md'],
+    ]);
   });
 });

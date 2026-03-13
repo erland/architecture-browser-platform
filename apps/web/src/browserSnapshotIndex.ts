@@ -86,6 +86,8 @@ export type BrowserSnapshotIndex = {
   diagnosticIdsByScopeId: Map<string, string[]>;
   diagnosticIdsByEntityId: Map<string, string[]>;
   scopePathById: Map<string, string>;
+  descendantStatsByScopeId: Map<string, { scopeCount: number; entityCount: number }>;
+  scopeNodesByParentId: Map<string | null, BrowserScopeTreeNode[]>;
   scopeTree: BrowserScopeTreeNode[];
   searchableDocuments: BrowserSearchDocument[];
 };
@@ -116,9 +118,27 @@ function displayNameOf(item: { displayName: string | null; name: string }) {
   return item.displayName?.trim() || item.name;
 }
 
+function compactScopeDisplayName(scope: FullSnapshotScope) {
+  const raw = displayNameOf(scope);
+  if ((scope.kind === "FILE" || scope.kind === "DIRECTORY") && raw.includes("/")) {
+    const segments = raw.split("/").filter(Boolean);
+    return segments[segments.length - 1] ?? raw;
+  }
+  return raw;
+}
+
 function compareByDisplayName(a: { displayName: string | null; name: string }, b: { displayName: string | null; name: string }) {
   return displayNameOf(a).localeCompare(displayNameOf(b), undefined, { sensitivity: "base" });
 }
+
+const scopeKindOrder = new Map<string, number>([
+  ["REPOSITORY", 10],
+  ["MODULE", 20],
+  ["PACKAGE", 30],
+  ["NAMESPACE", 40],
+  ["DIRECTORY", 50],
+  ["FILE", 60],
+]);
 
 function compareScopeIds(index: BrowserSnapshotIndex, leftScopeId: string, rightScopeId: string) {
   const left = index.scopesById.get(leftScopeId);
@@ -126,7 +146,12 @@ function compareScopeIds(index: BrowserSnapshotIndex, leftScopeId: string, right
   if (!left || !right) {
     return leftScopeId.localeCompare(rightScopeId);
   }
-  return compareByDisplayName(left, right);
+  const leftOrder = scopeKindOrder.get(left.kind) ?? 999;
+  const rightOrder = scopeKindOrder.get(right.kind) ?? 999;
+  if (leftOrder !== rightOrder) {
+    return leftOrder - rightOrder;
+  }
+  return compactScopeDisplayName(left).localeCompare(compactScopeDisplayName(right), undefined, { sensitivity: "base" });
 }
 
 function compareEntityIds(index: BrowserSnapshotIndex, leftEntityId: string, rightEntityId: string) {
@@ -144,15 +169,38 @@ function buildScopePath(scope: FullSnapshotScope, scopesById: Map<string, FullSn
   let current: FullSnapshotScope | undefined = scope;
   while (current && !seen.has(current.externalId)) {
     seen.add(current.externalId);
-    segments.unshift(displayNameOf(current));
+    segments.unshift(compactScopeDisplayName(current));
     current = current.parentScopeId ? scopesById.get(current.parentScopeId) : undefined;
   }
   return segments.join(" / ");
 }
 
+function collectDescendantStats(index: BrowserSnapshotIndex, scopeId: string): { scopeCount: number; entityCount: number } {
+  const cached = index.descendantStatsByScopeId.get(scopeId);
+  if (cached) {
+    return cached;
+  }
+  let scopeCount = 0;
+  let entityCount = (index.entityIdsByScopeId.get(scopeId) ?? []).length;
+  const childScopeIds = index.childScopeIdsByParentId.get(scopeId) ?? [];
+  for (const childScopeId of childScopeIds) {
+    scopeCount += 1;
+    const childStats = collectDescendantStats(index, childScopeId);
+    scopeCount += childStats.scopeCount;
+    entityCount += childStats.entityCount;
+  }
+  const stats = { scopeCount, entityCount };
+  index.descendantStatsByScopeId.set(scopeId, stats);
+  return stats;
+}
+
 function buildScopeTree(index: BrowserSnapshotIndex, parentScopeId: string | null = null, depth = 0): BrowserScopeTreeNode[] {
+  const cached = index.scopeNodesByParentId.get(parentScopeId);
+  if (cached) {
+    return cached;
+  }
   const scopeIds = [...(index.childScopeIdsByParentId.get(parentScopeId) ?? [])].sort((a, b) => compareScopeIds(index, a, b));
-  return scopeIds.map((scopeId) => {
+  const nodes = scopeIds.map((scopeId) => {
     const scope = index.scopesById.get(scopeId);
     if (!scope) {
       throw new Error(`Missing scope '${scopeId}' while building scope tree.`);
@@ -164,29 +212,21 @@ function buildScopeTree(index: BrowserSnapshotIndex, parentScopeId: string | nul
       scopeId,
       parentScopeId,
       name: scope.name,
-      displayName: displayNameOf(scope),
+      displayName: compactScopeDisplayName(scope),
       kind: scope.kind,
       depth,
-      path: index.scopePathById.get(scopeId) ?? displayNameOf(scope),
+      path: index.scopePathById.get(scopeId) ?? compactScopeDisplayName(scope),
       childScopeIds,
       directEntityIds,
       descendantScopeCount: descendants.scopeCount,
       descendantEntityCount: descendants.entityCount,
     };
   });
-}
-
-function collectDescendantStats(index: BrowserSnapshotIndex, scopeId: string): { scopeCount: number; entityCount: number } {
-  let scopeCount = 0;
-  let entityCount = (index.entityIdsByScopeId.get(scopeId) ?? []).length;
-  const childScopeIds = index.childScopeIdsByParentId.get(scopeId) ?? [];
-  for (const childScopeId of childScopeIds) {
-    scopeCount += 1;
-    const childStats = collectDescendantStats(index, childScopeId);
-    scopeCount += childStats.scopeCount;
-    entityCount += childStats.entityCount;
+  index.scopeNodesByParentId.set(parentScopeId, nodes);
+  for (const node of nodes) {
+    buildScopeTree(index, node.scopeId, depth + 1);
   }
-  return { scopeCount, entityCount };
+  return nodes;
 }
 
 function collectSourceRefs(...collections: Array<SnapshotSourceRef[] | undefined>) {
@@ -367,6 +407,8 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
     diagnosticIdsByScopeId,
     diagnosticIdsByEntityId,
     scopePathById,
+    descendantStatsByScopeId: new Map(),
+    scopeNodesByParentId: new Map(),
     scopeTree: [],
     searchableDocuments: [],
   };
@@ -401,8 +443,7 @@ export function getScopeTreeRoots(index: BrowserSnapshotIndex) {
 }
 
 export function getScopeChildren(index: BrowserSnapshotIndex, parentScopeId: string | null) {
-  const roots = parentScopeId === null ? index.scopeTree : buildScopeTree(index, parentScopeId, (index.scopePathById.get(parentScopeId)?.split(" / ").length ?? 1));
-  return roots;
+  return index.scopeNodesByParentId.get(parentScopeId) ?? [];
 }
 
 export function getScopeFacts(index: BrowserSnapshotIndex, scopeId: string): BrowserScopeFacts | null {

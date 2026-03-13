@@ -37,9 +37,7 @@ export function buildBrowserOverviewCards(state: BrowserSessionState): BrowserOv
       key: 'snapshot-health',
       eyebrow: 'Snapshot health',
       title: completenessStatus,
-      detail: payload.run.outcome
-        ? `Run outcome ${payload.run.outcome}`
-        : 'Run outcome not recorded',
+      detail: payload.run.outcome ? payload.run.outcome : 'No run outcome',
       metrics: [
         {
           label: 'Coverage',
@@ -62,7 +60,7 @@ export function buildBrowserOverviewCards(state: BrowserSessionState): BrowserOv
       key: 'scope-context',
       eyebrow: 'Scope context',
       title: selectedScopeFacts?.scope.displayName?.trim() || selectedScopeFacts?.scope.name || 'No scope selected',
-      detail: selectedScopePath ?? 'Choose a scope in the left tree to narrow analysis.',
+      detail: selectedScopePath ?? 'No scope selected',
       metrics: selectedScopeFacts ? [
         { label: 'Child scopes', value: String(selectedScopeFacts.childScopeIds.length) },
         { label: 'Direct entities', value: String(selectedScopeFacts.entityIds.length) },
@@ -77,9 +75,7 @@ export function buildBrowserOverviewCards(state: BrowserSessionState): BrowserOv
       key: 'analysis-state',
       eyebrow: 'Analysis state',
       title: state.focusedElement ? `${state.focusedElement.kind}:${state.focusedElement.id}` : 'No focused element',
-      detail: state.searchQuery.trim()
-        ? `Search “${state.searchQuery}” in ${searchScopePath ?? 'entire snapshot'}`
-        : 'Use the top search, canvas, or tree to drive local analysis.',
+      detail: state.searchQuery.trim() ? `Search “${state.searchQuery}” in ${searchScopePath ?? 'entire snapshot'}` : 'No active search',
       metrics: [
         { label: 'Canvas nodes', value: String(state.canvasNodes.length) },
         { label: 'Canvas edges', value: String(state.canvasEdges.length) },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react';
 import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
@@ -38,12 +38,27 @@ function formatTimestamp(value: string | null | undefined) {
   }
   return parsed.toLocaleString();
 }
+function clampWidth(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function readStoredPaneWidth(key: string, fallback: number) {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+  const raw = window.localStorage.getItem(key);
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 
 export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories, onOpenCompare, onOpenOperations, onOpenLegacy }: BrowserViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTabKey>(() => readBrowserTabFromLocation());
   const [topSearchScopeMode, setTopSearchScopeMode] = useState<BrowserTopSearchScopeMode>('selected-scope');
+  const [railWidth, setRailWidth] = useState<number>(() => readStoredPaneWidth('browser.railWidth', 280));
+  const [inspectorWidth, setInspectorWidth] = useState<number>(() => readStoredPaneWidth('browser.inspectorWidth', 320));
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
 
@@ -88,6 +103,51 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
       window.history.replaceState({}, '', `${window.location.pathname}${nextSearch}${window.location.hash}`);
     }
   }, [activeTab]);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem('browser.railWidth', String(railWidth));
+  }, [railWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem('browser.inspectorWidth', String(inspectorWidth));
+  }, [inspectorWidth]);
+
+  const startPaneResize = (pane: 'rail' | 'inspector') => (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startingX = event.clientX;
+    const startingRailWidth = railWidth;
+    const startingInspectorWidth = inspectorWidth;
+    document.body.classList.add('browser-resize-active');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startingX;
+      if (pane === 'rail') {
+        setRailWidth(clampWidth(startingRailWidth + delta, 220, 460));
+        return;
+      }
+      setInspectorWidth(clampWidth(startingInspectorWidth - delta, 260, 520));
+    };
+
+    const handleMouseUp = () => {
+      document.body.classList.remove('browser-resize-active');
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const layoutStyle = {
+    '--browser-rail-width': `${railWidth}px`,
+    '--browser-inspector-width': `${inspectorWidth}px`,
+  } as CSSProperties;
+
 
   const selectedRepository = useMemo(() => {
     const bySelection = workspaceData.repositories.find((repository) => repository.id === selection.selectedRepositoryId);
@@ -183,6 +243,56 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     setActiveTab('layout');
   };
 
+
+  const handleAddChildScopesToCanvas = (scopeId: string) => {
+    const childScopeIds = browserSession.state.index?.childScopeIdsByParentId.get(scopeId) ?? [];
+    childScopeIds.slice(0, 24).forEach((childScopeId) => {
+      browserSession.addScopeToCanvas(childScopeId);
+    });
+    if (childScopeIds[0]) {
+      browserSession.selectScope(scopeId);
+      browserSession.focusElement({ kind: 'scope', id: scopeId });
+      browserSession.openFactsPanel('scope', 'right');
+    }
+    setActiveTab('layout');
+  };
+
+  const handleAddSubtreeEntitiesToCanvas = (scopeId: string) => {
+    const index = browserSession.state.index;
+    if (!index) {
+      return;
+    }
+    const queue = [scopeId];
+    const seen = new Set<string>();
+    const entityIds: string[] = [];
+    while (queue.length > 0 && entityIds.length < 24) {
+      const currentScopeId = queue.shift()!;
+      if (seen.has(currentScopeId)) {
+        continue;
+      }
+      seen.add(currentScopeId);
+      const directEntityIds = index.entityIdsByScopeId.get(currentScopeId) ?? [];
+      for (const entityId of directEntityIds) {
+        entityIds.push(entityId);
+        if (entityIds.length >= 24) {
+          break;
+        }
+      }
+      if (entityIds.length >= 24) {
+        break;
+      }
+      const childScopeIds = index.childScopeIdsByParentId.get(currentScopeId) ?? [];
+      queue.push(...childScopeIds);
+    }
+    entityIds.forEach((entityId) => {
+      browserSession.addEntityToCanvas(entityId);
+    });
+    browserSession.selectScope(scopeId);
+    browserSession.focusElement({ kind: 'scope', id: scopeId });
+    browserSession.openFactsPanel('scope', 'right');
+    setActiveTab('layout');
+  };
+
   const selectedSnapshotLabel = selectedSnapshot?.snapshotKey
     ?? browserSession.state.activeSnapshot?.snapshotKey
     ?? '—';
@@ -216,36 +326,26 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     </article>
   ) : (
     <>
-      <section className="card browser-workspace__mode-header">
-        <div>
-          <p className="eyebrow">Local analysis focus</p>
-          <h3>{activeTabMeta.label}</h3>
-          <p className="muted">{activeTabMeta.description}</p>
-          <p className="muted browser-workspace__mode-note">Browser now runs entirely on the prepared snapshot payload, local indexes, tree navigation, top search, canvas, and facts panel. The old server-computed Browser explorer tray has been removed from this route.</p>
-        </div>
-        <div className="browser-workspace__mode-meta">
-          {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
-          {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
-          {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
-          <span className="badge badge--status">Local-only Browser</span>
-        </div>
-      </section>
-
-      <BrowserOverviewStrip state={browserSession.state} />
-
       <div className="browser-workspace__stage">
         <BrowserGraphWorkspace
           state={browserSession.state}
           activeModeLabel={activeTabMeta.label}
-          onAddSelectedScope={() => {
-            if (!browserSession.state.selectedScopeId) {
+          onAddSelectedScope={(scopeId) => {
+            const focusedScopeId = browserSession.state.focusedElement?.kind === 'scope'
+              ? browserSession.state.focusedElement.id
+              : null;
+            const targetScopeId = scopeId ?? focusedScopeId ?? browserSession.state.selectedScopeId;
+            if (!targetScopeId) {
               return;
             }
-            browserSession.addScopeToCanvas(browserSession.state.selectedScopeId);
-            browserSession.focusElement({ kind: 'scope', id: browserSession.state.selectedScopeId });
+            browserSession.addScopeToCanvas(targetScopeId);
+            browserSession.selectScope(targetScopeId);
+            browserSession.focusElement({ kind: 'scope', id: targetScopeId });
             browserSession.openFactsPanel('scope', 'right');
           }}
           onAddScopeEntities={handleAddScopeEntitiesToCanvas}
+          onAddChildScopes={handleAddChildScopesToCanvas}
+          onAddSubtreeEntities={handleAddSubtreeEntitiesToCanvas}
           onFocusScope={(scopeId) => {
             browserSession.selectScope(scopeId);
             browserSession.focusElement({ kind: 'scope', id: scopeId });
@@ -307,9 +407,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           <div>
             <p className="eyebrow">Browser</p>
             <h2>Analysis workspace</h2>
-            <p className="muted browser-workspace__lead">
-              Browser now uses a prepared local snapshot payload as its only analysis source. Tree navigation, top search, canvas, and facts stay in the browser so the analysis surface can use most of the viewport without backend Browser projections.
-            </p>
+
           </div>
           <div className="browser-workspace__context-strip" aria-label="Current browser context">
             <span className="badge">Workspace {workspaceData.selectedWorkspace?.name ?? '—'}</span>
@@ -354,7 +452,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         ) : null}
       </div>
 
-      <div className="browser-workspace__layout">
+      <div className="browser-workspace__layout" style={layoutStyle}>
         <aside className="browser-workspace__rail">
           <div className="browser-workspace__rail-sticky">
             <BrowserNavigationTree
@@ -392,9 +490,25 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           </div>
         </aside>
 
+        <div
+          className="browser-workspace__resizer browser-workspace__resizer--rail"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize navigation tree"
+          onMouseDown={startPaneResize('rail')}
+        />
+
         <section className="browser-workspace__center">
           {centerContent}
         </section>
+
+        <div
+          className="browser-workspace__resizer browser-workspace__resizer--inspector"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize facts panel"
+          onMouseDown={startPaneResize('inspector')}
+        />
 
         <aside className="browser-workspace__inspector">
           <BrowserFactsPanel
@@ -426,22 +540,30 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           />
 
           <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Session status</p>
+            <p className="eyebrow">Local analysis focus</p>
             <div className="browser-mini-kv">
               <div>
-                <span>Browser session</span>
-                <strong>{browserSession.state.activeSnapshot ? 'Open' : 'Not loaded'}</strong>
-              </div>
-              <div>
-                <span>Facts panel mode</span>
-                <strong>{browserSession.state.factsPanelMode}</strong>
+                <span>Mode</span>
+                <strong>{activeTabMeta.label}</strong>
               </div>
               <div>
                 <span>Focused element</span>
                 <strong>{browserSession.state.focusedElement ? `${browserSession.state.focusedElement.kind}:${browserSession.state.focusedElement.id}` : 'None'}</strong>
               </div>
+              <div>
+                <span>Session</span>
+                <strong>{browserSession.state.activeSnapshot ? 'Open' : 'Not loaded'}</strong>
+              </div>
+            </div>
+            <div className="browser-workspace__mode-meta browser-workspace__mode-meta--compact">
+              {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
+              {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
+              {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
+              <span className="badge badge--status">Local-only Browser</span>
             </div>
           </section>
+
+          <BrowserOverviewStrip state={browserSession.state} />
 
           <section className="card browser-workspace__inspector-card">
             <p className="eyebrow">Prepared model</p>
