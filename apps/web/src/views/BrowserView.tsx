@@ -4,6 +4,7 @@ import { EntryPointsTab } from '../browser/EntryPointsTab';
 import { LayoutTab } from '../browser/LayoutTab';
 import { OverviewTab } from '../browser/OverviewTab';
 import { SearchTab } from '../browser/SearchTab';
+import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { BrowserTabNav } from '../components/BrowserTabNav';
@@ -436,9 +437,32 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         </section>
 
         <aside className="browser-workspace__inspector">
+          <BrowserFactsPanel
+            state={browserSession.state}
+            onSelectScope={(scopeId) => {
+              browserSession.selectScope(scopeId);
+              if (scopeId) {
+                browserSession.focusElement({ kind: 'scope', id: scopeId });
+                browserSession.openFactsPanel('scope', 'right');
+                setActiveTab('layout');
+              }
+            }}
+            onFocusEntity={(entityId) => {
+              browserSession.addEntityToCanvas(entityId);
+              browserSession.focusElement({ kind: 'entity', id: entityId });
+              browserSession.openFactsPanel('entity', 'right');
+              setActiveTab('search');
+            }}
+            onFocusRelationship={(relationshipId) => {
+              browserSession.focusElement({ kind: 'relationship', id: relationshipId });
+              browserSession.openFactsPanel('relationship', 'right');
+              setActiveTab('dependencies');
+            }}
+            onClose={() => browserSession.openFactsPanel('hidden', 'right')}
+          />
+
           <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Orientation</p>
-            <h3>Session status</h3>
+            <p className="eyebrow">Session status</p>
             <div className="browser-mini-kv">
               <div>
                 <span>Browser session</span>
@@ -456,8 +480,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           </section>
 
           <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Local snapshot data</p>
-            <h3>Prepared model</h3>
+            <p className="eyebrow">Prepared model</p>
             {localSnapshotCounts ? (
               <div className="browser-count-grid">
                 <div><strong>{localSnapshotCounts.scopes}</strong><span>Scopes</span></div>
@@ -468,16 +491,6 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             ) : (
               <p className="muted">Open a prepared snapshot to see local counts.</p>
             )}
-          </section>
-
-          <section className="card browser-workspace__inspector-card browser-workspace__inspector-card--hint">
-            <p className="eyebrow">Next shell upgrades</p>
-            <ul className="browser-workspace__hint-list">
-              <li>Step 8 is now in place with a local scope tree as the primary left-rail navigator.</li>
-              <li>Step 9 is now in place with local search in the top bar.</li>
-              <li>Step 10 is now in place with a local graph canvas in the Browser center stage.</li>
-              <li>Step 11 will turn the right side into a dedicated facts/details surface.</li>
-            </ul>
           </section>
         </aside>
       </div>

@@ -1626,3 +1626,73 @@ dd {
     min-height: 0;
   }
 }
+
+.browser-facts-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.browser-facts-panel--empty {
+  min-height: 240px;
+}
+
+.browser-facts-panel__header,
+.browser-facts-panel__section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.browser-facts-panel__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browser-facts-panel__summary {
+  display: grid;
+  gap: 4px;
+}
+
+.browser-facts-panel__section {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.browser-facts-panel__split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.browser-facts-panel__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.browser-facts-panel__list-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.browser-facts-panel__list-item--actionable {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.browser-facts-panel__list-item--actionable button {
+  justify-self: start;
+}
+
+.browser-count-grid--facts {
+  margin-top: 0;
+}
