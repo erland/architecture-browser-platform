@@ -4,6 +4,7 @@ import {
   clearBrowserSnapshotIndex,
   getChildScopes,
   getContainedEntitiesForEntity,
+  getContainingEntitiesForEntity,
   getContainingScopesForEntity,
   getDependencyNeighborhood,
   getDirectEntitiesForScope,
@@ -397,4 +398,11 @@ describe("browserSnapshotIndex", () => {
 
     expect(second).toBe(first);
   });
+  test("resolves containing entities for a contained child entity", () => {
+    const index = buildBrowserSnapshotIndex(createPayload());
+
+    expect(getContainingEntitiesForEntity(index, "entity:inner-function").map((entity) => entity.externalId)).toEqual(["entity:file-browser-module"]);
+  });
+
+
 });

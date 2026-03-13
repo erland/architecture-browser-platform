@@ -84,6 +84,7 @@ export type BrowserSnapshotIndex = {
   subtreeEntityIdsByScopeId: Map<string, string[]>;
   containingScopeIdsByEntityId: Map<string, string[]>;
   containedEntityIdsByEntityId: Map<string, string[]>;
+  containerEntityIdsByEntityId: Map<string, string[]>;
   inboundRelationshipIdsByEntityId: Map<string, string[]>;
   outboundRelationshipIdsByEntityId: Map<string, string[]>;
   diagnosticIdsByScopeId: Map<string, string[]>;
@@ -444,6 +445,7 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
     subtreeEntityIdsByScopeId: new Map(),
     containingScopeIdsByEntityId: new Map(),
     containedEntityIdsByEntityId: new Map(),
+    containerEntityIdsByEntityId: new Map(),
     inboundRelationshipIdsByEntityId,
     outboundRelationshipIdsByEntityId,
     diagnosticIdsByScopeId,
@@ -462,11 +464,16 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
   for (const relationship of payload.relationships) {
     if (relationship.kind === "CONTAINS") {
       pushToMapArray(index.containedEntityIdsByEntityId, relationship.fromEntityId, relationship.toEntityId);
+      pushToMapArray(index.containerEntityIdsByEntityId, relationship.toEntityId, relationship.fromEntityId);
     }
   }
 
   for (const [entityId, containedIds] of index.containedEntityIdsByEntityId.entries()) {
     index.containedEntityIdsByEntityId.set(entityId, sortEntityIds(index, containedIds));
+  }
+
+  for (const [entityId, containerIds] of index.containerEntityIdsByEntityId.entries()) {
+    index.containerEntityIdsByEntityId.set(entityId, sortEntityIds(index, containerIds));
   }
 
   for (const scope of payload.scopes) {
@@ -533,6 +540,12 @@ export function getContainingScopesForEntity(index: BrowserSnapshotIndex, entity
 export function getContainedEntitiesForEntity(index: BrowserSnapshotIndex, entityId: string) {
   return sortEntityIds(index, index.containedEntityIdsByEntityId.get(entityId) ?? [])
     .map((containedEntityId) => index.entitiesById.get(containedEntityId))
+    .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
+}
+
+export function getContainingEntitiesForEntity(index: BrowserSnapshotIndex, entityId: string) {
+  return sortEntityIds(index, index.containerEntityIdsByEntityId.get(entityId) ?? [])
+    .map((containerEntityId) => index.entitiesById.get(containerEntityId))
     .filter((entity): entity is FullSnapshotEntity => Boolean(entity));
 }
 

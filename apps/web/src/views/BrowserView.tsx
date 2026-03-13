@@ -3,7 +3,7 @@ import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
-import { getPrimaryEntitiesForScope } from '../browserSnapshotIndex';
+import { getContainedEntitiesForEntity, getContainingEntitiesForEntity, getDirectEntitiesForScopeByKind, getPrimaryEntitiesForScope, getSubtreeEntitiesForScopeByKind } from '../browserSnapshotIndex';
 import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
@@ -232,84 +232,89 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     setActiveTab('search');
   };
 
-  const handleAddScopeEntitiesToCanvas = (scopeId: string) => {
-    const entityIds = browserSession.state.index?.entityIdsByScopeId.get(scopeId) ?? [];
-    browserSession.addEntitiesToCanvas(entityIds.slice(0, 24));
-    if (entityIds[0]) {
-      browserSession.focusElement({ kind: 'entity', id: entityIds[0] });
+  const focusCanvasEntities = (entityIds: string[], fallbackScopeId?: string) => {
+    const trimmedEntityIds = [...new Set(entityIds)].slice(0, 24);
+    browserSession.addEntitiesToCanvas(trimmedEntityIds);
+    if (fallbackScopeId) {
+      browserSession.selectScope(fallbackScopeId);
+    }
+    if (trimmedEntityIds[0]) {
+      browserSession.focusElement({ kind: 'entity', id: trimmedEntityIds[0] });
       browserSession.openFactsPanel('entity', 'right');
+    } else if (fallbackScopeId) {
+      browserSession.focusElement({ kind: 'scope', id: fallbackScopeId });
+      browserSession.openFactsPanel('scope', 'right');
     }
     setActiveTab('layout');
+  };
+
+  const handleAddScopeAnalysisToCanvas = (scopeId: string, mode: 'primary' | 'direct' | 'subtree' | 'children-primary', kinds?: string[], childScopeKinds?: string[]) => {
+    const index = browserSession.state.index;
+    if (!index) {
+      return;
+    }
+
+    let entityIds: string[] = [];
+    if (mode === 'primary') {
+      entityIds = getPrimaryEntitiesForScope(index, scopeId).map((entity) => entity.externalId);
+    } else if (mode === 'direct') {
+      entityIds = getDirectEntitiesForScopeByKind(index, scopeId, kinds).map((entity) => entity.externalId);
+    } else if (mode === 'subtree') {
+      entityIds = getSubtreeEntitiesForScopeByKind(index, scopeId, kinds).map((entity) => entity.externalId);
+    } else {
+      const allowedChildKinds = childScopeKinds && childScopeKinds.length > 0 ? new Set(childScopeKinds) : null;
+      const childScopeIds = (index.childScopeIdsByParentId.get(scopeId) ?? []).filter((childScopeId) => {
+        if (!allowedChildKinds) {
+          return true;
+        }
+        return allowedChildKinds.has(index.scopesById.get(childScopeId)?.kind ?? '');
+      });
+      const collected = childScopeIds.flatMap((childScopeId) => getPrimaryEntitiesForScope(index, childScopeId).map((entity) => entity.externalId));
+      entityIds = kinds && kinds.length > 0
+        ? collected.filter((entityId) => kinds.includes(index.entitiesById.get(entityId)?.kind ?? ''))
+        : collected;
+    }
+
+    focusCanvasEntities(entityIds, scopeId);
   };
 
   const handleAddPrimaryScopeEntitiesToCanvas = (scopeId: string) => {
+    handleAddScopeAnalysisToCanvas(scopeId, 'primary');
+  };
+
+  const handleAddContainedEntitiesToCanvas = (entityId: string, kinds?: string[]) => {
     const index = browserSession.state.index;
     if (!index) {
       return;
     }
-    const primaryEntityIds = getPrimaryEntitiesForScope(index, scopeId)
-      .map((entity) => entity.externalId)
-      .slice(0, 24);
-    browserSession.addEntitiesToCanvas(primaryEntityIds);
-    browserSession.selectScope(scopeId);
-    if (primaryEntityIds[0]) {
-      browserSession.focusElement({ kind: 'entity', id: primaryEntityIds[0] });
-      browserSession.openFactsPanel('entity', 'right');
-    } else {
-      browserSession.focusElement({ kind: 'scope', id: scopeId });
-      browserSession.openFactsPanel('scope', 'right');
-    }
-    setActiveTab('layout');
+    const entityIds = getContainedEntitiesForEntity(index, entityId)
+      .filter((entity) => !kinds || kinds.includes(entity.kind))
+      .map((entity) => entity.externalId);
+    const fallbackScopeId = index.entitiesById.get(entityId)?.scopeId ?? undefined;
+    focusCanvasEntities(entityIds, fallbackScopeId);
   };
 
-
-  const handleAddChildScopesToCanvas = (scopeId: string) => {
-    const childScopeIds = browserSession.state.index?.childScopeIdsByParentId.get(scopeId) ?? [];
-    childScopeIds.slice(0, 24).forEach((childScopeId) => {
-      browserSession.addScopeToCanvas(childScopeId);
-    });
-    if (childScopeIds[0]) {
-      browserSession.selectScope(scopeId);
-      browserSession.focusElement({ kind: 'scope', id: scopeId });
-      browserSession.openFactsPanel('scope', 'right');
-    }
-    setActiveTab('layout');
-  };
-
-  const handleAddSubtreeEntitiesToCanvas = (scopeId: string) => {
+  const handleAddPeerEntitiesToCanvas = (entityId: string, containerKinds?: string[], peerKinds?: string[]) => {
     const index = browserSession.state.index;
     if (!index) {
       return;
     }
-    const queue = [scopeId];
-    const seen = new Set<string>();
-    const entityIds: string[] = [];
-    while (queue.length > 0 && entityIds.length < 24) {
-      const currentScopeId = queue.shift()!;
-      if (seen.has(currentScopeId)) {
-        continue;
-      }
-      seen.add(currentScopeId);
-      const directEntityIds = index.entityIdsByScopeId.get(currentScopeId) ?? [];
-      for (const entityId of directEntityIds) {
-        entityIds.push(entityId);
-        if (entityIds.length >= 24) {
-          break;
+    const allowedContainerKinds = containerKinds && containerKinds.length > 0 ? new Set(containerKinds) : null;
+    const containers = getContainingEntitiesForEntity(index, entityId).filter((entity) => !allowedContainerKinds || allowedContainerKinds.has(entity.kind));
+    const peerIds = new Set<string>();
+    for (const container of containers) {
+      for (const peer of getContainedEntitiesForEntity(index, container.externalId)) {
+        if (peer.externalId === entityId) {
+          continue;
         }
+        if (peerKinds && peerKinds.length > 0 && !peerKinds.includes(peer.kind)) {
+          continue;
+        }
+        peerIds.add(peer.externalId);
       }
-      if (entityIds.length >= 24) {
-        break;
-      }
-      const childScopeIds = index.childScopeIdsByParentId.get(currentScopeId) ?? [];
-      queue.push(...childScopeIds);
     }
-    entityIds.forEach((entityId) => {
-      browserSession.addEntityToCanvas(entityId);
-    });
-    browserSession.selectScope(scopeId);
-    browserSession.focusElement({ kind: 'scope', id: scopeId });
-    browserSession.openFactsPanel('scope', 'right');
-    setActiveTab('layout');
+    const fallbackScopeId = index.entitiesById.get(entityId)?.scopeId ?? undefined;
+    focusCanvasEntities([...peerIds], fallbackScopeId);
   };
 
   const selectedSnapshotLabel = selectedSnapshot?.snapshotKey
@@ -362,9 +367,9 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             browserSession.focusElement({ kind: 'scope', id: targetScopeId });
             browserSession.openFactsPanel('scope', 'right');
           }}
-          onAddScopeEntities={handleAddScopeEntitiesToCanvas}
-          onAddChildScopes={handleAddChildScopesToCanvas}
-          onAddSubtreeEntities={handleAddSubtreeEntitiesToCanvas}
+          onAddScopeAnalysis={handleAddScopeAnalysisToCanvas}
+          onAddContainedEntities={handleAddContainedEntitiesToCanvas}
+          onAddPeerEntities={handleAddPeerEntitiesToCanvas}
           onFocusScope={(scopeId) => {
             browserSession.selectScope(scopeId);
             browserSession.focusElement({ kind: 'scope', id: scopeId });

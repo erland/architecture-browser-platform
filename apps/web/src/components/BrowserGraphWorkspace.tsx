@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { BrowserSnapshotIndex } from '../browserSnapshotIndex';
+import type { FullSnapshotEntity } from '../appModel';
+import {
+  getContainedEntitiesForEntity,
+  getContainingEntitiesForEntity,
+  getPrimaryEntitiesForScope,
+  getSubtreeEntitiesForScopeByKind,
+  type BrowserSnapshotIndex,
+} from '../browserSnapshotIndex';
 import type { BrowserSessionState } from '../browserSessionStore';
 import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
 
@@ -10,13 +17,15 @@ function scopeActionLabel(index: BrowserSnapshotIndex | null, scopeId: string | 
   return index.scopePathById.get(scopeId) ?? scopeId;
 }
 
+type ScopeAnalysisMode = 'primary' | 'direct' | 'subtree' | 'children-primary';
+
 type BrowserGraphWorkspaceProps = {
   state: BrowserSessionState;
   activeModeLabel: string;
   onAddSelectedScope: (scopeId?: string) => void;
-  onAddScopeEntities: (scopeId: string) => void;
-  onAddChildScopes: (scopeId: string) => void;
-  onAddSubtreeEntities: (scopeId: string) => void;
+  onAddScopeAnalysis: (scopeId: string, mode: ScopeAnalysisMode, kinds?: string[], childScopeKinds?: string[]) => void;
+  onAddContainedEntities: (entityId: string, kinds?: string[]) => void;
+  onAddPeerEntities: (entityId: string, containerKinds?: string[], peerKinds?: string[]) => void;
   onFocusScope: (scopeId: string) => void;
   onFocusEntity: (entityId: string) => void;
   onSelectEntity: (entityId: string, additive?: boolean) => void;
@@ -33,13 +42,127 @@ type BrowserGraphWorkspaceProps = {
   onFitView: () => void;
 };
 
+type BrowserEntitySelectionAction = {
+  key: string;
+  label: string;
+  disabled?: boolean;
+};
+
+function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
+  if (!kinds || kinds.length === 0) {
+    return entities;
+  }
+  const allowed = new Set(kinds);
+  return entities.filter((entity) => allowed.has(entity.kind));
+}
+
+function getEntityContainedCount(index: BrowserSnapshotIndex, entityId: string, kinds?: string[]) {
+  return filterEntitiesByKinds(getContainedEntitiesForEntity(index, entityId), kinds).length;
+}
+
+function getEntityPeerCount(index: BrowserSnapshotIndex, entityId: string, containerKinds?: string[], peerKinds?: string[]) {
+  const containers = filterEntitiesByKinds(getContainingEntitiesForEntity(index, entityId), containerKinds);
+  const peerIds = new Set<string>();
+  for (const container of containers) {
+    for (const peer of filterEntitiesByKinds(getContainedEntitiesForEntity(index, container.externalId), peerKinds)) {
+      if (peer.externalId !== entityId) {
+        peerIds.add(peer.externalId);
+      }
+    }
+  }
+  return peerIds.size;
+}
+
+function getScopeChildPrimaryCount(index: BrowserSnapshotIndex, scopeId: string, childScopeKinds?: string[]) {
+  const childKindFilter = childScopeKinds && childScopeKinds.length > 0 ? new Set(childScopeKinds) : null;
+  const childScopeIds = (index.childScopeIdsByParentId.get(scopeId) ?? []).filter((childScopeId) => {
+    if (!childKindFilter) {
+      return true;
+    }
+    return childKindFilter.has(index.scopesById.get(childScopeId)?.kind ?? '');
+  });
+  const entityIds = new Set<string>();
+  for (const childScopeId of childScopeIds) {
+    for (const entity of getPrimaryEntitiesForScope(index, childScopeId)) {
+      entityIds.add(entity.externalId);
+    }
+  }
+  return entityIds.size;
+}
+
+export function buildEntitySelectionActions(index: BrowserSnapshotIndex | null, entity: FullSnapshotEntity | null): BrowserEntitySelectionAction[] {
+  if (!index || !entity) {
+    return [];
+  }
+
+  const containedCount = getEntityContainedCount(index, entity.externalId);
+  const inboundCount = index.inboundRelationshipIdsByEntityId.get(entity.externalId)?.length ?? 0;
+  const outboundCount = index.outboundRelationshipIdsByEntityId.get(entity.externalId)?.length ?? 0;
+  const scopeId = entity.scopeId;
+
+  if (entity.kind === 'MODULE') {
+    const functionCount = getEntityContainedCount(index, entity.externalId, ['FUNCTION']);
+    return [
+      { key: 'contained', label: `Contained${containedCount > 0 ? ` (${Math.min(containedCount, 24)})` : ''}`, disabled: containedCount === 0 },
+      { key: 'functions', label: `Functions${functionCount > 0 ? ` (${Math.min(functionCount, 24)})` : ''}`, disabled: functionCount === 0 },
+      { key: 'dependencies', label: 'Dependencies', disabled: inboundCount + outboundCount === 0 },
+      { key: 'used-by', label: `Used by${inboundCount > 0 ? ` (${Math.min(inboundCount, 24)})` : ''}`, disabled: inboundCount === 0 },
+      { key: 'remove', label: 'Remove' },
+      { key: 'pin', label: 'Pin' },
+    ];
+  }
+
+  if (entity.kind === 'PACKAGE') {
+    const subpackageCount = scopeId ? getScopeChildPrimaryCount(index, scopeId, ['PACKAGE']) : 0;
+    const moduleCount = scopeId ? getSubtreeEntitiesForScopeByKind(index, scopeId, ['MODULE']).length : 0;
+    const classCount = scopeId ? getSubtreeEntitiesForScopeByKind(index, scopeId, ['CLASS', 'INTERFACE']).length : 0;
+    return [
+      { key: 'subpackages', label: `Subpackages${subpackageCount > 0 ? ` (${Math.min(subpackageCount, 24)})` : ''}`, disabled: subpackageCount === 0 },
+      { key: 'contained', label: `Contained${containedCount > 0 ? ` (${Math.min(containedCount, 24)})` : ''}`, disabled: containedCount === 0 },
+      { key: 'modules', label: `Modules${moduleCount > 0 ? ` (${Math.min(moduleCount, 24)})` : ''}`, disabled: moduleCount === 0 },
+      { key: 'classes', label: `Classes${classCount > 0 ? ` (${Math.min(classCount, 24)})` : ''}`, disabled: classCount === 0 },
+      { key: 'remove', label: 'Remove' },
+      { key: 'pin', label: 'Pin' },
+    ];
+  }
+
+  if (entity.kind === 'FUNCTION') {
+    const sameModuleCount = getEntityPeerCount(index, entity.externalId, ['MODULE'], ['FUNCTION']);
+    return [
+      { key: 'calls', label: `Calls${outboundCount > 0 ? ` (${Math.min(outboundCount, 24)})` : ''}`, disabled: outboundCount === 0 },
+      { key: 'called-by', label: `Called by${inboundCount > 0 ? ` (${Math.min(inboundCount, 24)})` : ''}`, disabled: inboundCount === 0 },
+      { key: 'same-module', label: `Same module${sameModuleCount > 0 ? ` (${Math.min(sameModuleCount, 24)})` : ''}`, disabled: sameModuleCount === 0 },
+      { key: 'remove', label: 'Remove' },
+      { key: 'pin', label: 'Pin' },
+    ];
+  }
+
+  if (entity.kind === 'CLASS' || entity.kind === 'INTERFACE') {
+    return [
+      { key: 'contained', label: `Contained${containedCount > 0 ? ` (${Math.min(containedCount, 24)})` : ''}`, disabled: containedCount === 0 },
+      { key: 'dependencies', label: 'Dependencies', disabled: inboundCount + outboundCount === 0 },
+      { key: 'used-by', label: `Used by${inboundCount > 0 ? ` (${Math.min(inboundCount, 24)})` : ''}`, disabled: inboundCount === 0 },
+      { key: 'remove', label: 'Remove' },
+      { key: 'pin', label: 'Pin' },
+    ];
+  }
+
+  return [
+    { key: 'contained', label: `Contained${containedCount > 0 ? ` (${Math.min(containedCount, 24)})` : ''}`, disabled: containedCount === 0 },
+    { key: 'dependencies', label: 'Dependencies', disabled: inboundCount + outboundCount === 0 },
+    { key: 'used-by', label: `Used by${inboundCount > 0 ? ` (${Math.min(inboundCount, 24)})` : ''}`, disabled: inboundCount === 0 },
+    { key: 'remove', label: 'Remove' },
+    { key: 'pin', label: 'Pin' },
+  ];
+}
+
 export function BrowserGraphWorkspace({
   state,
   activeModeLabel,
   onAddSelectedScope,
-  onAddScopeEntities,
-  onAddChildScopes,
-  onAddSubtreeEntities,
+  onAddScopeAnalysis,
+  onAddContainedEntities,
+  onAddPeerEntities,
   onFocusScope,
   onFocusEntity,
   onSelectEntity,
@@ -57,16 +180,21 @@ export function BrowserGraphWorkspace({
 }: BrowserGraphWorkspaceProps) {
   const [zoom, setZoom] = useState(1);
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
-  const selectedScopeEntityCount = state.selectedScopeId ? (state.index?.entityIdsByScopeId.get(state.selectedScopeId)?.length ?? 0) : 0;
   const focusedEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
   const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
   const scopeActionScopeId = focusedScopeId ?? state.selectedScopeId;
   const scopeTreeNode = scopeActionScopeId ? state.index?.scopeTree.find((node) => node.scopeId === scopeActionScopeId) ?? null : null;
   const scopeChildCount = scopeActionScopeId ? (state.index?.childScopeIdsByParentId.get(scopeActionScopeId)?.length ?? 0) : 0;
   const scopeDirectEntityCount = scopeActionScopeId ? (state.index?.entityIdsByScopeId.get(scopeActionScopeId)?.length ?? 0) : 0;
+  const scopePrimaryEntityCount = scopeActionScopeId ? (state.index ? getPrimaryEntitiesForScope(state.index, scopeActionScopeId).length : 0) : 0;
   const scopeSubtreeEntityCount = scopeTreeNode?.descendantEntityCount ?? 0;
   const selectedEntityCount = state.selectedEntityIds.length;
   const pinnedNodeCount = state.canvasNodes.filter((node) => node.pinned).length;
+  const focusedEntity = focusedEntityId ? state.index?.entitiesById.get(focusedEntityId) ?? null : null;
+  const entityActions = useMemo(
+    () => buildEntitySelectionActions(state.index, focusedEntity),
+    [state.index, focusedEntity],
+  );
 
   useEffect(() => {
     if (!state.fitViewRequestedAt) {
@@ -80,6 +208,55 @@ export function BrowserGraphWorkspace({
       setZoom(1);
     }
   }, [model.nodes.length, state.fitViewRequestedAt]);
+
+  const handleEntityAction = (actionKey: string) => {
+    if (!focusedEntity) {
+      return;
+    }
+    if (actionKey === 'contained') {
+      onAddContainedEntities(focusedEntity.externalId);
+      return;
+    }
+    if (actionKey === 'functions') {
+      onAddContainedEntities(focusedEntity.externalId, ['FUNCTION']);
+      return;
+    }
+    if (actionKey === 'dependencies') {
+      onExpandEntityDependencies(focusedEntity.externalId);
+      return;
+    }
+    if (actionKey === 'used-by' || actionKey === 'called-by') {
+      onExpandInboundDependencies(focusedEntity.externalId);
+      return;
+    }
+    if (actionKey === 'calls') {
+      onExpandOutboundDependencies(focusedEntity.externalId);
+      return;
+    }
+    if (actionKey === 'same-module') {
+      onAddPeerEntities(focusedEntity.externalId, ['MODULE'], ['FUNCTION']);
+      return;
+    }
+    if (actionKey === 'subpackages' && focusedEntity.scopeId) {
+      onAddScopeAnalysis(focusedEntity.scopeId, 'children-primary', undefined, ['PACKAGE']);
+      return;
+    }
+    if (actionKey === 'modules' && focusedEntity.scopeId) {
+      onAddScopeAnalysis(focusedEntity.scopeId, 'subtree', ['MODULE']);
+      return;
+    }
+    if (actionKey === 'classes' && focusedEntity.scopeId) {
+      onAddScopeAnalysis(focusedEntity.scopeId, 'subtree', ['CLASS', 'INTERFACE']);
+      return;
+    }
+    if (actionKey === 'remove') {
+      onRemoveEntity(focusedEntity.externalId);
+      return;
+    }
+    if (actionKey === 'pin') {
+      onTogglePinNode({ kind: 'entity', id: focusedEntity.externalId });
+    }
+  };
 
   return (
     <section className="card browser-canvas" aria-label="Canvas graph workspace">
@@ -99,14 +276,29 @@ export function BrowserGraphWorkspace({
       </header>
 
       <div className="browser-canvas__toolbar">
-        <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(scopeActionScopeId ?? undefined)} disabled={!scopeActionScopeId}>Add selected scope</button>
         <button
           type="button"
           className="button-secondary"
-          onClick={() => scopeActionScopeId ? onAddScopeEntities(scopeActionScopeId) : undefined}
-          disabled={!scopeActionScopeId || (focusedScopeId ? scopeDirectEntityCount === 0 : selectedScopeEntityCount === 0)}
+          onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'primary') : undefined}
+          disabled={!scopeActionScopeId || scopePrimaryEntityCount === 0}
         >
-          Add scope entities
+          Add primary entities
+        </button>
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'direct') : undefined}
+          disabled={!scopeActionScopeId || scopeDirectEntityCount === 0}
+        >
+          Add direct entities
+        </button>
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'subtree') : undefined}
+          disabled={!scopeActionScopeId || scopeSubtreeEntityCount === 0}
+        >
+          Add subtree entities
         </button>
         <button type="button" className="button-secondary" onClick={onIsolateSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Isolate selection</button>
         <button type="button" className="button-secondary" onClick={onRemoveSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Remove selection</button>
@@ -130,28 +322,40 @@ export function BrowserGraphWorkspace({
       <div className="browser-canvas__helper-row">
         <p className="muted">Selected branch: {scopeActionLabel(state.index, scopeActionScopeId)}</p>
         <div className="actions browser-canvas__selection-toolbar">
-          {focusedEntityId ? (
-            <>
-              <button type="button" className="button-secondary" onClick={() => onExpandInboundDependencies(focusedEntityId)}>Inbound</button>
-              <button type="button" className="button-secondary" onClick={() => onExpandOutboundDependencies(focusedEntityId)}>Outbound</button>
-              <button type="button" className="button-secondary" onClick={() => onExpandEntityDependencies(focusedEntityId)}>Around</button>
-              <button type="button" className="button-secondary" onClick={() => onRemoveEntity(focusedEntityId)}>Remove</button>
-              <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: focusedEntityId })}>
-                {state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntityId)?.pinned ? 'Unpin' : 'Pin'}
-              </button>
-            </>
+          {focusedEntity ? (
+            entityActions.map((action) => {
+              if (action.key === 'pin') {
+                const isPinned = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntity.externalId)?.pinned;
+                return (
+                  <button key={action.key} type="button" className="button-secondary" onClick={() => handleEntityAction(action.key)}>
+                    {isPinned ? 'Unpin' : 'Pin'}
+                  </button>
+                );
+              }
+              return (
+                <button
+                  key={action.key}
+                  type="button"
+                  className="button-secondary"
+                  onClick={() => handleEntityAction(action.key)}
+                  disabled={action.disabled}
+                >
+                  {action.label}
+                </button>
+              );
+            })
           ) : focusedScopeId ? (
             <>
-              <button type="button" className="button-secondary" onClick={() => onAddChildScopes(focusedScopeId)} disabled={scopeChildCount === 0}>Children{scopeChildCount > 0 ? ` (${scopeChildCount})` : ''}</button>
-              <button type="button" className="button-secondary" onClick={() => onAddScopeEntities(focusedScopeId)} disabled={scopeDirectEntityCount === 0}>Entities{scopeDirectEntityCount > 0 ? ` (${Math.min(scopeDirectEntityCount, 24)})` : ''}</button>
-              <button type="button" className="button-secondary" onClick={() => onAddSubtreeEntities(focusedScopeId)} disabled={scopeSubtreeEntityCount === 0}>Subtree{scopeSubtreeEntityCount > 0 ? ` (${Math.min(scopeSubtreeEntityCount, 24)})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'children-primary')} disabled={scopeChildCount === 0}>Child primary{scopeChildCount > 0 ? ` (${Math.min(scopeChildCount, 24)})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'direct')} disabled={scopeDirectEntityCount === 0}>Direct entities{scopeDirectEntityCount > 0 ? ` (${Math.min(scopeDirectEntityCount, 24)})` : ''}</button>
+              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'subtree')} disabled={scopeSubtreeEntityCount === 0}>Subtree entities{scopeSubtreeEntityCount > 0 ? ` (${Math.min(scopeSubtreeEntityCount, 24)})` : ''}</button>
               <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
                 {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin scope' : 'Pin scope'}
               </button>
-              <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(focusedScopeId)}>Add scope</button>
+              <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(focusedScopeId)}>Add scope node</button>
             </>
           ) : (
-            <span className="muted">Select a canvas node to see actions here.</span>
+            <span className="muted">Focus an entity to explore relationships, containment, and neighbors. Scope actions remain available as an advanced fallback.</span>
           )}
         </div>
       </div>
