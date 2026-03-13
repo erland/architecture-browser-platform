@@ -1,12 +1,47 @@
-import type { FullSnapshotDiagnostic, FullSnapshotRelationship, SnapshotSourceRef } from '../appModel';
+import type { FullSnapshotDiagnostic, FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotScope, SnapshotSourceRef } from '../appModel';
 import {
+  getDirectEntitiesForScope,
   getEntityFacts,
+  getPrimaryEntitiesForScope,
   getScopeFacts,
+  getSubtreeEntitiesForScope,
+  getChildScopes,
   type BrowserEntityFacts,
   type BrowserScopeFacts,
   type BrowserSnapshotIndex,
 } from '../browserSnapshotIndex';
 import type { BrowserSessionState } from '../browserSessionStore';
+
+export type BrowserFactsPanelScopeSummary = {
+  id: string;
+  kind: string;
+  name: string;
+  path: string;
+};
+
+export type BrowserFactsPanelEntitySummary = {
+  id: string;
+  kind: string;
+  name: string;
+  scopeId: string | null;
+};
+
+export type BrowserFactsPanelEntityGroup = {
+  kind: string;
+  count: number;
+  entityIds: string[];
+  sampleEntityIds: string[];
+};
+
+export type BrowserFactsPanelScopeBridge = {
+  parentScope: BrowserFactsPanelScopeSummary | null;
+  childScopes: BrowserFactsPanelScopeSummary[];
+  primaryEntities: BrowserFactsPanelEntitySummary[];
+  directEntities: BrowserFactsPanelEntitySummary[];
+  subtreeEntities: BrowserFactsPanelEntitySummary[];
+  directEntityGroups: BrowserFactsPanelEntityGroup[];
+  subtreeEntityGroups: BrowserFactsPanelEntityGroup[];
+};
 
 export type BrowserFactsPanelModel = {
   title: string;
@@ -19,6 +54,7 @@ export type BrowserFactsPanelModel = {
   relationship: FullSnapshotRelationship | null;
   scopeFacts: BrowserScopeFacts | null;
   entityFacts: BrowserEntityFacts | null;
+  scopeBridge: BrowserFactsPanelScopeBridge | null;
 };
 
 function uniqueSourceRefs(sourceRefs: SnapshotSourceRef[]) {
@@ -41,6 +77,78 @@ function formatRelationshipLabel(index: BrowserSnapshotIndex, relationship: Full
   const fromName = fromEntity?.displayName?.trim() || fromEntity?.name || relationship.fromEntityId;
   const toName = toEntity?.displayName?.trim() || toEntity?.name || relationship.toEntityId;
   return `${fromName} → ${toName}`;
+}
+
+function displayEntityName(entity: FullSnapshotEntity) {
+  return entity.displayName?.trim() || entity.name;
+}
+
+function displayScopeName(scope: FullSnapshotScope) {
+  return scope.displayName?.trim() || scope.name;
+}
+
+function toEntitySummary(entity: FullSnapshotEntity): BrowserFactsPanelEntitySummary {
+  return {
+    id: entity.externalId,
+    kind: entity.kind,
+    name: displayEntityName(entity),
+    scopeId: entity.scopeId,
+  };
+}
+
+function toScopeSummary(index: BrowserSnapshotIndex, scope: FullSnapshotScope): BrowserFactsPanelScopeSummary {
+  return {
+    id: scope.externalId,
+    kind: scope.kind,
+    name: displayScopeName(scope),
+    path: index.scopePathById.get(scope.externalId) ?? displayScopeName(scope),
+  };
+}
+
+function buildEntityGroups(entities: FullSnapshotEntity[]): BrowserFactsPanelEntityGroup[] {
+  const grouped = new Map<string, BrowserFactsPanelEntityGroup>();
+  for (const entity of entities) {
+    const current = grouped.get(entity.kind);
+    if (current) {
+      current.count += 1;
+      current.entityIds.push(entity.externalId);
+      if (current.sampleEntityIds.length < 5) {
+        current.sampleEntityIds.push(entity.externalId);
+      }
+      continue;
+    }
+    grouped.set(entity.kind, {
+      kind: entity.kind,
+      count: 1,
+      entityIds: [entity.externalId],
+      sampleEntityIds: [entity.externalId],
+    });
+  }
+  return [...grouped.values()].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+    return left.kind.localeCompare(right.kind, undefined, { sensitivity: 'base' });
+  });
+}
+
+function buildScopeBridge(index: BrowserSnapshotIndex, scopeFacts: BrowserScopeFacts): BrowserFactsPanelScopeBridge {
+  const scope = scopeFacts.scope;
+  const childScopes = getChildScopes(index, scope.externalId).map((childScope) => toScopeSummary(index, childScope));
+  const primaryEntities = getPrimaryEntitiesForScope(index, scope.externalId).map(toEntitySummary);
+  const directEntitiesRaw = getDirectEntitiesForScope(index, scope.externalId);
+  const subtreeEntitiesRaw = getSubtreeEntitiesForScope(index, scope.externalId);
+  const parentScope = scope.parentScopeId ? index.scopesById.get(scope.parentScopeId) ?? null : null;
+
+  return {
+    parentScope: parentScope ? toScopeSummary(index, parentScope) : null,
+    childScopes,
+    primaryEntities,
+    directEntities: directEntitiesRaw.map(toEntitySummary),
+    subtreeEntities: subtreeEntitiesRaw.map(toEntitySummary),
+    directEntityGroups: buildEntityGroups(directEntitiesRaw),
+    subtreeEntityGroups: buildEntityGroups(subtreeEntitiesRaw),
+  };
 }
 
 export function buildBrowserFactsPanelModel(state: BrowserSessionState): BrowserFactsPanelModel | null {
@@ -82,6 +190,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       relationship,
       scopeFacts: null,
       entityFacts: null,
+      scopeBridge: null,
     };
   }
 
@@ -91,7 +200,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       return null;
     }
     return {
-      title: entityFacts.entity.displayName?.trim() || entityFacts.entity.name,
+      title: displayEntityName(entityFacts.entity),
       subtitle: [entityFacts.entity.kind, entityFacts.path].filter(Boolean).join(' • '),
       mode: 'entity',
       badges: [
@@ -110,6 +219,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       relationship: null,
       scopeFacts: null,
       entityFacts,
+      scopeBridge: null,
     };
   }
 
@@ -119,18 +229,21 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
     if (!scopeFacts) {
       return null;
     }
+    const scopeBridge = buildScopeBridge(index, scopeFacts);
     return {
-      title: scopeFacts.scope.displayName?.trim() || scopeFacts.scope.name,
+      title: displayScopeName(scopeFacts.scope),
       subtitle: [scopeFacts.scope.kind, scopeFacts.path].filter(Boolean).join(' • '),
       mode: 'scope',
       badges: [
         `${scopeFacts.childScopeIds.length} children`,
-        `${scopeFacts.entityIds.length} direct entities`,
-        `${scopeFacts.descendantEntityCount} subtree entities`,
+        `${scopeBridge.primaryEntities.length} primary entities`,
+        `${scopeBridge.directEntities.length} direct entities`,
+        `${scopeBridge.subtreeEntities.length} subtree entities`,
         `${scopeFacts.diagnostics.length} diagnostics`,
       ],
       summary: [
         scopeFacts.scope.externalId,
+        `Parent ${scopeBridge.parentScope?.path ?? 'Root scope'}`,
         `Descendant scopes ${scopeFacts.descendantScopeCount}`,
         `Source refs ${scopeFacts.sourceRefs.length}`,
       ],
@@ -139,6 +252,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       relationship: null,
       scopeFacts,
       entityFacts: null,
+      scopeBridge,
     };
   }
 
@@ -162,6 +276,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
     relationship: null,
     scopeFacts: null,
     entityFacts: null,
+    scopeBridge: null,
   };
 }
 
@@ -180,18 +295,26 @@ function renderDiagnostic(diagnostic: FullSnapshotDiagnostic) {
   );
 }
 
+function renderEntityButtonLabel(group: BrowserFactsPanelEntityGroup, scope: 'direct' | 'subtree') {
+  if (scope === 'direct') {
+    return `Add ${group.kind.toLocaleLowerCase()}${group.count === 1 ? '' : 's'}`;
+  }
+  return `Add subtree ${group.kind.toLocaleLowerCase()}${group.count === 1 ? '' : 's'}`;
+}
+
 export type BrowserFactsPanelProps = {
   state: BrowserSessionState;
   onSelectScope: (scopeId: string | null) => void;
   onFocusEntity: (entityId: string) => void;
   onFocusRelationship: (relationshipId: string) => void;
+  onAddEntities: (entityIds: string[]) => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
   onClose: () => void;
 };
 
-export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocusRelationship, onTogglePinNode, onIsolateSelection, onRemoveSelection, onClose }: BrowserFactsPanelProps) {
+export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onIsolateSelection, onRemoveSelection, onClose }: BrowserFactsPanelProps) {
   const model = buildBrowserFactsPanelModel(state);
 
   if (!model) {
@@ -220,7 +343,6 @@ export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocus
       </div>
 
       <div className="browser-facts-panel__actions">
-        {model.mode === 'scope' && model.scopeFacts ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: model.scopeFacts!.scope.externalId })}>{state.canvasNodes.find((node) => node.kind === 'scope' && node.id === model.scopeFacts!.scope.externalId)?.pinned ? 'Unpin scope' : 'Pin scope'}</button> : null}
         {model.mode === 'entity' && model.entityFacts ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: model.entityFacts!.entity.externalId })}>{state.canvasNodes.find((node) => node.kind === 'entity' && node.id === model.entityFacts!.entity.externalId)?.pinned ? 'Unpin entity' : 'Pin entity'}</button> : null}
         {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
         {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}
@@ -230,32 +352,99 @@ export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocus
         {model.summary.map((line) => <p key={line} className="muted">{line}</p>)}
       </div>
 
-      {model.scopeFacts ? (
-        <section className="browser-facts-panel__section">
-          <div className="browser-facts-panel__section-header">
-            <h4>Scope details</h4>
-            <button type="button" className="button-secondary" onClick={() => onSelectScope(model.scopeFacts?.scope.externalId ?? null)}>Select scope</button>
-          </div>
-          <div className="browser-count-grid browser-count-grid--facts">
-            <div><strong>{model.scopeFacts.childScopeIds.length}</strong><span>Child scopes</span></div>
-            <div><strong>{model.scopeFacts.entityIds.length}</strong><span>Direct entities</span></div>
-            <div><strong>{model.scopeFacts.descendantScopeCount}</strong><span>Descendant scopes</span></div>
-            <div><strong>{model.scopeFacts.descendantEntityCount}</strong><span>Descendant entities</span></div>
-          </div>
-          {model.scopeFacts.entityIds.length > 0 ? (
-            <ul className="browser-facts-panel__list">
-              {model.scopeFacts.entityIds.slice(0, 8).map((entityId) => {
-                const entity = state.index?.entitiesById.get(entityId);
-                return (
-                  <li key={entityId} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
-                    <button type="button" className="button-secondary" onClick={() => onFocusEntity(entityId)}>{entity?.displayName?.trim() || entity?.name || entityId}</button>
-                    <span>{entity?.kind ?? 'ENTITY'}</span>
+      {model.scopeFacts && model.scopeBridge ? (
+        <>
+          <section className="browser-facts-panel__section">
+            <div className="browser-facts-panel__section-header">
+              <h4>Scope</h4>
+              <button type="button" className="button-secondary" onClick={() => onSelectScope(model.scopeFacts?.scope.externalId ?? null)}>Select scope</button>
+            </div>
+            <div className="browser-count-grid browser-count-grid--facts">
+              <div><strong>{model.scopeFacts.scope.kind}</strong><span>Kind</span></div>
+              <div><strong>{model.scopeBridge.parentScope ? 'Yes' : 'No'}</strong><span>Has parent</span></div>
+              <div><strong>{model.scopeBridge.childScopes.length}</strong><span>Child scopes</span></div>
+              <div><strong>{model.scopeFacts.descendantScopeCount}</strong><span>Descendant scopes</span></div>
+            </div>
+            <div className="browser-facts-panel__summary">
+              <p className="muted">Display {displayScopeName(model.scopeFacts.scope)}</p>
+              <p className="muted">Path {model.scopeFacts.path}</p>
+              <p className="muted">Parent {model.scopeBridge.parentScope?.path ?? 'Root scope'}</p>
+            </div>
+          </section>
+
+          <section className="browser-facts-panel__section">
+            <div className="browser-facts-panel__section-header">
+              <h4>Primary entities</h4>
+              {model.scopeBridge.primaryEntities.length > 0 ? (
+                <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.primaryEntities.map((entity) => entity.id))}>Add primary</button>
+              ) : null}
+            </div>
+            {model.scopeBridge.primaryEntities.length > 0 ? (
+              <ul className="browser-facts-panel__list">
+                {model.scopeBridge.primaryEntities.map((entity) => (
+                  <li key={entity.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+                    <button type="button" className="button-secondary" onClick={() => onFocusEntity(entity.id)}>{entity.name}</button>
+                    <span>{entity.kind}</span>
                   </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </section>
+                ))}
+              </ul>
+            ) : <p className="muted">No primary entities resolved for this scope.</p>}
+          </section>
+
+          <section className="browser-facts-panel__section">
+            <div className="browser-facts-panel__section-header">
+              <h4>Direct entities by kind</h4>
+              {model.scopeBridge.directEntities.length > 0 ? (
+                <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.directEntities.map((entity) => entity.id))}>Add all direct</button>
+              ) : null}
+            </div>
+            {model.scopeBridge.directEntityGroups.length > 0 ? (
+              <ul className="browser-facts-panel__list">
+                {model.scopeBridge.directEntityGroups.map((group) => (
+                  <li key={`direct:${group.kind}`} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+                    <button type="button" className="button-secondary" onClick={() => onAddEntities(group.entityIds)}>{renderEntityButtonLabel(group, 'direct')}</button>
+                    <span>{group.kind} ({group.count})</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="muted">No direct entities in this scope.</p>}
+          </section>
+
+          <section className="browser-facts-panel__section">
+            <div className="browser-facts-panel__section-header">
+              <h4>Subtree entities by kind</h4>
+              {model.scopeBridge.subtreeEntities.length > 0 ? (
+                <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.subtreeEntities.map((entity) => entity.id))}>Add all subtree</button>
+              ) : null}
+            </div>
+            {model.scopeBridge.subtreeEntityGroups.length > 0 ? (
+              <ul className="browser-facts-panel__list">
+                {model.scopeBridge.subtreeEntityGroups.map((group) => (
+                  <li key={`subtree:${group.kind}`} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+                    <button type="button" className="button-secondary" onClick={() => onAddEntities(group.entityIds)}>{renderEntityButtonLabel(group, 'subtree')}</button>
+                    <span>{group.kind} ({group.count})</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="muted">No subtree entities under this scope.</p>}
+          </section>
+
+          <section className="browser-facts-panel__section">
+            <div className="browser-facts-panel__section-header">
+              <h4>Child scopes</h4>
+            </div>
+            {model.scopeBridge.childScopes.length > 0 ? (
+              <ul className="browser-facts-panel__list">
+                {model.scopeBridge.childScopes.slice(0, 8).map((scope) => (
+                  <li key={scope.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+                    <button type="button" className="button-secondary" onClick={() => onSelectScope(scope.id)}>{scope.name}</button>
+                    <span>{scope.kind}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="muted">No child scopes under the current selection.</p>}
+          </section>
+        </>
       ) : null}
 
       {model.entityFacts ? (

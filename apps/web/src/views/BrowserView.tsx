@@ -552,6 +552,16 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
               browserSession.openFactsPanel('relationship', 'right');
               setActiveTab('dependencies');
             }}
+            onAddEntities={(entityIds) => {
+              browserSession.addEntitiesToCanvas(entityIds);
+              const focusEntityId = entityIds[0];
+              if (focusEntityId) {
+                browserSession.selectCanvasEntity(focusEntityId);
+                browserSession.focusElement({ kind: 'entity', id: focusEntityId });
+                browserSession.openFactsPanel('entity', 'right');
+                setActiveTab('search');
+              }
+            }}
             onTogglePinNode={browserSession.toggleCanvasNodePin}
             onIsolateSelection={browserSession.isolateCanvasSelection}
             onRemoveSelection={browserSession.removeCanvasSelection}
