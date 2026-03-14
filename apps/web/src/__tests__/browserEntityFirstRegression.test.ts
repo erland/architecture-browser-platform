@@ -84,7 +84,8 @@ describe('browser entity-first regression coverage', () => {
     state = addPrimaryEntitiesForScope(state, 'scope:file');
 
     expect(state.selectedScopeId).toBe('scope:file');
-    expect(state.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:module' }]);
+    expect(state.canvasNodes).toHaveLength(1);
+    expect(state.canvasNodes[0]).toMatchObject({ kind: 'entity', id: 'entity:module' });
     expect(state.canvasNodes.some((node) => node.kind === 'scope')).toBe(false);
     expect(state.focusedElement).toEqual({ kind: 'entity', id: 'entity:module' });
   });
@@ -99,7 +100,8 @@ describe('browser entity-first regression coverage', () => {
     state = addPrimaryEntitiesForScope(state, 'scope:src');
 
     expect(state.selectedScopeId).toBe('scope:src');
-    expect(state.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:module' }]);
+    expect(state.canvasNodes).toHaveLength(1);
+    expect(state.canvasNodes[0]).toMatchObject({ kind: 'entity', id: 'entity:module' });
     expect(state.selectedEntityIds).toEqual(['entity:module']);
   });
 
@@ -113,7 +115,8 @@ describe('browser entity-first regression coverage', () => {
     state = addPrimaryEntitiesForScope(state, 'scope:pkg');
 
     expect(state.selectedScopeId).toBe('scope:pkg');
-    expect(state.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:package' }]);
+    expect(state.canvasNodes).toHaveLength(1);
+    expect(state.canvasNodes[0]).toMatchObject({ kind: 'entity', id: 'entity:package' });
     expect(state.focusedElement).toEqual({ kind: 'entity', id: 'entity:package' });
   });
 
@@ -183,7 +186,8 @@ describe('browser entity-first regression coverage', () => {
 
     const seeded = addPrimaryEntitiesForScope(state, addAction.id);
     expect(seeded.selectedScopeId).toBe('scope:file');
-    expect(seeded.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:module' }]);
+    expect(seeded.canvasNodes).toHaveLength(1);
+    expect(seeded.canvasNodes[0]).toMatchObject({ kind: 'entity', id: 'entity:module' });
     expect(seeded.factsPanelMode).toBe('entity');
   });
 

@@ -129,7 +129,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     });
     state = {
       ...state,
-      canvasNodes: [{ id: 'entity:module', kind: 'entity', pinned: false }],
+      canvasNodes: [{ id: 'entity:module', kind: 'entity', x: 56, y: 64, pinned: false }],
       focusedElement: { kind: 'entity', id: 'entity:module' },
       selectedEntityIds: ['entity:module'],
     };

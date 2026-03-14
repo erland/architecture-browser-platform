@@ -11,7 +11,7 @@ import {
   searchBrowserSnapshotIndex,
 } from './browserSnapshotIndex';
 
-const STORAGE_KEY = 'architecture-browser-platform.browser-session.v1';
+const STORAGE_KEY = 'architecture-browser-platform.browser-session.v2';
 
 export type BrowserFactsPanelMode = 'hidden' | 'scope' | 'entity' | 'relationship';
 export type BrowserFactsPanelLocation = 'right' | 'bottom' | 'replace-canvas';
@@ -24,7 +24,10 @@ export type BrowserFocusedElement =
 export type BrowserCanvasNode = {
   kind: 'scope' | 'entity';
   id: string;
+  x: number;
+  y: number;
   pinned?: boolean;
+  manuallyPlaced?: boolean;
 };
 
 export type BrowserCanvasLayoutMode = 'grid' | 'radial';
@@ -138,7 +141,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     selectedEntityIds: [...(persisted.selectedEntityIds ?? state.selectedEntityIds)],
     searchQuery: persisted.searchQuery ?? state.searchQuery,
     searchScopeId: persisted.searchScopeId ?? state.searchScopeId,
-    canvasNodes: [...(persisted.canvasNodes ?? state.canvasNodes)],
+    canvasNodes: normalizeCanvasNodes([...(persisted.canvasNodes ?? state.canvasNodes)]),
     canvasEdges: [...(persisted.canvasEdges ?? state.canvasEdges)],
     focusedElement: persisted.focusedElement ?? state.focusedElement,
     factsPanelMode: persisted.factsPanelMode ?? state.factsPanelMode,
@@ -153,16 +156,79 @@ function uniqueValues<T>(values: T[]) {
   return [...new Set(values)];
 }
 
-function upsertCanvasNode(nodes: BrowserCanvasNode[], nextNode: BrowserCanvasNode) {
+function isFiniteCoordinate(value: number | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function getSeededCanvasNodePosition(nodes: BrowserCanvasNode[], kind: BrowserCanvasNode['kind'], pinned = false) {
+  const scopeNodes = nodes.filter((node) => node.kind === 'scope');
+  const entityNodes = nodes.filter((node) => node.kind === 'entity');
+
+  if (kind === 'scope') {
+    return {
+      x: 56,
+      y: 64 + scopeNodes.length * 112,
+    };
+  }
+
+  const entityBaseX = scopeNodes.length > 0 ? 300 : 56;
+  if (pinned) {
+    return {
+      x: entityBaseX,
+      y: 64 + entityNodes.length * 104,
+    };
+  }
+
+  const column = entityNodes.length % 3;
+  const row = Math.floor(entityNodes.length / 3);
+  return {
+    x: entityBaseX + column * 224,
+    y: 64 + row * 120,
+  };
+}
+
+function createPositionedCanvasNode(nodes: BrowserCanvasNode[], nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>) {
+  if (isFiniteCoordinate(nextNode.x) && isFiniteCoordinate(nextNode.y)) {
+    return {
+      ...nextNode,
+      x: nextNode.x,
+      y: nextNode.y,
+    } satisfies BrowserCanvasNode;
+  }
+  const seededPosition = getSeededCanvasNodePosition(nodes, nextNode.kind, Boolean(nextNode.pinned));
+  return {
+    ...nextNode,
+    x: seededPosition.x,
+    y: seededPosition.y,
+  } satisfies BrowserCanvasNode;
+}
+
+function normalizeCanvasNodes(nodes: BrowserCanvasNode[]) {
+  let normalized: BrowserCanvasNode[] = [];
+  for (const node of nodes) {
+    normalized = upsertCanvasNode(normalized, node);
+  }
+  return normalized;
+}
+
+function upsertCanvasNode(nodes: BrowserCanvasNode[], nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>) {
   const existingIndex = nodes.findIndex((node) => node.kind === nextNode.kind && node.id === nextNode.id);
   if (existingIndex === -1) {
-    return [...nodes, nextNode];
+    return [...nodes, createPositionedCanvasNode(nodes, nextNode)];
   }
   const updated = [...nodes];
-  updated[existingIndex] = {
-    ...updated[existingIndex],
+  const existingNode = updated[existingIndex];
+  const nextPositionedNode = createPositionedCanvasNode(nodes, {
+    ...existingNode,
     ...nextNode,
-    pinned: nextNode.pinned ?? updated[existingIndex].pinned,
+    x: nextNode.x ?? existingNode.x,
+    y: nextNode.y ?? existingNode.y,
+  });
+  updated[existingIndex] = {
+    ...existingNode,
+    ...nextPositionedNode,
+    pinned: nextNode.pinned ?? existingNode.pinned,
+    manuallyPlaced: nextNode.manuallyPlaced ?? existingNode.manuallyPlaced,
   };
   return updated;
 }
@@ -188,7 +254,7 @@ function upsertPinnedCanvasNode(nodes: BrowserCanvasNode[], kind: BrowserCanvasN
     return nodes;
   }
   if (!existing) {
-    return [...nodes, { kind, id, pinned }];
+    return upsertCanvasNode(nodes, { kind, id, pinned });
   }
   return nodes.map((node) => node.kind === kind && node.id === id ? { ...node, pinned } : node);
 }
@@ -224,7 +290,7 @@ export function openSnapshotSession(
     ? nextState.selectedScopeId
     : args.payload.scopes[0]?.externalId ?? null;
   const selectedEntityIds = nextState.selectedEntityIds.filter((entityId) => index.entitiesById.has(entityId));
-  const canvasNodes = nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id));
+  const canvasNodes = normalizeCanvasNodes(nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id)));
   const canvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
   const searchResults = computeSearchResults(index, nextState.searchQuery, nextState.searchScopeId);
   const treeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);

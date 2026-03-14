@@ -172,7 +172,10 @@ describe('browserSessionStore', () => {
     const next = addPrimaryEntitiesForScope(opened, 'scope:file-browser');
 
     expect(next.selectedScopeId).toBe('scope:file-browser');
-    expect(next.canvasNodes).toEqual([{ kind: 'entity', id: 'entity:module-browser' }]);
+    expect(next.canvasNodes).toHaveLength(1);
+    expect(next.canvasNodes[0]).toMatchObject({ kind: 'entity', id: 'entity:module-browser' });
+    expect(next.canvasNodes[0].x).toBeGreaterThanOrEqual(0);
+    expect(next.canvasNodes[0].y).toBeGreaterThanOrEqual(0);
     expect(next.selectedEntityIds).toEqual(['entity:module-browser']);
     expect(next.focusedElement).toEqual({ kind: 'entity', id: 'entity:module-browser' });
     expect(next.factsPanelMode).toBe('entity');
