@@ -658,6 +658,28 @@ export function removeCanvasSelection(state: BrowserSessionState): BrowserSessio
   };
 }
 
+
+export function moveCanvasNode(
+  state: BrowserSessionState,
+  node: { kind: BrowserCanvasNode['kind']; id: string },
+  position: { x: number; y: number },
+): BrowserSessionState {
+  const existing = state.canvasNodes.find((current) => current.kind === node.kind && current.id === node.id);
+  if (!existing) {
+    return state;
+  }
+  return {
+    ...state,
+    canvasNodes: upsertCanvasNode(state.canvasNodes, {
+      kind: node.kind,
+      id: node.id,
+      x: position.x,
+      y: position.y,
+      manuallyPlaced: true,
+    }),
+  };
+}
+
 export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: BrowserCanvasNode['kind']; id: string }): BrowserSessionState {
   const existing = state.canvasNodes.find((current) => current.kind === node.kind && current.id === node.id);
   const nextPinned = !existing?.pinned;

@@ -1631,6 +1631,7 @@ dd {
 }
 
 .browser-canvas__node {
+  cursor: grab;
   position: absolute;
   display: grid;
   gap: 6px;
@@ -1663,6 +1664,7 @@ dd {
 }
 
 .browser-canvas__node-main {
+  cursor: inherit;
   width: 100%;
   display: grid;
   justify-items: start;

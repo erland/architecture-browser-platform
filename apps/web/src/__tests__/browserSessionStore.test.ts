@@ -16,6 +16,7 @@ import {
   removeCanvasSelection,
   removeEntityFromCanvas,
   requestFitCanvasView,
+  moveCanvasNode,
   selectBrowserScope,
   selectCanvasEntity,
   setBrowserSearch,
@@ -240,6 +241,28 @@ describe('browserSessionStore', () => {
     expect(entityNode).toBeDefined();
     expect(entityNode!.x).toBeGreaterThanOrEqual(scopeNode!.x);
     expect(entityNode!.y).toBeGreaterThan(scopeNode!.y);
+  });
+
+  test('moving a canvas node persists coordinates and marks it as manually placed', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    const initialNode = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    expect(initialNode).toBeDefined();
+
+    const moved = moveCanvasNode(state, { kind: 'entity', id: 'entity:browser' }, {
+      x: (initialNode?.x ?? 0) + 140,
+      y: (initialNode?.y ?? 0) + 36,
+    });
+    const movedNode = moved.canvasNodes.find((node) => node.id === 'entity:browser');
+
+    expect(movedNode?.x).toBe((initialNode?.x ?? 0) + 140);
+    expect(movedNode?.y).toBe((initialNode?.y ?? 0) + 36);
+    expect(movedNode?.manuallyPlaced).toBe(true);
   });
 
   test('facts panel focus and fit-view requests are session actions, not component-local state', () => {

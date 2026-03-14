@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FullSnapshotEntity } from '../appModel';
 import {
   getContainedEntitiesForEntity,
@@ -7,8 +7,8 @@ import {
   getSubtreeEntitiesForScopeByKind,
   type BrowserSnapshotIndex,
 } from '../browserSnapshotIndex';
-import type { BrowserSessionState } from '../browserSessionStore';
-import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
+import { buildBrowserGraphWorkspaceModel, type BrowserWorkspaceNodeModel } from '../browserGraphWorkspaceModel';
 
 function scopeActionLabel(index: BrowserSnapshotIndex | null, scopeId: string | null) {
   if (!index || !scopeId) {
@@ -37,6 +37,7 @@ type BrowserGraphWorkspaceProps = {
   onRemoveSelection: () => void;
   onIsolateSelection: () => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
   onRelayoutCanvas: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;
@@ -46,6 +47,15 @@ type BrowserEntitySelectionAction = {
   key: string;
   label: string;
   disabled?: boolean;
+};
+
+
+type DragState = {
+  node: Pick<BrowserCanvasNode, 'kind' | 'id'>;
+  startClientX: number;
+  startClientY: number;
+  startX: number;
+  startY: number;
 };
 
 function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
@@ -174,11 +184,15 @@ export function BrowserGraphWorkspace({
   onRemoveSelection,
   onIsolateSelection,
   onTogglePinNode,
+  onMoveCanvasNode,
   onRelayoutCanvas,
   onClearCanvas,
   onFitView,
 }: BrowserGraphWorkspaceProps) {
   const [zoom, setZoom] = useState(1);
+  const dragStateRef = useRef<DragState | null>(null);
+  const dragDistanceRef = useRef(0);
+  const suppressClickRef = useRef(false);
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
   const focusedEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
   const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
@@ -208,6 +222,66 @@ export function BrowserGraphWorkspace({
       setZoom(1);
     }
   }, [model.nodes.length, state.fitViewRequestedAt]);
+
+
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const dragState = dragStateRef.current;
+      if (!dragState) {
+        return;
+      }
+      event.preventDefault();
+      const deltaX = (event.clientX - dragState.startClientX) / zoom;
+      const deltaY = (event.clientY - dragState.startClientY) / zoom;
+      dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
+      suppressClickRef.current = dragDistanceRef.current > 4;
+      onMoveCanvasNode(dragState.node, {
+        x: Math.round(dragState.startX + deltaX),
+        y: Math.round(dragState.startY + deltaY),
+      });
+    };
+
+    const handleMouseUp = () => {
+      dragStateRef.current = null;
+      dragDistanceRef.current = 0;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    const hasWindow = typeof window !== 'undefined';
+    if (!hasWindow) {
+      return;
+    }
+
+    if (dragStateRef.current) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onMoveCanvasNode, zoom]);
+
+  const beginNodeDrag = (event: ReactMouseEvent<HTMLElement>, node: BrowserWorkspaceNodeModel) => {
+    if (event.button !== 0) {
+      return;
+    }
+    dragStateRef.current = {
+      node: { kind: node.kind, id: node.id },
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: node.x,
+      startY: node.y,
+    };
+    dragDistanceRef.current = 0;
+    suppressClickRef.current = false;
+  };
 
   const handleEntityAction = (actionKey: string) => {
     if (!focusedEntity) {
@@ -423,11 +497,17 @@ export function BrowserGraphWorkspace({
                   node.pinned ? 'browser-canvas__node--pinned' : '',
                 ].filter(Boolean).join(' ')}
                 style={{ left: node.x, top: node.y, width: node.width, minHeight: node.height }}
+                onMouseDown={(event) => beginNodeDrag(event, node)}
               >
                 <button
                   type="button"
                   className="browser-canvas__node-main"
                   onClick={(event) => {
+                    if (suppressClickRef.current) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      return;
+                    }
                     if (node.kind === 'scope') {
                       onFocusScope(node.id);
                       return;
