@@ -2,9 +2,27 @@
 
 This document is intended to be dropped into a future chat together with the latest zip so work can continue without hidden context.
 
+## Current Browser position
+
+The Browser is now both:
+
+1. **local-first** in runtime architecture
+2. **entity-first** in day-to-day analysis UX
+
+That means the current intended model is:
+
+- **Tree** = navigate structural scopes
+- **Facts panel** = explain the selected scope and bridge into entity analysis
+- **Canvas** = analyze entities and relationships
+
+The Browser should not drift back toward either of these older mental models:
+
+- backend-driven Browser projections for normal Browser interaction
+- mixed scope/entity canvas behavior as the default UX
+
 ## What was accomplished
 
-The Browser was refactored from a backend-driven explorer into a local analysis workspace.
+### Local-first Browser architecture
 
 Completed capabilities:
 
@@ -14,14 +32,32 @@ Completed capabilities:
 - preparation-before-open snapshot flow
 - dedicated Browser session/store
 - full-screen Browser workspace shell
-- left navigation tree
-- top local search
+- local navigation tree
+- local top search
 - local graph canvas workspace
 - local facts/details panel
 - local canvas analysis interactions
 - compact overview signals
 - Browser route detached from server-computed explorer endpoints
-- focused automated tests around the new architecture
+- focused automated tests around the local architecture
+
+### Entity-first Browser interaction model
+
+Completed capabilities:
+
+- centralized scope-to-entity resolution helpers in the snapshot index
+- tree add behavior now adds primary entities by default instead of raw scope nodes
+- facts panel now acts as the scope-to-entity bridge
+- canvas toolbar is entity-first
+- tree modes for technical snapshots:
+  - filesystem
+  - package
+  - all scopes
+- scope nodes on canvas demoted to advanced/debug usage
+- search now separates:
+  - scope navigation
+  - scope add-to-analysis
+- dedicated regression coverage for the entity-first model
 
 ## Current source of truth for Browser
 
@@ -35,11 +71,14 @@ Browser should now be understood as being driven by these layers, in this order:
 
 If a future change bypasses those layers and reintroduces Browser-specific server projections into `/browser`, it is moving against the current architecture.
 
+If a future change starts letting UI components guess how scopes map to entities, it is also moving against the current architecture. That policy should stay centralized in the Browser snapshot index.
+
 ## Files to inspect first in a future chat
 
 For a quick architecture read:
 
 - `docs/browser-local-refactor-summary.md`
+- `docs/browser-entity-first-browser-model.md`
 - `docs/browser-local-only-browser.md`
 - `docs/browser-automated-tests.md`
 
@@ -59,6 +98,42 @@ For the main Browser UI pieces:
 - `apps/web/src/components/BrowserGraphWorkspace.tsx`
 - `apps/web/src/components/BrowserFactsPanel.tsx`
 - `apps/web/src/components/BrowserOverviewStrip.tsx`
+
+For the key regression safety net:
+
+- `apps/web/src/__tests__/browserEntityFirstRegression.test.ts`
+- `apps/web/src/__tests__/browserNavigationTree.test.ts`
+- `apps/web/src/__tests__/browserTopSearch.test.ts`
+- `apps/web/src/__tests__/browserFactsPanel.test.ts`
+- `apps/web/src/__tests__/browserGraphWorkspace.test.ts`
+- `apps/web/src/__tests__/browserSessionStore.test.ts`
+
+## Current behavior policies
+
+### Scope vs entity
+
+- scopes are for structural navigation
+- entities are for analysis on the canvas
+- facts panel bridges between them
+
+### Primary entity policy
+
+Keep this centralized in `browserSnapshotIndex.ts`.
+
+- `FILE` -> direct `MODULE` entity/entities
+- `DIRECTORY` -> direct `MODULE` entities for files directly inside that directory
+- `PACKAGE` -> package entity/entities
+- `MODULE` scope -> direct `MODULE` entity/entities when still present
+
+### Tree modes
+
+- **Filesystem** = directory/file-oriented browsing
+- **Package** = Java/package-oriented browsing
+- **All scopes** = advanced/debug view
+
+### Scope nodes on canvas
+
+Scope nodes are still supported internally but are no longer the normal Browser workflow. They should stay behind explicit advanced/debug actions unless there is a deliberate UX reason to surface them again.
 
 ## Known architectural position
 
@@ -82,58 +157,44 @@ The old Browser-specific backend resources may still exist in code, but they are
 
 ## Good next work candidates
 
-If work continues after Step 16, the most natural follow-on items are:
+The entity-first refactor plan is now complete. The most natural next work candidates are:
 
-1. backend cleanup pass
-   - remove obsolete Browser-only projection resources/services if unused
-2. frontend cleanup pass
-   - remove now-dead Browser explorer hook/components if unused elsewhere
-3. BrowserView route-level rendering tests
-   - explicit empty / not-prepared / ready states
-4. interaction refinement
-   - better graph layout options
-   - more modeling-tool-like canvas manipulation
-   - stronger keyboard navigation and shortcuts
-5. UX polishing
+1. Browser UX polish
    - denser facts rendering
-   - improved relationship labeling
-   - better selection breadcrumbs / recent history
+   - clearer empty states
+   - better search-result wording and shortcuts
+2. canvas/layout improvements
+   - stronger grouping of contained entities
+   - better relationship labeling
+   - additional layout presets
+3. keyboard/history/navigation improvements
+   - recent selection history
+   - breadcrumbs
+   - keyboard shortcuts
+4. cleanup pass
+   - remove dead Browser explorer paths if any still exist
+   - trim leftover scope-first wording in UI/docs/tests
+5. route-level Browser rendering tests
+   - explicit no-workspace / no-snapshot / not-prepared / ready states
 
 ## Suggested prompts for a new chat
 
 Use one of these with the latest zip attached.
 
+### UX-polish focused
+
+```text
+Can you do a source code analysis of the attached architecture-browser-platform zip and identify the highest-value UX polish opportunities in the Browser now that the entity-first refactor is complete? Please prioritize low-risk improvements first and create a downloadable step-by-step plan.
+```
+
 ### Cleanup-focused
 
 ```text
-Can you do a source code analysis of the attached architecture-browser-platform zip and identify which old Browser explorer frontend/backend pieces are now dead code after the Browser local refactor? Please produce a prioritized cleanup plan and then implement the first cleanup step.
-```
-
-### Browser polish focused
-
-```text
-The attached architecture-browser-platform zip contains a completed Browser local refactor through Step 16. Please analyze the Browser UX and propose the most valuable next improvements for the canvas, facts panel, and navigation workflow, then create a downloadable step-by-step plan.
-```
-
-### Testing focused
-
-```text
-The attached architecture-browser-platform zip contains a completed Browser local refactor through Step 16. Please analyze the current Browser test coverage and implement the next highest-value route-level/rendering tests.
+Can you do a source code analysis of the attached architecture-browser-platform zip and identify which old Browser explorer frontend/backend pieces are now dead code after the local-first and entity-first Browser refactors? Please give me a prioritized cleanup analysis.
 ```
 
 ### Continue implementation directly
 
 ```text
-The attached architecture-browser-platform zip contains a completed Browser local refactor through Step 16. Please start by analyzing the Browser architecture and implement a backend/frontend cleanup pass that removes obsolete Browser-projection code which is no longer used.
-```
-
-## Verification reminder
-
-Recommended checks after future changes:
-
-```bash
-npm ci
-npm run test:web
-npm run build:web
-cd apps/api && mvn test
+Can you do a source code analysis of the attached architecture-browser-platform zip, confirm the current Browser entity-first architecture, and then implement the highest-value Browser UX polish step you recommend first?
 ```

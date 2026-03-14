@@ -1,45 +1,48 @@
-# Browser Step 8 — Left navigation tree
+# Browser left navigation tree
 
-Step 8 introduces a real scope navigation tree in the Browser left rail, driven entirely by the prepared local snapshot index.
+The Browser left rail is now a navigation-first scope tree with explicit technical tree modes.
 
-## What changed
+## Current role of the tree
 
-- Added `BrowserNavigationTree` as the primary left-rail navigation component.
-- The tree reads from `BrowserSessionContext.state.index` instead of Browser-specific backend explorer endpoints.
-- Selecting a scope now updates Browser session selection directly.
-- The selected scope branch auto-expands on load and when the selection changes.
-- Each scope row includes a lightweight "Add" action that seeds the future canvas workspace with that scope.
-- The previous mode list remains available, but is explicitly demoted to a secondary tool switcher.
+The tree is for **structural navigation**, not for making raw scope nodes the main canvas content.
 
-## Why this matches the plan
+Users should understand the tree like this:
 
-The step-by-step plan called for the Browser left side to become navigation-first, similar to a modeling/file-explorer tool. This step delivers the first concrete version of that by making scope hierarchy browsing the primary left-rail interaction.
+- click a row = select a scope
+- add from a row = add that scope's **primary entities** to the canvas
+- expand/collapse = browse structure
+
+## Tree modes
+
+The tree now supports three modes:
+
+### Filesystem
+
+Shows file/directory-oriented structure.
+This is the normal default for frontend/file-oriented snapshots.
+
+### Package
+
+Shows package-oriented structure.
+This is the normal default for Java/package-heavy snapshots.
+
+### All scopes
+
+Shows the broader underlying scope graph.
+This is intentionally an advanced/debug view rather than the primary everyday mode.
 
 ## Current behavior
 
-- Root scopes are expanded by default.
-- Ancestors of the selected scope remain expanded.
-- Users can:
-  - expand/collapse branches
-  - select a scope
-  - add a scope to canvas
-  - expand all scopes
-  - collapse back to the currently selected branch
-- Scope rows expose useful local facts inline:
-  - scope kind
-  - direct entity count
-  - child scope count
-  - selected-scope path summary
-  - subtree entity count
-  - diagnostic count
+- root scopes are expanded by default
+- ancestors of the selected scope remain expanded
+- selected-scope path expansion stays stable across tree modes
+- add actions resolve to **primary entities** by default instead of raw `scope:*` nodes
+- tree mode defaults are chosen from snapshot shape heuristics
 
-## Deferred to later steps
+## Why this matches the current Browser model
 
-This step intentionally does **not** yet:
+The Browser now separates concerns more clearly:
 
-- replace the center area with the new canvas
-- move search into the top bar
-- replace the right rail with the new facts panel
-- remove the old Browser mode content
-
-Those changes belong to Steps 9–11.
+- tree = navigate scopes
+- facts panel = explain selected scope and offer entity-first bridge actions
+- canvas = analyze entities and relationships

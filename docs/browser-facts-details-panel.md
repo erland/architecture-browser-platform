@@ -1,40 +1,44 @@
-# Browser Step 11 — Facts/details panel
+# Browser facts/details panel
 
-This step turns the right side of Browser into a dedicated local facts/details surface.
+The facts panel is now the main bridge between structural scope navigation and entity-first analysis.
 
-## What changed
+## Current role of the panel
 
-- Added `BrowserFactsPanel` as the primary right-hand inspector.
-- The panel is driven entirely by prepared local snapshot data and the Browser session state.
-- Tree selection, canvas focus, and relationship focus now converge into one local detail surface.
-- The older tab-specific tray remains in the center as a migration surface, but the right rail is now the canonical place for focused facts.
+For a selected scope, the panel should help the user answer two questions:
 
-## Local facts now shown
+1. what is this part of the structure?
+2. what should I add to the canvas to analyze it?
 
-### Scope focus
+That makes it more than a passive inspector. It is now the clearest scope-to-entity bridge in the Browser.
 
-- scope kind and path
-- child/direct-descendant counts
-- local diagnostics for the scope
-- source references
-- a short list of direct entities with quick actions
+## Scope-focused behavior
 
-### Entity focus
+For a selected scope the panel now emphasizes:
 
-- entity kind, origin, and scope path
-- inbound/outbound relationships
-- local diagnostics for the entity
-- source references aggregated from entity and directly connected relationships
+- scope facts
+- parent/child scope context
+- primary entities for the scope
+- direct entities by kind
+- subtree entities by kind
 
-### Relationship focus
+It also exposes explicit entity-first actions such as:
 
-- relationship label/kind
-- from/to entities and scope paths
-- related diagnostics from the connected entities
-- source references aggregated from the relationship and its connected entities
+- add primary
+- add all direct
+- add all subtree
+- add grouped direct/subtree entities by kind
 
-## Current limitations
+## Entity-focused behavior
 
-- The panel is currently placed on the right side only, even though the session model already supports alternate locations.
-- Diagnostic hits from the top search do not yet have their own dedicated focus type; they still route indirectly through the broader Browser workflow.
-- Rich fact cards, pinning, comparison, and note-taking remain future steps.
+Entity and relationship inspection remains intact.
+The panel still shows focused entity/relationship facts, diagnostics, and related references.
+
+## Why this matters
+
+The Browser mental model is now:
+
+- tree = navigate scopes
+- facts panel = bridge into analysis
+- canvas = analyze entities and relationships
+
+The panel should therefore guide users toward **entity** actions first, not toward placing raw scope nodes on canvas.

@@ -662,3 +662,24 @@ This is the main platform-side move needed now that the indexer has better suppo
 - file/directory hierarchy
 - package hierarchy
 - structural `CONTAINS` relationships
+
+
+---
+
+# Completion status
+
+This plan has now been implemented through Step 9 in the current repository state.
+
+Implemented outcomes:
+
+- Step 1: explicit scope-to-entity resolution helpers were added to the Browser snapshot index
+- Step 2: tree add behavior now adds primary entities by default instead of raw scope nodes
+- Step 3: facts panel now acts as the scope-to-entity bridge
+- Step 4: canvas toolbar is entity-first
+- Step 5: technical tree modes were added for filesystem, package, and advanced/all-scopes views
+- Step 6: scope nodes on canvas were demoted to advanced/debug usage
+- Step 7: search now distinguishes navigation targets from analysis targets
+- Step 8: focused regression coverage was added for the new model
+- Step 9: docs and continuation notes were updated to reflect the completed model
+
+For ongoing work after this plan, use `docs/browser-entity-first-browser-model.md` and `docs/browser-local-continuation-notes.md` as the primary continuation documents.

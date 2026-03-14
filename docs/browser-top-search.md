@@ -1,35 +1,41 @@
-# Browser local top search (Step 9)
+# Browser local top search
 
-## Goal
+Search is now part of the local Browser workspace and follows the entity-first interaction model.
 
-Move Browser search into the top of the focused Browser workspace so discovery becomes part of the main local browsing workflow instead of depending on a separate backend-driven Browser tab.
+## Current behavior
 
-## What changed
+Search reads from the Browser session's local snapshot index.
+The user can search within:
 
-- Added `BrowserTopSearch` in the Browser top bar.
-- Search now reads from the Browser session's local snapshot index.
-- The user can switch search scope between:
-  - **Current scope** (selected scope branch only)
-  - **Entire snapshot**
-- Selecting a result now drives Browser-local actions:
-  - scope hit -> select scope and move to Layout mode
-  - entity hit -> add entity to canvas/session focus and move to Search mode
-  - relationship hit -> focus relationship and move to Dependencies mode
+- **Current scope**
+- **Entire snapshot**
 
-## Notes on migration state
+## Activation model
 
-This step is intentionally additive:
+Search now distinguishes **navigation targets** from **analysis targets**.
 
-- The old Search tab still exists.
-- `useBrowserExplorer` still powers the old tab content.
-- The new top search is already local-first and uses the prepared full snapshot payload plus in-memory indexes.
+### Scope hit
 
-That means later steps can continue replacing the center/right workspace without losing the new top-level discovery workflow.
+- clicking the result navigates/selects the scope
+- using **Add** adds that scope's **primary entities** to the canvas
 
-## Files primarily involved
+### Entity hit
 
-- `apps/web/src/components/BrowserTopSearch.tsx`
-- `apps/web/src/views/BrowserView.tsx`
-- `apps/web/src/browserSessionStore.ts`
-- `apps/web/src/browserSnapshotIndex.ts`
-- `apps/web/src/styles.css`
+- clicking the result adds/focuses the entity for analysis
+
+### Relationship hit
+
+- clicking the result focuses the relationship in the analysis workspace
+
+### Diagnostic hit
+
+- clicking the result continues to route into the broader analysis flow
+
+## Why this matters
+
+This keeps search aligned with the rest of the Browser:
+
+- tree = navigate scopes
+- search scope click = navigate scopes
+- search scope add = start entity analysis
+- canvas = analyze entities and relationships

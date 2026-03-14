@@ -189,9 +189,24 @@ docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/
 The Browser refactor from backend-driven explorer to local analysis workspace is documented here:
 
 - `docs/browser-local-refactor-summary.md`
+- `docs/browser-entity-first-browser-model.md`
 - `docs/browser-local-continuation-notes.md`
 - `docs/browser-local-only-browser.md`
 - `docs/browser-automated-tests.md`
+
+The current Browser mental model is now explicitly:
+
+- **Tree** = navigate structural scopes
+- **Facts panel** = explain the selected scope and bridge into entity analysis
+- **Canvas** = analyze entities and relationships
+
+The Browser supports three tree modes for technical snapshots:
+
+- **Filesystem** — directory/file-oriented navigation
+- **Package** — Java/package-oriented navigation
+- **All scopes** — advanced/debug view of the underlying scope graph
+
+Add-to-canvas is now entity-first by default. Scope nodes remain available only through advanced canvas actions when container/debug context is explicitly desired.
 
 ## Notes
 
