@@ -4,7 +4,7 @@ import type { BrowserSearchResult } from '../browserSnapshotIndex';
 export type BrowserTopSearchScopeMode = 'selected-scope' | 'entire-snapshot';
 
 export type BrowserTopSearchResultAction = {
-  type: 'select-scope' | 'open-entity' | 'open-relationship' | 'open-diagnostic';
+  type: 'select-scope' | 'add-scope-primary-entities' | 'open-entity' | 'open-relationship' | 'open-diagnostic';
   id: string;
   scopeId: string | null;
   kind: BrowserSearchResult['kind'];
@@ -62,6 +62,19 @@ export function toBrowserTopSearchAction(result: BrowserSearchResult): BrowserTo
   };
 }
 
+
+export function toBrowserTopSearchAddAction(result: BrowserSearchResult): BrowserTopSearchResultAction {
+  if (result.kind === 'scope') {
+    return {
+      type: 'add-scope-primary-entities',
+      id: result.id,
+      scopeId: result.scopeId,
+      kind: result.kind,
+    };
+  }
+  return toBrowserTopSearchAction(result);
+}
+
 export function BrowserTopSearch({
   query,
   onQueryChange,
@@ -91,6 +104,8 @@ export function BrowserTopSearch({
     }
     return 'Local search is scanning the entire prepared snapshot.';
   }, [scopeMode, selectedScopeLabel]);
+
+  const resultHelperText = 'Scope results navigate in the tree. Use Add to seed entity analysis on the canvas.';
 
   return (
     <section className="browser-top-search" aria-label="Local Browser search">
@@ -132,14 +147,17 @@ export function BrowserTopSearch({
         {query.trim() ? <span className="badge">{results.length} hits</span> : <span className="badge">Type to search locally</span>}
       </div>
 
+      {query.trim() ? <p className="muted browser-top-search__hint">{resultHelperText}</p> : null}
+
       {isOpen ? (
         <div className="browser-top-search__results card" role="listbox" aria-label="Local search results">
           {results.length > 0 ? (
             <ul className="browser-top-search__result-list">
               {results.slice(0, 8).map((result) => {
                 const action = toBrowserTopSearchAction(result);
+                const addAction = result.kind === 'scope' ? toBrowserTopSearchAddAction(result) : null;
                 return (
-                  <li key={`${result.kind}:${result.id}`}>
+                  <li key={`${result.kind}:${result.id}`} className="browser-top-search__result-row">
                     <button
                       type="button"
                       className="browser-top-search__result"
@@ -154,6 +172,20 @@ export function BrowserTopSearch({
                       </span>
                       <span className="browser-top-search__result-meta">{formatResultMeta(result)}</span>
                     </button>
+                    {addAction ? (
+                      <button
+                        type="button"
+                        className="button-secondary browser-top-search__result-add"
+                        onClick={() => {
+                          onActivateResult(addAction);
+                          setIsOpen(false);
+                        }}
+                        aria-label={`Add primary entities for ${result.title}`}
+                        title="Add primary entities"
+                      >
+                        Add
+                      </button>
+                    ) : null}
                   </li>
                 );
               })}

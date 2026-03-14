@@ -205,13 +205,18 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   }, [browserSession.state.searchQuery, browserSession.state.searchScopeId, browserSession.state.selectedScopeId, topSearchScopeMode]);
 
   const handleTopSearchResult = (action: BrowserTopSearchResultAction) => {
-    if (action.scopeId) {
-      browserSession.selectScope(action.scopeId);
+    const targetScopeId = action.kind === 'scope' ? action.id : action.scopeId;
+    if (targetScopeId) {
+      browserSession.selectScope(targetScopeId);
     }
     if (action.type === 'select-scope') {
       browserSession.focusElement({ kind: 'scope', id: action.id });
       browserSession.openFactsPanel('scope', 'right');
       setActiveTab('layout');
+      return;
+    }
+    if (action.type === 'add-scope-primary-entities') {
+      handleAddPrimaryScopeEntitiesToCanvas(action.id);
       return;
     }
     if (action.type === 'open-entity') {

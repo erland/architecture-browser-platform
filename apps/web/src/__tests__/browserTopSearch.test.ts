@@ -1,5 +1,5 @@
 import type { BrowserSearchResult } from '../browserSnapshotIndex';
-import { toBrowserTopSearchAction } from '../components/BrowserTopSearch';
+import { toBrowserTopSearchAction, toBrowserTopSearchAddAction } from '../components/BrowserTopSearch';
 
 function createResult(kind: BrowserSearchResult['kind'], id: string, scopeId: string | null = 'scope:web'): BrowserSearchResult {
   return {
@@ -16,6 +16,15 @@ describe('BrowserTopSearch helpers', () => {
   test('maps scope hits to scope-selection actions', () => {
     expect(toBrowserTopSearchAction(createResult('scope', 'scope:browser'))).toEqual({
       type: 'select-scope',
+      id: 'scope:browser',
+      scopeId: 'scope:web',
+      kind: 'scope',
+    });
+  });
+
+  test('maps scope add actions to primary-entity analysis actions', () => {
+    expect(toBrowserTopSearchAddAction(createResult('scope', 'scope:browser'))).toEqual({
+      type: 'add-scope-primary-entities',
       id: 'scope:browser',
       scopeId: 'scope:web',
       kind: 'scope',

@@ -1,6 +1,6 @@
 import type { BrowserTopSearchResultAction } from '../components/BrowserTopSearch';
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
-import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
+import { clearBrowserSnapshotIndex, getPrimaryEntitiesForScope } from '../browserSnapshotIndex';
 import {
   addEntityToCanvas,
   createEmptyBrowserSessionState,
@@ -12,7 +12,7 @@ import {
   type BrowserSessionState,
 } from '../browserSessionStore';
 import { buildBrowserFactsPanelModel } from '../components/BrowserFactsPanel';
-import { toBrowserTopSearchAction } from '../components/BrowserTopSearch';
+import { toBrowserTopSearchAction, toBrowserTopSearchAddAction } from '../components/BrowserTopSearch';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-workflow-1',
@@ -30,8 +30,8 @@ const snapshotSummary: SnapshotSummary = {
   sourceRevision: 'abc123',
   sourceBranch: 'main',
   importedAt: '2026-03-13T00:00:00Z',
-  scopeCount: 2,
-  entityCount: 3,
+  scopeCount: 3,
+  entityCount: 4,
   relationshipCount: 1,
   diagnosticCount: 1,
   indexedFileCount: 1,
@@ -48,8 +48,10 @@ function createPayload(): FullSnapshotPayload {
     scopes: [
       { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
       { externalId: 'scope:web', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      { externalId: 'scope:file:browser-view', kind: 'FILE', name: 'BrowserView.tsx', displayName: 'BrowserView.tsx', parentScopeId: 'scope:web', sourceRefs: [], metadata: {} },
     ],
     entities: [
+      { externalId: 'entity:browser-module', kind: 'MODULE', origin: 'react', name: 'BrowserViewModule', displayName: 'BrowserViewModule', scopeId: 'scope:file:browser-view', sourceRefs: [], metadata: {} },
       { externalId: 'entity:browser', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
       { externalId: 'entity:tree', kind: 'COMPONENT', origin: 'react', name: 'BrowserNavigationTree', displayName: 'BrowserNavigationTree', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
       { externalId: 'entity:facts', kind: 'COMPONENT', origin: 'react', name: 'BrowserFactsPanel', displayName: 'BrowserFactsPanel', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
@@ -67,12 +69,24 @@ function createPayload(): FullSnapshotPayload {
 
 function applyTopSearchAction(state: BrowserSessionState, action: BrowserTopSearchResultAction): BrowserSessionState {
   let nextState = state;
-  if (action.scopeId) {
-    nextState = selectBrowserScope(nextState, action.scopeId);
+  const targetScopeId = action.kind === 'scope' ? action.id : action.scopeId;
+  if (targetScopeId) {
+    nextState = selectBrowserScope(nextState, targetScopeId);
   }
   if (action.type === 'select-scope') {
     nextState = focusBrowserElement(nextState, { kind: 'scope', id: action.id });
     return openFactsPanel(nextState, 'scope', 'right');
+  }
+  if (action.type === 'add-scope-primary-entities') {
+    const index = nextState.index;
+    const primaryEntityId = index ? getPrimaryEntitiesForScope(index, action.id)[0]?.externalId : null;
+    if (!primaryEntityId) {
+      nextState = focusBrowserElement(nextState, { kind: 'scope', id: action.id });
+      return openFactsPanel(nextState, 'scope', 'right');
+    }
+    nextState = addEntityToCanvas(nextState, primaryEntityId);
+    nextState = focusBrowserElement(nextState, { kind: 'entity', id: primaryEntityId });
+    return openFactsPanel(nextState, 'entity', 'right');
   }
   if (action.type === 'open-entity') {
     nextState = addEntityToCanvas(nextState, action.id);
@@ -113,5 +127,29 @@ describe('browser architecture workflow', () => {
     expect(facts?.mode).toBe('entity');
     expect(facts?.title).toBe('BrowserNavigationTree');
     expect(facts?.diagnostics).toHaveLength(1);
+  });
+
+  test('scope search hits separate navigation from analysis seeding', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setBrowserSearch(state, 'browserview.tsx', null);
+    const scopeResult = state.searchResults.find((candidate) => candidate.kind === 'scope' && candidate.id === 'scope:file:browser-view');
+    expect(scopeResult).toBeDefined();
+
+    const navigated = applyTopSearchAction(state, toBrowserTopSearchAction(scopeResult!));
+    expect(navigated.selectedScopeId).toBe('scope:file:browser-view');
+    expect(navigated.canvasNodes).toHaveLength(0);
+    expect(navigated.focusedElement).toEqual({ kind: 'scope', id: 'scope:file:browser-view' });
+    expect(navigated.factsPanelMode).toBe('scope');
+
+    const seeded = applyTopSearchAction(state, toBrowserTopSearchAddAction(scopeResult!));
+    expect(seeded.selectedScopeId).toBe('scope:file:browser-view');
+    expect(seeded.canvasNodes.map((node) => node.id)).toContain('entity:browser-module');
+    expect(seeded.focusedElement).toEqual({ kind: 'entity', id: 'entity:browser-module' });
+    expect(seeded.factsPanelMode).toBe('entity');
   });
 });
