@@ -60,6 +60,8 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   const [topSearchScopeMode, setTopSearchScopeMode] = useState<BrowserTopSearchScopeMode>('selected-scope');
   const [railWidth, setRailWidth] = useState<number>(() => readStoredPaneWidth('browser.railWidth', 280));
   const [inspectorWidth, setInspectorWidth] = useState<number>(() => readStoredPaneWidth('browser.inspectorWidth', 320));
+  const [isRailCollapsed, setIsRailCollapsed] = useState<boolean>(() => readStoredPaneWidth('browser.railCollapsed', 0) === 1);
+  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState<boolean>(() => readStoredPaneWidth('browser.inspectorCollapsed', 0) === 1);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
 
@@ -118,6 +120,20 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     window.localStorage.setItem('browser.inspectorWidth', String(inspectorWidth));
   }, [inspectorWidth]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem('browser.railCollapsed', isRailCollapsed ? '1' : '0');
+  }, [isRailCollapsed]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem('browser.inspectorCollapsed', isInspectorCollapsed ? '1' : '0');
+  }, [isInspectorCollapsed]);
+
   const startPaneResize = (pane: 'rail' | 'inspector') => (event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     const startingX = event.clientX;
@@ -147,6 +163,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   const layoutStyle = {
     '--browser-rail-width': `${railWidth}px`,
     '--browser-inspector-width': `${inspectorWidth}px`,
+    '--browser-layout-columns': `${isRailCollapsed ? '48px' : `minmax(220px, ${railWidth}px)`} ${isRailCollapsed ? '0px' : '8px'} minmax(0, 1fr) ${isInspectorCollapsed ? '0px' : '8px'} ${isInspectorCollapsed ? '48px' : `minmax(260px, ${inspectorWidth}px)`}`,
   } as CSSProperties;
 
 
@@ -482,51 +499,68 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
       </div>
 
       <div className="browser-workspace__layout" style={layoutStyle}>
-        <aside className="browser-workspace__rail">
-          <div className="browser-workspace__rail-sticky">
-            <BrowserNavigationTree
-              index={browserSession.state.index}
-              selectedScopeId={browserSession.state.selectedScopeId}
-              treeMode={browserSession.state.treeMode}
-              onSelectScope={browserSession.selectScope}
-              onAddScopeEntitiesToCanvas={handleAddPrimaryScopeEntitiesToCanvas}
-              onTreeModeChange={browserSession.setTreeMode}
-            />
-
-            <BrowserTabNav
-              activeTab={activeTab}
-              onSelectTab={setActiveTab}
-              onOpenCompare={onOpenCompare}
-              onOpenOperations={onOpenOperations}
-              onOpenLegacy={onOpenLegacy}
-            />
-
-            <section className="card browser-workspace__mini-context">
-              <p className="eyebrow">Current snapshot</p>
-              <div className="browser-mini-kv">
-                <div>
-                  <span>Workspace</span>
-                  <strong>{workspaceData.selectedWorkspace?.name ?? '—'}</strong>
-                </div>
-                <div>
-                  <span>Repository</span>
-                  <strong>{repositoryLabel}</strong>
-                </div>
-                <div>
-                  <span>Captured</span>
-                  <strong>{formatTimestamp(selectedSnapshot?.importedAt)}</strong>
-                </div>
+        <aside className={`browser-workspace__rail ${isRailCollapsed ? 'browser-workspace__side-panel--collapsed' : ''}`}>
+          {isRailCollapsed ? (
+            <button
+              type="button"
+              className="browser-workspace__collapsed-toggle"
+              aria-label="Expand navigation tree"
+              onClick={() => setIsRailCollapsed(false)}
+            >
+              <span aria-hidden="true">☰</span>
+              <span>Navigation</span>
+            </button>
+          ) : (
+            <div className="browser-workspace__rail-sticky">
+              <div className="browser-workspace__panel-header">
+                <p className="eyebrow">Navigation</p>
+                <button type="button" className="button-secondary browser-workspace__panel-toggle" onClick={() => setIsRailCollapsed(true)}>Hide</button>
               </div>
-            </section>
-          </div>
+
+              <BrowserNavigationTree
+                index={browserSession.state.index}
+                selectedScopeId={browserSession.state.selectedScopeId}
+                treeMode={browserSession.state.treeMode}
+                onSelectScope={browserSession.selectScope}
+                onAddScopeEntitiesToCanvas={handleAddPrimaryScopeEntitiesToCanvas}
+                onTreeModeChange={browserSession.setTreeMode}
+              />
+
+              <BrowserTabNav
+                activeTab={activeTab}
+                onSelectTab={setActiveTab}
+                onOpenCompare={onOpenCompare}
+                onOpenOperations={onOpenOperations}
+                onOpenLegacy={onOpenLegacy}
+              />
+
+              <section className="card browser-workspace__mini-context">
+                <p className="eyebrow">Current snapshot</p>
+                <div className="browser-mini-kv">
+                  <div>
+                    <span>Workspace</span>
+                    <strong>{workspaceData.selectedWorkspace?.name ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Repository</span>
+                    <strong>{repositoryLabel}</strong>
+                  </div>
+                  <div>
+                    <span>Captured</span>
+                    <strong>{formatTimestamp(selectedSnapshot?.importedAt)}</strong>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
         </aside>
 
         <div
-          className="browser-workspace__resizer browser-workspace__resizer--rail"
+          className={`browser-workspace__resizer browser-workspace__resizer--rail ${isRailCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize navigation tree"
-          onMouseDown={startPaneResize('rail')}
+          onMouseDown={isRailCollapsed ? undefined : startPaneResize('rail')}
         />
 
         <section className="browser-workspace__center">
@@ -534,91 +568,110 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         </section>
 
         <div
-          className="browser-workspace__resizer browser-workspace__resizer--inspector"
+          className={`browser-workspace__resizer browser-workspace__resizer--inspector ${isInspectorCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize facts panel"
-          onMouseDown={startPaneResize('inspector')}
+          onMouseDown={isInspectorCollapsed ? undefined : startPaneResize('inspector')}
         />
 
-        <aside className="browser-workspace__inspector">
-          <BrowserFactsPanel
-            state={browserSession.state}
-            onSelectScope={(scopeId) => {
-              browserSession.selectScope(scopeId);
-              if (scopeId) {
-                browserSession.focusElement({ kind: 'scope', id: scopeId });
-                browserSession.openFactsPanel('scope', 'right');
-                setActiveTab('layout');
-              }
-            }}
-            onFocusEntity={(entityId) => {
-              browserSession.addEntityToCanvas(entityId);
-              browserSession.selectCanvasEntity(entityId);
-              browserSession.focusElement({ kind: 'entity', id: entityId });
-              browserSession.openFactsPanel('entity', 'right');
-              setActiveTab('search');
-            }}
-            onFocusRelationship={(relationshipId) => {
-              browserSession.focusElement({ kind: 'relationship', id: relationshipId });
-              browserSession.openFactsPanel('relationship', 'right');
-              setActiveTab('dependencies');
-            }}
-            onAddEntities={(entityIds) => {
-              browserSession.addEntitiesToCanvas(entityIds);
-              const focusEntityId = entityIds[0];
-              if (focusEntityId) {
-                browserSession.selectCanvasEntity(focusEntityId);
-                browserSession.focusElement({ kind: 'entity', id: focusEntityId });
-                browserSession.openFactsPanel('entity', 'right');
-                setActiveTab('search');
-              }
-            }}
-            onTogglePinNode={browserSession.toggleCanvasNodePin}
-            onIsolateSelection={browserSession.isolateCanvasSelection}
-            onRemoveSelection={browserSession.removeCanvasSelection}
-            onClose={() => browserSession.openFactsPanel('hidden', 'right')}
-          />
+        <aside className={`browser-workspace__inspector ${isInspectorCollapsed ? 'browser-workspace__side-panel--collapsed' : ''}`}>
+          {isInspectorCollapsed ? (
+            <button
+              type="button"
+              className="browser-workspace__collapsed-toggle"
+              aria-label="Expand facts panel"
+              onClick={() => setIsInspectorCollapsed(false)}
+            >
+              <span aria-hidden="true">ⓘ</span>
+              <span>Details</span>
+            </button>
+          ) : (
+            <>
+              <div className="browser-workspace__panel-header browser-workspace__panel-header--inspector">
+                <p className="eyebrow">Details</p>
+                <button type="button" className="button-secondary browser-workspace__panel-toggle" onClick={() => setIsInspectorCollapsed(true)}>Hide</button>
+              </div>
 
-          <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Local analysis focus</p>
-            <div className="browser-mini-kv">
-              <div>
-                <span>Mode</span>
-                <strong>{activeTabMeta.label}</strong>
-              </div>
-              <div>
-                <span>Focused element</span>
-                <strong>{browserSession.state.focusedElement ? `${browserSession.state.focusedElement.kind}:${browserSession.state.focusedElement.id}` : 'None'}</strong>
-              </div>
-              <div>
-                <span>Session</span>
-                <strong>{browserSession.state.activeSnapshot ? 'Open' : 'Not loaded'}</strong>
-              </div>
-            </div>
-            <div className="browser-workspace__mode-meta browser-workspace__mode-meta--compact">
-              {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
-              {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
-              {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
-              <span className="badge badge--status">Local-only Browser</span>
-            </div>
-          </section>
+              <BrowserFactsPanel
+                state={browserSession.state}
+                onSelectScope={(scopeId) => {
+                  browserSession.selectScope(scopeId);
+                  if (scopeId) {
+                    browserSession.focusElement({ kind: 'scope', id: scopeId });
+                    browserSession.openFactsPanel('scope', 'right');
+                    setActiveTab('layout');
+                  }
+                }}
+                onFocusEntity={(entityId) => {
+                  browserSession.addEntityToCanvas(entityId);
+                  browserSession.selectCanvasEntity(entityId);
+                  browserSession.focusElement({ kind: 'entity', id: entityId });
+                  browserSession.openFactsPanel('entity', 'right');
+                  setActiveTab('search');
+                }}
+                onFocusRelationship={(relationshipId) => {
+                  browserSession.focusElement({ kind: 'relationship', id: relationshipId });
+                  browserSession.openFactsPanel('relationship', 'right');
+                  setActiveTab('dependencies');
+                }}
+                onAddEntities={(entityIds) => {
+                  browserSession.addEntitiesToCanvas(entityIds);
+                  const focusEntityId = entityIds[0];
+                  if (focusEntityId) {
+                    browserSession.selectCanvasEntity(focusEntityId);
+                    browserSession.focusElement({ kind: 'entity', id: focusEntityId });
+                    browserSession.openFactsPanel('entity', 'right');
+                    setActiveTab('search');
+                  }
+                }}
+                onTogglePinNode={browserSession.toggleCanvasNodePin}
+                onIsolateSelection={browserSession.isolateCanvasSelection}
+                onRemoveSelection={browserSession.removeCanvasSelection}
+                onClose={() => browserSession.openFactsPanel('hidden', 'right')}
+              />
 
-          <BrowserOverviewStrip state={browserSession.state} />
+              <section className="card browser-workspace__inspector-card">
+                <p className="eyebrow">Local analysis focus</p>
+                <div className="browser-mini-kv">
+                  <div>
+                    <span>Mode</span>
+                    <strong>{activeTabMeta.label}</strong>
+                  </div>
+                  <div>
+                    <span>Focused element</span>
+                    <strong>{browserSession.state.focusedElement ? `${browserSession.state.focusedElement.kind}:${browserSession.state.focusedElement.id}` : 'None'}</strong>
+                  </div>
+                  <div>
+                    <span>Session</span>
+                    <strong>{browserSession.state.activeSnapshot ? 'Open' : 'Not loaded'}</strong>
+                  </div>
+                </div>
+                <div className="browser-workspace__mode-meta browser-workspace__mode-meta--compact">
+                  {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
+                  {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
+                  {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
+                  <span className="badge badge--status">Local-only Browser</span>
+                </div>
+              </section>
 
-          <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Prepared model</p>
-            {localSnapshotCounts ? (
-              <div className="browser-count-grid">
-                <div><strong>{localSnapshotCounts.scopes}</strong><span>Scopes</span></div>
-                <div><strong>{localSnapshotCounts.entities}</strong><span>Entities</span></div>
-                <div><strong>{localSnapshotCounts.relationships}</strong><span>Relationships</span></div>
-                <div><strong>{localSnapshotCounts.diagnostics}</strong><span>Diagnostics</span></div>
-              </div>
-            ) : (
-              <p className="muted">Open a prepared snapshot to see local counts.</p>
-            )}
-          </section>
+              <BrowserOverviewStrip state={browserSession.state} />
+
+              <section className="card browser-workspace__inspector-card">
+                <p className="eyebrow">Prepared model</p>
+                {localSnapshotCounts ? (
+                  <div className="browser-count-grid">
+                    <div><strong>{localSnapshotCounts.scopes}</strong><span>Scopes</span></div>
+                    <div><strong>{localSnapshotCounts.entities}</strong><span>Entities</span></div>
+                    <div><strong>{localSnapshotCounts.relationships}</strong><span>Relationships</span></div>
+                    <div><strong>{localSnapshotCounts.diagnostics}</strong><span>Diagnostics</span></div>
+                  </div>
+                ) : (
+                  <p className="muted">Open a prepared snapshot to see local counts.</p>
+                )}
+              </section>
+            </>
+          )}
         </aside>
       </div>
     </div>
