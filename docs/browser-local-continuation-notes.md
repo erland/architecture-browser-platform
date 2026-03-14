@@ -59,6 +59,21 @@ Completed capabilities:
   - scope add-to-analysis
 - dedicated regression coverage for the entity-first model
 
+
+## Interactive canvas state
+
+The Browser canvas is no longer just a derived projection of semantic canvas membership. It now includes persisted layout state and viewport state:
+
+- positioned `canvasNodes` with `x/y`
+- `pinned` and `manuallyPlaced` anchor semantics
+- persisted `canvasViewport` for pan/zoom/fit behavior
+- explicit arrange commands instead of passive render-time re-layout
+
+For canvas-specific continuation details, inspect:
+
+- `docs/browser-interactive-canvas.md`
+- `docs/browser-interactive-canvas-continuation-notes.md`
+
 ## Current source of truth for Browser
 
 Browser should now be understood as being driven by these layers, in this order:

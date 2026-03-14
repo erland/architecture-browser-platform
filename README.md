@@ -193,6 +193,8 @@ The Browser refactor from backend-driven explorer to local analysis workspace is
 - `docs/browser-local-continuation-notes.md`
 - `docs/browser-local-only-browser.md`
 - `docs/browser-automated-tests.md`
+- `docs/browser-interactive-canvas.md`
+- `docs/browser-interactive-canvas-continuation-notes.md`
 
 The current Browser mental model is now explicitly:
 
@@ -207,6 +209,8 @@ The Browser supports three tree modes for technical snapshots:
 - **All scopes** — advanced/debug view of the underlying scope graph
 
 Add-to-canvas is now entity-first by default. Scope nodes remain available only through advanced canvas actions when container/debug context is explicitly desired.
+
+The Browser canvas now also uses an interactive layout model with persisted node positions, manual dragging, persisted viewport pan/zoom/fit behavior, contextual incremental placement, explicit arrange commands, and anchored handling for pinned / manually placed nodes.
 
 ## Notes
 
