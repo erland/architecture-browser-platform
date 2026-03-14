@@ -22,7 +22,7 @@ type ScopeAnalysisMode = 'primary' | 'direct' | 'subtree' | 'children-primary';
 type BrowserGraphWorkspaceProps = {
   state: BrowserSessionState;
   activeModeLabel: string;
-  onAddSelectedScope: (scopeId?: string) => void;
+  onShowScopeContainer: (scopeId?: string) => void;
   onAddScopeAnalysis: (scopeId: string, mode: ScopeAnalysisMode, kinds?: string[], childScopeKinds?: string[]) => void;
   onAddContainedEntities: (entityId: string, kinds?: string[]) => void;
   onAddPeerEntities: (entityId: string, containerKinds?: string[], peerKinds?: string[]) => void;
@@ -159,7 +159,7 @@ export function buildEntitySelectionActions(index: BrowserSnapshotIndex | null, 
 export function BrowserGraphWorkspace({
   state,
   activeModeLabel,
-  onAddSelectedScope,
+  onShowScopeContainer,
   onAddScopeAnalysis,
   onAddContainedEntities,
   onAddPeerEntities,
@@ -349,10 +349,18 @@ export function BrowserGraphWorkspace({
               <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'children-primary')} disabled={scopeChildCount === 0}>Child primary{scopeChildCount > 0 ? ` (${Math.min(scopeChildCount, 24)})` : ''}</button>
               <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'direct')} disabled={scopeDirectEntityCount === 0}>Direct entities{scopeDirectEntityCount > 0 ? ` (${Math.min(scopeDirectEntityCount, 24)})` : ''}</button>
               <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'subtree')} disabled={scopeSubtreeEntityCount === 0}>Subtree entities{scopeSubtreeEntityCount > 0 ? ` (${Math.min(scopeSubtreeEntityCount, 24)})` : ''}</button>
-              <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
-                {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin scope' : 'Pin scope'}
-              </button>
-              <button type="button" className="button-secondary" onClick={() => onAddSelectedScope(focusedScopeId)}>Add scope node</button>
+              <details className="browser-canvas__advanced-scope">
+                <summary className="button-secondary">Advanced scope node</summary>
+                <div className="browser-canvas__advanced-scope-actions">
+                  <p className="muted">Entity actions are the default. Use scope nodes only when you explicitly want container/debug context on the canvas.</p>
+                  <div className="actions">
+                    <button type="button" className="button-secondary" onClick={() => onShowScopeContainer(focusedScopeId)}>Show selected scope as container</button>
+                    <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
+                      {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin scope node' : 'Pin scope node'}
+                    </button>
+                  </div>
+                </div>
+              </details>
             </>
           ) : (
             <span className="muted">Focus an entity to explore relationships, containment, and neighbors. Scope actions remain available as an advanced fallback.</span>
@@ -363,7 +371,7 @@ export function BrowserGraphWorkspace({
       {model.nodes.length === 0 ? (
         <div className="browser-canvas__empty">
           <h4>Start with a scope or entity</h4>
-          <p className="muted">Use the left tree, search results, or the toolbar above to seed the canvas. Select a node to work with it from the action toolbar.</p>
+          <p className="muted">Use the left tree, facts panel, search results, or the toolbar above to add entities first. Scope containers remain available only under advanced scope actions.</p>
         </div>
       ) : (
         <div className="browser-canvas__viewport">

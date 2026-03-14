@@ -1,6 +1,9 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
-import { buildEntitySelectionActions } from '../components/BrowserGraphWorkspace';
+import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../components/BrowserGraphWorkspace';
+import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-canvas-toolbar-1',
@@ -115,5 +118,43 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       'Remove',
       'Pin',
     ]);
+  });
+
+  test('demotes scope-node canvas actions behind an advanced affordance', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = selectBrowserScope(state, 'scope:file');
+    state = focusBrowserElement(state, { kind: 'scope', id: 'scope:file' });
+
+    const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state,
+      activeModeLabel: 'Layout',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onRelayoutCanvas: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+    }));
+
+    expect(markup).toContain('Advanced scope node');
+    expect(markup).toContain('Show selected scope as container');
+    expect(markup).not.toContain('>Add scope node<');
+    expect(markup).not.toContain('>Pin scope<');
   });
 });

@@ -354,7 +354,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         <BrowserGraphWorkspace
           state={browserSession.state}
           activeModeLabel={activeTabMeta.label}
-          onAddSelectedScope={(scopeId) => {
+          onShowScopeContainer={(scopeId) => {
             const focusedScopeId = browserSession.state.focusedElement?.kind === 'scope'
               ? browserSession.state.focusedElement.id
               : null;
