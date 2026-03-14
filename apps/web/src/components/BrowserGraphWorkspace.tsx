@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import type { FullSnapshotEntity } from '../appModel';
 import {
   getContainedEntitiesForEntity,
@@ -38,6 +38,7 @@ type BrowserGraphWorkspaceProps = {
   onIsolateSelection: () => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
+  onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onRelayoutCanvas: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;
@@ -56,6 +57,13 @@ type DragState = {
   startClientY: number;
   startX: number;
   startY: number;
+};
+
+type PanState = {
+  startClientX: number;
+  startClientY: number;
+  startOffsetX: number;
+  startOffsetY: number;
 };
 
 function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
@@ -185,13 +193,16 @@ export function BrowserGraphWorkspace({
   onIsolateSelection,
   onTogglePinNode,
   onMoveCanvasNode,
+  onSetCanvasViewport,
   onRelayoutCanvas,
   onClearCanvas,
   onFitView,
 }: BrowserGraphWorkspaceProps) {
-  const [zoom, setZoom] = useState(1);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
+  const panStateRef = useRef<PanState | null>(null);
   const dragDistanceRef = useRef(0);
+  const panDistanceRef = useRef(0);
   const suppressClickRef = useRef(false);
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
   const focusedEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
@@ -211,40 +222,61 @@ export function BrowserGraphWorkspace({
   );
 
   useEffect(() => {
-    if (!state.fitViewRequestedAt) {
+    if (!state.fitViewRequestedAt || model.nodes.length === 0) {
       return;
     }
-    if (model.nodes.length > 12) {
-      setZoom(0.82);
-    } else if (model.nodes.length > 6) {
-      setZoom(0.9);
-    } else {
-      setZoom(1);
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
     }
-  }, [model.nodes.length, state.fitViewRequestedAt]);
+    const availableWidth = Math.max(320, viewport.clientWidth - 32);
+    const availableHeight = Math.max(240, viewport.clientHeight - 32);
+    const zoomX = availableWidth / Math.max(model.width, 1);
+    const zoomY = availableHeight / Math.max(model.height, 1);
+    const fittedZoom = Math.min(1.4, Math.max(0.35, Math.min(zoomX, zoomY)));
+    onSetCanvasViewport({
+      zoom: fittedZoom,
+      offsetX: Math.round(Math.max(0, (viewport.clientWidth - model.width * fittedZoom) / 2)),
+      offsetY: Math.round(Math.max(0, (viewport.clientHeight - model.height * fittedZoom) / 2)),
+    });
+  }, [model.height, model.nodes.length, model.width, onSetCanvasViewport, state.fitViewRequestedAt]);
 
 
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       const dragState = dragStateRef.current;
-      if (!dragState) {
+      if (dragState) {
+        event.preventDefault();
+        const deltaX = (event.clientX - dragState.startClientX) / state.canvasViewport.zoom;
+        const deltaY = (event.clientY - dragState.startClientY) / state.canvasViewport.zoom;
+        dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
+        suppressClickRef.current = dragDistanceRef.current > 4;
+        onMoveCanvasNode(dragState.node, {
+          x: Math.round(dragState.startX + deltaX),
+          y: Math.round(dragState.startY + deltaY),
+        });
+        return;
+      }
+      const panState = panStateRef.current;
+      if (!panState) {
         return;
       }
       event.preventDefault();
-      const deltaX = (event.clientX - dragState.startClientX) / zoom;
-      const deltaY = (event.clientY - dragState.startClientY) / zoom;
-      dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
-      suppressClickRef.current = dragDistanceRef.current > 4;
-      onMoveCanvasNode(dragState.node, {
-        x: Math.round(dragState.startX + deltaX),
-        y: Math.round(dragState.startY + deltaY),
+      const deltaX = event.clientX - panState.startClientX;
+      const deltaY = event.clientY - panState.startClientY;
+      panDistanceRef.current = Math.max(panDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
+      onSetCanvasViewport({
+        offsetX: Math.round(panState.startOffsetX + deltaX),
+        offsetY: Math.round(panState.startOffsetY + deltaY),
       });
     };
 
     const handleMouseUp = () => {
       dragStateRef.current = null;
+      panStateRef.current = null;
       dragDistanceRef.current = 0;
+      panDistanceRef.current = 0;
       window.setTimeout(() => {
         suppressClickRef.current = false;
       }, 0);
@@ -257,7 +289,7 @@ export function BrowserGraphWorkspace({
       return;
     }
 
-    if (dragStateRef.current) {
+    if (dragStateRef.current || panStateRef.current) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -266,7 +298,7 @@ export function BrowserGraphWorkspace({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onMoveCanvasNode, zoom]);
+  }, [onMoveCanvasNode, onSetCanvasViewport, state.canvasViewport.zoom]);
 
   const beginNodeDrag = (event: ReactMouseEvent<HTMLElement>, node: BrowserWorkspaceNodeModel) => {
     if (event.button !== 0) {
@@ -281,6 +313,42 @@ export function BrowserGraphWorkspace({
     };
     dragDistanceRef.current = 0;
     suppressClickRef.current = false;
+  };
+
+  const beginViewportPan = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || event.target !== event.currentTarget) {
+      return;
+    }
+    panStateRef.current = {
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startOffsetX: state.canvasViewport.offsetX,
+      startOffsetY: state.canvasViewport.offsetY,
+    };
+    panDistanceRef.current = 0;
+  };
+
+  const handleViewportWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+    event.preventDefault();
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const rect = viewport.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+    const currentZoom = state.canvasViewport.zoom;
+    const nextZoom = Math.min(2.2, Math.max(0.35, currentZoom * (event.deltaY < 0 ? 1.08 : 0.92)));
+    const worldX = (pointerX - state.canvasViewport.offsetX) / currentZoom;
+    const worldY = (pointerY - state.canvasViewport.offsetY) / currentZoom;
+    onSetCanvasViewport({
+      zoom: nextZoom,
+      offsetX: Math.round(pointerX - worldX * nextZoom),
+      offsetY: Math.round(pointerY - worldY * nextZoom),
+    });
   };
 
   const handleEntityAction = (actionKey: string) => {
@@ -383,13 +451,13 @@ export function BrowserGraphWorkspace({
           <span className="muted">Zoom</span>
           <input
             type="range"
-            min="70"
-            max="130"
+            min="35"
+            max="220"
             step="5"
-            value={Math.round(zoom * 100)}
-            onChange={(event) => setZoom(Number(event.target.value) / 100)}
+            value={Math.round(state.canvasViewport.zoom * 100)}
+            onChange={(event) => onSetCanvasViewport({ zoom: Number(event.target.value) / 100 })}
           />
-          <span className="badge">{Math.round(zoom * 100)}%</span>
+          <span className="badge">{Math.round(state.canvasViewport.zoom * 100)}%</span>
         </label>
       </div>
 
@@ -448,8 +516,13 @@ export function BrowserGraphWorkspace({
           <p className="muted">Use the left tree, facts panel, search results, or the toolbar above to add entities first. Scope containers remain available only under advanced scope actions.</p>
         </div>
       ) : (
-        <div className="browser-canvas__viewport">
-          <div className="browser-canvas__surface" style={{ width: model.width, height: model.height, transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+        <div
+          ref={viewportRef}
+          className="browser-canvas__viewport"
+          onMouseDown={beginViewportPan}
+          onWheel={handleViewportWheel}
+        >
+          <div className="browser-canvas__surface" style={{ width: model.width, height: model.height, transform: `translate(${state.canvasViewport.offsetX}px, ${state.canvasViewport.offsetY}px) scale(${state.canvasViewport.zoom})`, transformOrigin: 'top left' }}>
             <svg className="browser-canvas__edges" width={model.width} height={model.height} viewBox={`0 0 ${model.width} ${model.height}`} aria-hidden="true">
               <defs>
                 <marker id="browser-canvas-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">

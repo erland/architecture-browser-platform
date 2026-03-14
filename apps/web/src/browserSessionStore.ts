@@ -37,6 +37,12 @@ export type BrowserCanvasNode = {
 
 export type BrowserCanvasLayoutMode = 'grid' | 'radial';
 
+export type BrowserCanvasViewport = {
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 export type BrowserCanvasEdge = {
   relationshipId: string;
   fromEntityId: string;
@@ -75,6 +81,7 @@ export type BrowserSessionState = {
   graphExpansionActions: BrowserGraphExpansionAction[];
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
+  canvasViewport: BrowserCanvasViewport;
   fitViewRequestedAt: string | null;
 };
 
@@ -92,6 +99,7 @@ export type PersistedBrowserSessionState = {
   graphExpansionActions: BrowserGraphExpansionAction[];
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
+  canvasViewport: BrowserCanvasViewport;
 };
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
@@ -112,6 +120,11 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
     graphExpansionActions: [],
     canvasLayoutMode: 'grid',
     treeMode: 'filesystem',
+    canvasViewport: {
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    },
     fitViewRequestedAt: null,
   };
 }
@@ -131,6 +144,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     graphExpansionActions: state.graphExpansionActions.map((action) => ({ ...action })),
     canvasLayoutMode: state.canvasLayoutMode,
     treeMode: state.treeMode,
+    canvasViewport: { ...state.canvasViewport },
   };
 }
 
@@ -154,6 +168,11 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     graphExpansionActions: [...(persisted.graphExpansionActions ?? state.graphExpansionActions)],
     canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
     treeMode: persisted.treeMode ?? state.treeMode,
+    canvasViewport: {
+      zoom: typeof persisted.canvasViewport?.zoom === 'number' && Number.isFinite(persisted.canvasViewport.zoom) ? persisted.canvasViewport.zoom : state.canvasViewport.zoom,
+      offsetX: typeof persisted.canvasViewport?.offsetX === 'number' && Number.isFinite(persisted.canvasViewport.offsetX) ? persisted.canvasViewport.offsetX : state.canvasViewport.offsetX,
+      offsetY: typeof persisted.canvasViewport?.offsetY === 'number' && Number.isFinite(persisted.canvasViewport.offsetY) ? persisted.canvasViewport.offsetY : state.canvasViewport.offsetY,
+    },
   };
 }
 
@@ -318,6 +337,7 @@ export function openSnapshotSession(
     canvasEdges,
     searchResults,
     treeMode,
+    canvasViewport: nextState.canvasViewport,
   };
 }
 
@@ -570,6 +590,7 @@ export function clearCanvas(state: BrowserSessionState): BrowserSessionState {
     ...state,
     canvasNodes: [],
     canvasEdges: [],
+    canvasViewport: { ...state.canvasViewport, offsetX: 0, offsetY: 0 },
     fitViewRequestedAt: null,
   };
 }
@@ -659,6 +680,29 @@ export function removeCanvasSelection(state: BrowserSessionState): BrowserSessio
 }
 
 
+
+
+function clampCanvasZoom(zoom: number) {
+  return Math.min(2.2, Math.max(0.35, Number.isFinite(zoom) ? zoom : 1));
+}
+
+export function setCanvasViewport(state: BrowserSessionState, viewport: Partial<BrowserCanvasViewport>): BrowserSessionState {
+  return {
+    ...state,
+    canvasViewport: {
+      zoom: clampCanvasZoom(viewport.zoom ?? state.canvasViewport.zoom),
+      offsetX: viewport.offsetX ?? state.canvasViewport.offsetX,
+      offsetY: viewport.offsetY ?? state.canvasViewport.offsetY,
+    },
+  };
+}
+
+export function panCanvasViewport(state: BrowserSessionState, delta: { x: number; y: number }): BrowserSessionState {
+  return setCanvasViewport(state, {
+    offsetX: state.canvasViewport.offsetX + delta.x,
+    offsetY: state.canvasViewport.offsetY + delta.y,
+  });
+}
 export function moveCanvasNode(
   state: BrowserSessionState,
   node: { kind: BrowserCanvasNode['kind']; id: string },

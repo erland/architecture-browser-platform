@@ -439,6 +439,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           onIsolateSelection={browserSession.isolateCanvasSelection}
           onTogglePinNode={browserSession.toggleCanvasNodePin}
           onMoveCanvasNode={browserSession.moveCanvasNode}
+          onSetCanvasViewport={browserSession.setCanvasViewport}
           onRelayoutCanvas={browserSession.relayoutCanvas}
           onClearCanvas={browserSession.clearCanvas}
           onFitView={browserSession.fitCanvasView}

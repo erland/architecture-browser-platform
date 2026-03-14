@@ -17,6 +17,7 @@ import {
   removeEntityFromCanvas,
   requestFitCanvasView,
   moveCanvasNode,
+  setCanvasViewport,
   selectBrowserScope,
   selectCanvasEntity,
   setBrowserSearch,
@@ -303,6 +304,19 @@ describe('browserSessionStore', () => {
     expect(relaidOut.canvasLayoutMode).toBe('radial');
     expect(afterRemoval.canvasNodes).toEqual([]);
     expect(afterRemoval.selectedEntityIds).toEqual([]);
+  });
+
+
+  test('viewport state persists pan and zoom in the Browser session store', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    const zoomed = setCanvasViewport(opened, { zoom: 1.35, offsetX: 120, offsetY: 48 });
+
+    expect(zoomed.canvasViewport).toEqual({ zoom: 1.35, offsetX: 120, offsetY: 48 });
   });
 
   test('persisted session state can be hydrated without carrying stale payload data', () => {

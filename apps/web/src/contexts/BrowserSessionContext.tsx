@@ -6,6 +6,7 @@ import {
   type BrowserFactsPanelMode,
   type BrowserFocusedElement,
   type BrowserSessionState,
+  type BrowserCanvasViewport,
   addDependenciesToCanvas,
   addEntityToCanvas,
   addEntitiesToCanvas,
@@ -24,6 +25,8 @@ import {
   removeEntityFromCanvas,
   requestFitCanvasView,
   moveCanvasNode,
+  setCanvasViewport,
+  panCanvasViewport,
   selectBrowserScope,
   setBrowserTreeMode,
   selectCanvasEntity,
@@ -57,6 +60,8 @@ export type BrowserSessionContextValue = {
   removeCanvasSelection: () => void;
   toggleCanvasNodePin: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   moveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
+  setCanvasViewport: (viewport: Partial<BrowserCanvasViewport>) => void;
+  panCanvasViewport: (delta: { x: number; y: number }) => void;
   relayoutCanvas: () => void;
   clearCanvas: () => void;
   fitCanvasView: () => void;
@@ -90,6 +95,8 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     removeCanvasSelection: () => setState((current) => removeCanvasSelection(current)),
     toggleCanvasNodePin: (node) => setState((current) => toggleCanvasNodePin(current, node)),
     moveCanvasNode: (node, position) => setState((current) => moveCanvasNode(current, node, position)),
+    setCanvasViewport: (viewport) => setState((current) => setCanvasViewport(current, viewport)),
+    panCanvasViewport: (delta) => setState((current) => panCanvasViewport(current, delta)),
     relayoutCanvas: () => setState((current) => relayoutCanvas(current)),
     clearCanvas: () => setState((current) => clearCanvas(current)),
     fitCanvasView: () => setState((current) => requestFitCanvasView(current)),

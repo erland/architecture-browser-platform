@@ -156,6 +156,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
     }));
 
     expect(markup).toContain('BrowserViewModule');
@@ -193,6 +194,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
     }));
 
     expect(markup).toContain('Advanced scope node');
