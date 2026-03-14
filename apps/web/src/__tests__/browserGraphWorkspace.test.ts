@@ -164,6 +164,57 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     expect(markup).not.toContain('src/BrowserView.tsx');
   });
 
+  test('renders interactive canvas toolbar controls for arrange and viewport affordances', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        { id: 'entity:module', kind: 'entity', x: 56, y: 64, pinned: true },
+        { id: 'entity:function.render', kind: 'entity', x: 320, y: 64 },
+      ],
+      selectedEntityIds: ['entity:module'],
+      focusedElement: { kind: 'entity', id: 'entity:module' },
+      canvasViewport: { zoom: 1.25, offsetX: 32, offsetY: 48 },
+    };
+
+    const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state,
+      activeModeLabel: 'Analysis',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onArrangeAllCanvasNodes: () => {},
+      onArrangeCanvasAroundFocus: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+      onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
+    }));
+
+    expect(markup).toContain('Arrange all');
+    expect(markup).toContain('Arrange around focus');
+    expect(markup).toContain('Fit view');
+    expect(markup).toContain('Zoom');
+    expect(markup).toContain('125%');
+    expect(markup).toContain('1 pinned');
+  });
+
   test('demotes scope-node canvas actions behind an advanced affordance', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',

@@ -9,6 +9,12 @@ import {
 } from '../browserSnapshotIndex';
 import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
 import { buildBrowserGraphWorkspaceModel, type BrowserWorkspaceNodeModel } from '../browserGraphWorkspaceModel';
+import {
+  computeDraggedCanvasNodePosition,
+  computeFitViewCanvasViewport,
+  computePannedCanvasViewport,
+  computeZoomedCanvasViewportAroundPointer,
+} from '../browserCanvasViewport';
 
 function scopeActionLabel(index: BrowserSnapshotIndex | null, scopeId: string | null) {
   if (!index || !scopeId) {
@@ -231,16 +237,13 @@ export function BrowserGraphWorkspace({
     if (!viewport) {
       return;
     }
-    const availableWidth = Math.max(320, viewport.clientWidth - 32);
-    const availableHeight = Math.max(240, viewport.clientHeight - 32);
-    const zoomX = availableWidth / Math.max(model.width, 1);
-    const zoomY = availableHeight / Math.max(model.height, 1);
-    const fittedZoom = Math.min(1.4, Math.max(0.35, Math.min(zoomX, zoomY)));
-    onSetCanvasViewport({
-      zoom: fittedZoom,
-      offsetX: Math.round(Math.max(0, (viewport.clientWidth - model.width * fittedZoom) / 2)),
-      offsetY: Math.round(Math.max(0, (viewport.clientHeight - model.height * fittedZoom) / 2)),
-    });
+    onSetCanvasViewport(computeFitViewCanvasViewport({
+      width: viewport.clientWidth,
+      height: viewport.clientHeight,
+    }, {
+      width: model.width,
+      height: model.height,
+    }));
   }, [model.height, model.nodes.length, model.width, onSetCanvasViewport, state.fitViewRequestedAt]);
 
 
@@ -250,14 +253,18 @@ export function BrowserGraphWorkspace({
       const dragState = dragStateRef.current;
       if (dragState) {
         event.preventDefault();
-        const deltaX = (event.clientX - dragState.startClientX) / state.canvasViewport.zoom;
-        const deltaY = (event.clientY - dragState.startClientY) / state.canvasViewport.zoom;
-        dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
+        const deltaX = event.clientX - dragState.startClientX;
+        const deltaY = event.clientY - dragState.startClientY;
+        const nextPosition = computeDraggedCanvasNodePosition({
+          x: dragState.startX,
+          y: dragState.startY,
+        }, {
+          x: deltaX,
+          y: deltaY,
+        }, state.canvasViewport.zoom);
+        dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(nextPosition.x - dragState.startX), Math.abs(nextPosition.y - dragState.startY));
         suppressClickRef.current = dragDistanceRef.current > 4;
-        onMoveCanvasNode(dragState.node, {
-          x: Math.round(dragState.startX + deltaX),
-          y: Math.round(dragState.startY + deltaY),
-        });
+        onMoveCanvasNode(dragState.node, nextPosition);
         return;
       }
       const panState = panStateRef.current;
@@ -268,10 +275,14 @@ export function BrowserGraphWorkspace({
       const deltaX = event.clientX - panState.startClientX;
       const deltaY = event.clientY - panState.startClientY;
       panDistanceRef.current = Math.max(panDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
-      onSetCanvasViewport({
-        offsetX: Math.round(panState.startOffsetX + deltaX),
-        offsetY: Math.round(panState.startOffsetY + deltaY),
-      });
+      onSetCanvasViewport(computePannedCanvasViewport({
+        zoom: state.canvasViewport.zoom,
+        offsetX: panState.startOffsetX,
+        offsetY: panState.startOffsetY,
+      }, {
+        x: deltaX,
+        y: deltaY,
+      }));
     };
 
     const handleMouseUp = () => {
@@ -342,15 +353,10 @@ export function BrowserGraphWorkspace({
     const rect = viewport.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
     const pointerY = event.clientY - rect.top;
-    const currentZoom = state.canvasViewport.zoom;
-    const nextZoom = Math.min(2.2, Math.max(0.35, currentZoom * (event.deltaY < 0 ? 1.08 : 0.92)));
-    const worldX = (pointerX - state.canvasViewport.offsetX) / currentZoom;
-    const worldY = (pointerY - state.canvasViewport.offsetY) / currentZoom;
-    onSetCanvasViewport({
-      zoom: nextZoom,
-      offsetX: Math.round(pointerX - worldX * nextZoom),
-      offsetY: Math.round(pointerY - worldY * nextZoom),
-    });
+    onSetCanvasViewport(computeZoomedCanvasViewportAroundPointer(state.canvasViewport, {
+      x: pointerX,
+      y: pointerY,
+    }, event.deltaY));
   };
 
   const handleEntityAction = (actionKey: string) => {
