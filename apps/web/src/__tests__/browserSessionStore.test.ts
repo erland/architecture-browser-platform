@@ -310,6 +310,54 @@ describe('browserSessionStore', () => {
   });
 
 
+
+  test('arrange commands keep pinned and manually placed nodes stable while moving only eligible nodes', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = moveCanvasNode(state, { kind: 'entity', id: 'entity:search' }, { x: 920, y: 180 });
+    state = toggleCanvasNodePin(state, { kind: 'entity', id: 'entity:layout' });
+
+    const searchBefore = state.canvasNodes.find((node) => node.id === 'entity:search');
+    const layoutBefore = state.canvasNodes.find((node) => node.id === 'entity:layout');
+
+    const arrangedAll = arrangeAllCanvasNodes(state);
+    const arrangedSearch = arrangedAll.canvasNodes.find((node) => node.id === 'entity:search');
+    const arrangedLayout = arrangedAll.canvasNodes.find((node) => node.id === 'entity:layout');
+    const arrangedBrowser = arrangedAll.canvasNodes.find((node) => node.id === 'entity:browser');
+
+    expect(arrangedSearch?.x).toBe(searchBefore?.x);
+    expect(arrangedSearch?.y).toBe(searchBefore?.y);
+    expect(arrangedSearch?.manuallyPlaced).toBe(true);
+    expect(arrangedLayout?.x).toBe(layoutBefore?.x);
+    expect(arrangedLayout?.y).toBe(layoutBefore?.y);
+    expect(arrangedLayout?.pinned).toBe(true);
+    expect(arrangedBrowser?.x).toBe(state.canvasNodes.find((node) => node.id === 'entity:browser')?.x);
+    expect(arrangedBrowser?.y).toBe(state.canvasNodes.find((node) => node.id === 'entity:browser')?.y);
+  });
+
+  test('focused arrange uses the anchored focus position when the focus entity was manually placed', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = moveCanvasNode(state, { kind: 'entity', id: 'entity:browser' }, { x: 840, y: 420 });
+
+    const arranged = arrangeCanvasAroundFocus(state);
+    const focusNode = arranged.canvasNodes.find((node) => node.id === 'entity:browser');
+
+    expect(focusNode).toMatchObject({ x: 840, y: 420, manuallyPlaced: true });
+  });
+
   test('viewport state persists pan and zoom in the Browser session store', () => {
     const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',

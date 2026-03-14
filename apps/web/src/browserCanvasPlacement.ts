@@ -27,6 +27,10 @@ type BrowserCanvasBounds = {
 
 type BrowserCanvasNodeLike = Pick<BrowserCanvasNode, 'kind' | 'x' | 'y'>;
 
+function isAnchoredCanvasNode(node: Pick<BrowserCanvasNode, 'pinned' | 'manuallyPlaced'>) {
+  return Boolean(node.pinned || node.manuallyPlaced);
+}
+
 function getNodeSize(kind: BrowserCanvasNodeLike['kind']) {
   return kind === 'scope' ? BROWSER_SCOPE_NODE_SIZE : BROWSER_ENTITY_NODE_SIZE;
 }
@@ -201,32 +205,48 @@ export function getCanvasNodeById(nodes: BrowserCanvasNode[], kind: BrowserCanva
 
 
 export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[]): BrowserCanvasNode[] {
-  const scopeNodes = nodes.filter((node) => node.kind === 'scope').sort((left, right) => left.id.localeCompare(right.id));
-  const entityNodes = nodes.filter((node) => node.kind === 'entity').sort((left, right) => left.id.localeCompare(right.id));
+  const fixedNodes = nodes
+    .filter((node) => isAnchoredCanvasNode(node))
+    .sort((left, right) => left.kind.localeCompare(right.kind) || left.id.localeCompare(right.id));
+  const movableScopeNodes = nodes
+    .filter((node) => node.kind === 'scope' && !isAnchoredCanvasNode(node))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const movableEntityNodes = nodes
+    .filter((node) => node.kind === 'entity' && !isAnchoredCanvasNode(node))
+    .sort((left, right) => left.id.localeCompare(right.id));
 
-  const arranged: BrowserCanvasNode[] = [];
-  for (const [index, node] of scopeNodes.entries()) {
-    arranged.push({
-      ...node,
+  let arranged: BrowserCanvasNode[] = fixedNodes.map((node) => ({ ...node }));
+  for (const [index, node] of movableScopeNodes.entries()) {
+    const placement = avoidBrowserCanvasCollisions(arranged, 'scope', {
       x: 56,
       y: 64 + index * 132,
-      manuallyPlaced: false,
     });
-  }
-
-  const columnCount = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(entityNodes.length, 1)))));
-  const entityStartX = scopeNodes.length > 0 ? 320 : 96;
-  const entityStartY = 96;
-  for (const [index, node] of entityNodes.entries()) {
-    arranged.push({
+    arranged = [...arranged, {
       ...node,
-      x: entityStartX + (index % columnCount) * PEER_SPACING_X,
-      y: entityStartY + Math.floor(index / columnCount) * PEER_SPACING_Y,
+      ...placement,
       manuallyPlaced: false,
-    });
+    }];
   }
 
-  return arranged;
+  const visibleScopeNodes = arranged.filter((node) => node.kind === 'scope');
+  const fallbackEntityStartX = visibleScopeNodes.length > 0
+    ? Math.max(...visibleScopeNodes.map((node) => node.x + BROWSER_SCOPE_NODE_SIZE.width)) + 60
+    : 96;
+  const columnCount = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(movableEntityNodes.length, 1)))));
+  const entityStartY = 96;
+  for (const [index, node] of movableEntityNodes.entries()) {
+    const placement = avoidBrowserCanvasCollisions(arranged, 'entity', {
+      x: fallbackEntityStartX + (index % columnCount) * PEER_SPACING_X,
+      y: entityStartY + Math.floor(index / columnCount) * PEER_SPACING_Y,
+    });
+    arranged = [...arranged, {
+      ...node,
+      ...placement,
+      manuallyPlaced: false,
+    }];
+  }
+
+  return nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
 }
 
 export function arrangeCanvasNodesAroundEntityFocus(
@@ -239,28 +259,43 @@ export function arrangeCanvasNodesAroundEntityFocus(
     return arrangeCanvasNodesInGrid(nodes);
   }
 
-  const scopeNodes = nodes.filter((node) => node.kind === 'scope').sort((left, right) => left.id.localeCompare(right.id));
-  const scopeArranged = scopeNodes.map((node, index) => ({
-    ...node,
-    x: 56,
-    y: 64 + index * 132,
-    manuallyPlaced: false,
-  }));
+  const fixedNodes = nodes
+    .filter((node) => isAnchoredCanvasNode(node))
+    .sort((left, right) => left.kind.localeCompare(right.kind) || left.id.localeCompare(right.id));
+  const movableScopeNodes = nodes
+    .filter((node) => node.kind === 'scope' && !isAnchoredCanvasNode(node))
+    .sort((left, right) => left.id.localeCompare(right.id));
 
-  const focusPlaced: BrowserCanvasNode = {
-    ...focusNode,
-    x: 560,
-    y: 280,
-    manuallyPlaced: false,
-  };
+  let arranged: BrowserCanvasNode[] = fixedNodes.map((node) => ({ ...node }));
+  for (const [index, node] of movableScopeNodes.entries()) {
+    const placement = avoidBrowserCanvasCollisions(arranged, 'scope', {
+      x: 56,
+      y: 64 + index * 132,
+    });
+    arranged = [...arranged, {
+      ...node,
+      ...placement,
+      manuallyPlaced: false,
+    }];
+  }
+
+  const focusPlaced: BrowserCanvasNode = isAnchoredCanvasNode(focusNode)
+    ? { ...focusNode }
+    : {
+        ...focusNode,
+        ...avoidBrowserCanvasCollisions(arranged, 'entity', { x: 560, y: 280 }),
+        manuallyPlaced: false,
+      };
+
+  if (!arranged.some((node) => node.kind === 'entity' && node.id === focusEntityId)) {
+    arranged = [...arranged, focusPlaced];
+  }
 
   const inboundIds = new Set(edges.filter((edge) => edge.toEntityId === focusEntityId).map((edge) => edge.fromEntityId));
   const outboundIds = new Set(edges.filter((edge) => edge.fromEntityId === focusEntityId).map((edge) => edge.toEntityId));
 
-  let arranged = [...scopeArranged, focusPlaced];
-
   const remainingEntityNodes = nodes
-    .filter((node) => node.kind === 'entity' && node.id !== focusEntityId)
+    .filter((node) => node.kind === 'entity' && node.id !== focusEntityId && !isAnchoredCanvasNode(node))
     .sort((left, right) => left.id.localeCompare(right.id));
 
   const inboundNodes = remainingEntityNodes.filter((node) => inboundIds.has(node.id) && !outboundIds.has(node.id));
@@ -285,7 +320,7 @@ export function arrangeCanvasNodesAroundEntityFocus(
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
 
-  return arranged;
+  return nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
 }
 
 export function planEntityInsertion(

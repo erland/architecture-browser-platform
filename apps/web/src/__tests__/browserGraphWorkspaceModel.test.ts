@@ -1,7 +1,17 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
-import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, arrangeAllCanvasNodes, arrangeCanvasAroundFocus, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, toggleCanvasNodePin } from '../browserSessionStore';
+import {
+  addDependenciesToCanvas,
+  addEntityToCanvas,
+  addScopeToCanvas,
+  arrangeAllCanvasNodes,
+  arrangeCanvasAroundFocus,
+  createEmptyBrowserSessionState,
+  focusBrowserElement,
+  openSnapshotSession,
+  toggleCanvasNodePin,
+} from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-graph-1',
@@ -85,7 +95,7 @@ describe('browserGraphWorkspaceModel', () => {
     expect(model.height).toBeGreaterThan(300);
   });
 
-  test('arrange commands rewrite positions explicitly instead of relying on passive layout modes', () => {
+  test('arrange commands preserve anchored node positions while still rearranging eligible nodes', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
@@ -103,7 +113,35 @@ describe('browserGraphWorkspaceModel', () => {
 
     expect(focusedArrangedState.canvasLayoutMode).toBe('radial');
     expect(gridArrangedState.canvasLayoutMode).toBe('grid');
-    expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.x).not.toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.x);
+    expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.x).toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.x);
+    expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.y).toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.y);
+    const movedNonAnchoredNode = focusedArrangedModel.nodes
+      .filter((node) => node.id !== 'entity:browser')
+      .some((node) => {
+        const before = initialModel.nodes.find((candidate) => candidate.id === node.id);
+        return before != null && (before.x !== node.x || before.y !== node.y);
+      });
+
+    expect(movedNonAnchoredNode).toBe(true);
     expect(gridArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
+  });
+
+  test('arrange commands preserve anchored node positions in the rendered model', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:browser' });
+    state = toggleCanvasNodePin(state, { kind: 'entity', id: 'entity:tree' });
+    const pinnedBefore = state.canvasNodes.find((node) => node.id === 'entity:tree');
+
+    const arrangedState = arrangeCanvasAroundFocus(state);
+    const arrangedModel = buildBrowserGraphWorkspaceModel(arrangedState);
+
+    expect(arrangedModel.nodes.find((node) => node.id === 'entity:tree')?.x).toBe(pinnedBefore?.x);
+    expect(arrangedModel.nodes.find((node) => node.id === 'entity:tree')?.y).toBe(pinnedBefore?.y);
   });
 });
