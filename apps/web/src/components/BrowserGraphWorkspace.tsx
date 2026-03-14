@@ -438,7 +438,6 @@ export function BrowserGraphWorkspace({
                 >
                   <span className="badge">{node.kind}</span>
                   <strong>{node.title}</strong>
-                  <span className="muted">{node.subtitle}</span>
                 </button>
 
               </article>
