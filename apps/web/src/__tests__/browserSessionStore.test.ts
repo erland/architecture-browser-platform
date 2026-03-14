@@ -12,7 +12,8 @@ import {
   isolateCanvasSelection,
   openSnapshotSession,
   openFactsPanel,
-  relayoutCanvas,
+  arrangeAllCanvasNodes,
+  arrangeCanvasAroundFocus,
   removeCanvasSelection,
   removeEntityFromCanvas,
   requestFitCanvasView,
@@ -282,7 +283,7 @@ describe('browserSessionStore', () => {
     expect(fitRequested.fitViewRequestedAt).not.toBeNull();
   });
 
-  test('canvas interaction helpers support multi-select, isolate, remove, pin, and relayout', () => {
+  test('canvas interaction helpers support multi-select, isolate, remove, pin, and explicit arrange commands', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
@@ -295,13 +296,15 @@ describe('browserSessionStore', () => {
     state = selectCanvasEntity(state, 'entity:search', true);
 
     const isolated = isolateCanvasSelection(state);
-    const relaidOut = relayoutCanvas(isolated);
-    const afterRemoval = removeCanvasSelection(relaidOut);
+    const arrangedAroundFocus = arrangeCanvasAroundFocus(isolated);
+    const arrangedAll = arrangeAllCanvasNodes(arrangedAroundFocus);
+    const afterRemoval = removeCanvasSelection(arrangedAll);
 
     expect(isolated.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
     expect(isolated.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
     expect(isolated.canvasNodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
-    expect(relaidOut.canvasLayoutMode).toBe('radial');
+    expect(arrangedAroundFocus.canvasLayoutMode).toBe('radial');
+    expect(arrangedAll.canvasLayoutMode).toBe('grid');
     expect(afterRemoval.canvasNodes).toEqual([]);
     expect(afterRemoval.selectedEntityIds).toEqual([]);
   });

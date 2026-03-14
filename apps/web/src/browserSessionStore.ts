@@ -1,5 +1,7 @@
 import { type FullSnapshotPayload } from './appModel';
 import {
+  arrangeCanvasNodesAroundEntityFocus,
+  arrangeCanvasNodesInGrid,
   getDefaultCanvasNodePosition,
   planEntityInsertion,
   planScopeInsertion,
@@ -733,10 +735,33 @@ export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: Br
   };
 }
 
-export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
+export function arrangeAllCanvasNodes(state: BrowserSessionState): BrowserSessionState {
+  if (state.canvasNodes.length === 0) {
+    return state;
+  }
   return {
     ...state,
-    canvasLayoutMode: state.canvasLayoutMode === 'grid' ? 'radial' : 'grid',
+    canvasNodes: arrangeCanvasNodesInGrid(state.canvasNodes),
+    canvasLayoutMode: 'grid',
     fitViewRequestedAt: new Date().toISOString(),
   };
+}
+
+export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSessionState {
+  if (state.canvasNodes.length === 0) {
+    return state;
+  }
+  if (state.focusedElement?.kind !== 'entity') {
+    return arrangeAllCanvasNodes(state);
+  }
+  return {
+    ...state,
+    canvasNodes: arrangeCanvasNodesAroundEntityFocus(state.canvasNodes, state.canvasEdges, state.focusedElement.id),
+    canvasLayoutMode: 'radial',
+    fitViewRequestedAt: new Date().toISOString(),
+  };
+}
+
+export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
+  return arrangeAllCanvasNodes(state);
 }

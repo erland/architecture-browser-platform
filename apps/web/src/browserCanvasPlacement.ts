@@ -1,4 +1,5 @@
 import type { FullSnapshotEntity } from './appModel';
+import type { BrowserCanvasEdge } from './browserSessionStore';
 import type { BrowserSnapshotIndex } from './browserSnapshotIndex';
 import type { BrowserCanvasNode } from './browserSessionStore';
 
@@ -195,6 +196,96 @@ export function placePeerCanvasNode(
 
 export function getCanvasNodeById(nodes: BrowserCanvasNode[], kind: BrowserCanvasNode['kind'], id: string) {
   return nodes.find((node) => node.kind === kind && node.id === id) ?? null;
+}
+
+
+
+export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[]): BrowserCanvasNode[] {
+  const scopeNodes = nodes.filter((node) => node.kind === 'scope').sort((left, right) => left.id.localeCompare(right.id));
+  const entityNodes = nodes.filter((node) => node.kind === 'entity').sort((left, right) => left.id.localeCompare(right.id));
+
+  const arranged: BrowserCanvasNode[] = [];
+  for (const [index, node] of scopeNodes.entries()) {
+    arranged.push({
+      ...node,
+      x: 56,
+      y: 64 + index * 132,
+      manuallyPlaced: false,
+    });
+  }
+
+  const columnCount = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(Math.max(entityNodes.length, 1)))));
+  const entityStartX = scopeNodes.length > 0 ? 320 : 96;
+  const entityStartY = 96;
+  for (const [index, node] of entityNodes.entries()) {
+    arranged.push({
+      ...node,
+      x: entityStartX + (index % columnCount) * PEER_SPACING_X,
+      y: entityStartY + Math.floor(index / columnCount) * PEER_SPACING_Y,
+      manuallyPlaced: false,
+    });
+  }
+
+  return arranged;
+}
+
+export function arrangeCanvasNodesAroundEntityFocus(
+  nodes: BrowserCanvasNode[],
+  edges: BrowserCanvasEdge[],
+  focusEntityId: string,
+): BrowserCanvasNode[] {
+  const focusNode = nodes.find((node) => node.kind === 'entity' && node.id === focusEntityId);
+  if (!focusNode) {
+    return arrangeCanvasNodesInGrid(nodes);
+  }
+
+  const scopeNodes = nodes.filter((node) => node.kind === 'scope').sort((left, right) => left.id.localeCompare(right.id));
+  const scopeArranged = scopeNodes.map((node, index) => ({
+    ...node,
+    x: 56,
+    y: 64 + index * 132,
+    manuallyPlaced: false,
+  }));
+
+  const focusPlaced: BrowserCanvasNode = {
+    ...focusNode,
+    x: 560,
+    y: 280,
+    manuallyPlaced: false,
+  };
+
+  const inboundIds = new Set(edges.filter((edge) => edge.toEntityId === focusEntityId).map((edge) => edge.fromEntityId));
+  const outboundIds = new Set(edges.filter((edge) => edge.fromEntityId === focusEntityId).map((edge) => edge.toEntityId));
+
+  let arranged = [...scopeArranged, focusPlaced];
+
+  const remainingEntityNodes = nodes
+    .filter((node) => node.kind === 'entity' && node.id !== focusEntityId)
+    .sort((left, right) => left.id.localeCompare(right.id));
+
+  const inboundNodes = remainingEntityNodes.filter((node) => inboundIds.has(node.id) && !outboundIds.has(node.id));
+  const outboundNodes = remainingEntityNodes.filter((node) => outboundIds.has(node.id) && !inboundIds.has(node.id));
+  const mixedNodes = remainingEntityNodes.filter((node) => inboundIds.has(node.id) && outboundIds.has(node.id));
+  const otherNodes = remainingEntityNodes.filter((node) => !inboundIds.has(node.id) && !outboundIds.has(node.id));
+
+  for (const [index, node] of inboundNodes.entries()) {
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, inboundNodes.length, 'left');
+    arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
+  }
+  for (const [index, node] of outboundNodes.entries()) {
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, outboundNodes.length, 'right');
+    arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
+  }
+  for (const [index, node] of mixedNodes.entries()) {
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, mixedNodes.length, 'around');
+    arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
+  }
+  for (const [index, node] of otherNodes.entries()) {
+    const placement = placeAppendedCanvasNode(arranged, 'entity', index);
+    arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
+  }
+
+  return arranged;
 }
 
 export function planEntityInsertion(

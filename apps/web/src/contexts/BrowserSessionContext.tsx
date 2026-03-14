@@ -20,6 +20,8 @@ import {
   openSnapshotSession,
   persistBrowserSession,
   readPersistedBrowserSession,
+  arrangeAllCanvasNodes,
+  arrangeCanvasAroundFocus,
   relayoutCanvas,
   removeCanvasSelection,
   removeEntityFromCanvas,
@@ -62,6 +64,8 @@ export type BrowserSessionContextValue = {
   moveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
   setCanvasViewport: (viewport: Partial<BrowserCanvasViewport>) => void;
   panCanvasViewport: (delta: { x: number; y: number }) => void;
+  arrangeAllCanvasNodes: () => void;
+  arrangeCanvasAroundFocus: () => void;
   relayoutCanvas: () => void;
   clearCanvas: () => void;
   fitCanvasView: () => void;
@@ -97,6 +101,8 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     moveCanvasNode: (node, position) => setState((current) => moveCanvasNode(current, node, position)),
     setCanvasViewport: (viewport) => setState((current) => setCanvasViewport(current, viewport)),
     panCanvasViewport: (delta) => setState((current) => panCanvasViewport(current, delta)),
+    arrangeAllCanvasNodes: () => setState((current) => arrangeAllCanvasNodes(current)),
+    arrangeCanvasAroundFocus: () => setState((current) => arrangeCanvasAroundFocus(current)),
     relayoutCanvas: () => setState((current) => relayoutCanvas(current)),
     clearCanvas: () => setState((current) => clearCanvas(current)),
     fitCanvasView: () => setState((current) => requestFitCanvasView(current)),

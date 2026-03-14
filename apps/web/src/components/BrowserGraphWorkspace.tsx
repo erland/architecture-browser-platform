@@ -39,7 +39,8 @@ type BrowserGraphWorkspaceProps = {
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
-  onRelayoutCanvas: () => void;
+  onArrangeAllCanvasNodes: () => void;
+  onArrangeCanvasAroundFocus: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;
 };
@@ -194,7 +195,8 @@ export function BrowserGraphWorkspace({
   onTogglePinNode,
   onMoveCanvasNode,
   onSetCanvasViewport,
-  onRelayoutCanvas,
+  onArrangeAllCanvasNodes,
+  onArrangeCanvasAroundFocus,
   onClearCanvas,
   onFitView,
 }: BrowserGraphWorkspaceProps) {
@@ -412,7 +414,7 @@ export function BrowserGraphWorkspace({
           <span className="badge">{model.edges.length} edges</span>
           <span className="badge">{selectedEntityCount} selected</span>
           <span className="badge">{pinnedNodeCount} pinned</span>
-          <span className="badge">Layout {state.canvasLayoutMode}</span>
+          <span className="badge">Zoom {Math.round(state.canvasViewport.zoom * 100)}%</span>
           <span className="badge">Mode {activeModeLabel}</span>
         </div>
       </header>
@@ -444,7 +446,8 @@ export function BrowserGraphWorkspace({
         </button>
         <button type="button" className="button-secondary" onClick={onIsolateSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Isolate selection</button>
         <button type="button" className="button-secondary" onClick={onRemoveSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Remove selection</button>
-        <button type="button" className="button-secondary" onClick={onRelayoutCanvas} disabled={model.nodes.length === 0}>Re-layout</button>
+        <button type="button" className="button-secondary" onClick={onArrangeAllCanvasNodes} disabled={model.nodes.length === 0}>Arrange all</button>
+        <button type="button" className="button-secondary" onClick={onArrangeCanvasAroundFocus} disabled={model.nodes.length === 0 || !focusedEntity}>Arrange around focus</button>
         <button type="button" className="button-secondary" onClick={onFitView} disabled={model.nodes.length === 0}>Fit view</button>
         <button type="button" className="button-secondary" onClick={onClearCanvas} disabled={model.nodes.length === 0}>Clear canvas</button>
         <label className="browser-canvas__zoom">

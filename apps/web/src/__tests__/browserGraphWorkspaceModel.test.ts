@@ -1,7 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
-import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, relayoutCanvas, toggleCanvasNodePin } from '../browserSessionStore';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, arrangeAllCanvasNodes, arrangeCanvasAroundFocus, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, toggleCanvasNodePin } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-graph-1',
@@ -85,7 +85,7 @@ describe('browserGraphWorkspaceModel', () => {
     expect(model.height).toBeGreaterThan(300);
   });
 
-  test('keeps positioned nodes stable when layout mode changes', () => {
+  test('arrange commands rewrite positions explicitly instead of relying on passive layout modes', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
@@ -95,13 +95,15 @@ describe('browserGraphWorkspaceModel', () => {
     state = toggleCanvasNodePin(state, { kind: 'entity', id: 'entity:browser' });
     state = addDependenciesToCanvas(state, 'entity:browser');
 
-    const gridModel = buildBrowserGraphWorkspaceModel(state);
-    const radialState = relayoutCanvas(state);
-    const radialModel = buildBrowserGraphWorkspaceModel(radialState);
+    const initialModel = buildBrowserGraphWorkspaceModel(state);
+    const focusedArrangedState = arrangeCanvasAroundFocus(state);
+    const focusedArrangedModel = buildBrowserGraphWorkspaceModel(focusedArrangedState);
+    const gridArrangedState = arrangeAllCanvasNodes(focusedArrangedState);
+    const gridArrangedModel = buildBrowserGraphWorkspaceModel(gridArrangedState);
 
-    expect(radialState.canvasLayoutMode).toBe('radial');
-    expect(gridModel.nodes.find((node) => node.id === 'entity:browser')?.x).toBe(radialModel.nodes.find((node) => node.id === 'entity:browser')?.x);
-    expect(gridModel.nodes.find((node) => node.id === 'entity:browser')?.y).toBe(radialModel.nodes.find((node) => node.id === 'entity:browser')?.y);
-    expect(radialModel.nodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
+    expect(focusedArrangedState.canvasLayoutMode).toBe('radial');
+    expect(gridArrangedState.canvasLayoutMode).toBe('grid');
+    expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.x).not.toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.x);
+    expect(gridArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
   });
 });
