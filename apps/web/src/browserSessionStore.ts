@@ -1,5 +1,10 @@
 import { type FullSnapshotPayload } from './appModel';
 import {
+  getDefaultCanvasNodePosition,
+  planEntityInsertion,
+  planScopeInsertion,
+} from './browserCanvasPlacement';
+import {
   type BrowserDependencyDirection,
   type BrowserSearchResult,
   type BrowserSnapshotIndex,
@@ -160,34 +165,10 @@ function isFiniteCoordinate(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-function getSeededCanvasNodePosition(nodes: BrowserCanvasNode[], kind: BrowserCanvasNode['kind'], pinned = false) {
-  const scopeNodes = nodes.filter((node) => node.kind === 'scope');
-  const entityNodes = nodes.filter((node) => node.kind === 'entity');
-
-  if (kind === 'scope') {
-    return {
-      x: 56,
-      y: 64 + scopeNodes.length * 112,
-    };
-  }
-
-  const entityBaseX = scopeNodes.length > 0 ? 300 : 56;
-  if (pinned) {
-    return {
-      x: entityBaseX,
-      y: 64 + entityNodes.length * 104,
-    };
-  }
-
-  const column = entityNodes.length % 3;
-  const row = Math.floor(entityNodes.length / 3);
-  return {
-    x: entityBaseX + column * 224,
-    y: 64 + row * 120,
-  };
-}
-
-function createPositionedCanvasNode(nodes: BrowserCanvasNode[], nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>) {
+function createPositionedCanvasNode(
+  nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>,
+  fallbackPosition?: { x: number; y: number },
+) {
   if (isFiniteCoordinate(nextNode.x) && isFiniteCoordinate(nextNode.y)) {
     return {
       ...nextNode,
@@ -195,35 +176,38 @@ function createPositionedCanvasNode(nodes: BrowserCanvasNode[], nextNode: Omit<B
       y: nextNode.y,
     } satisfies BrowserCanvasNode;
   }
-  const seededPosition = getSeededCanvasNodePosition(nodes, nextNode.kind, Boolean(nextNode.pinned));
   return {
     ...nextNode,
-    x: seededPosition.x,
-    y: seededPosition.y,
+    x: fallbackPosition?.x ?? 56,
+    y: fallbackPosition?.y ?? 64,
   } satisfies BrowserCanvasNode;
 }
 
 function normalizeCanvasNodes(nodes: BrowserCanvasNode[]) {
   let normalized: BrowserCanvasNode[] = [];
   for (const node of nodes) {
-    normalized = upsertCanvasNode(normalized, node);
+    normalized = upsertCanvasNode(normalized, node, getDefaultCanvasNodePosition(node.kind, normalized));
   }
   return normalized;
 }
 
-function upsertCanvasNode(nodes: BrowserCanvasNode[], nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>) {
+function upsertCanvasNode(
+  nodes: BrowserCanvasNode[],
+  nextNode: Omit<BrowserCanvasNode, 'x' | 'y'> & Partial<Pick<BrowserCanvasNode, 'x' | 'y'>>,
+  fallbackPosition?: { x: number; y: number },
+) {
   const existingIndex = nodes.findIndex((node) => node.kind === nextNode.kind && node.id === nextNode.id);
   if (existingIndex === -1) {
-    return [...nodes, createPositionedCanvasNode(nodes, nextNode)];
+    return [...nodes, createPositionedCanvasNode(nextNode, fallbackPosition)];
   }
   const updated = [...nodes];
   const existingNode = updated[existingIndex];
-  const nextPositionedNode = createPositionedCanvasNode(nodes, {
+  const nextPositionedNode = createPositionedCanvasNode({
     ...existingNode,
     ...nextNode,
     x: nextNode.x ?? existingNode.x,
     y: nextNode.y ?? existingNode.y,
-  });
+  }, fallbackPosition);
   updated[existingIndex] = {
     ...existingNode,
     ...nextPositionedNode,
@@ -264,6 +248,34 @@ function computeSearchResults(index: BrowserSnapshotIndex | null, query: string,
     return [];
   }
   return searchBrowserSnapshotIndex(index, query, { scopeId, limit: 50 });
+}
+
+
+function planEntityNodePosition(
+  state: BrowserSessionState,
+  entityId: string,
+  options?: {
+    anchorEntityId?: string | null;
+    anchorDirection?: 'around' | 'left' | 'right';
+    insertionIndex?: number;
+    insertionCount?: number;
+  },
+) {
+  const entity = state.index?.entitiesById.get(entityId);
+  if (!state.index || !entity) {
+    return getDefaultCanvasNodePosition('entity', state.canvasNodes);
+  }
+  return planEntityInsertion(state.canvasNodes, state.index, entity, {
+    anchorEntityId: options?.anchorEntityId ?? (state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null),
+    anchorDirection: options?.anchorDirection,
+    selectedScopeId: state.selectedScopeId,
+    insertionIndex: options?.insertionIndex,
+    insertionCount: options?.insertionCount,
+  });
+}
+
+function planScopeNodePosition(state: BrowserSessionState, scopeId: string, insertionIndex = 0) {
+  return planScopeInsertion(state.canvasNodes, scopeId, insertionIndex);
 }
 
 export function openSnapshotSession(
@@ -334,7 +346,7 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
   if (!entity) {
     return state;
   }
-  const canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId });
+  const canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId }, planEntityNodePosition(state, entityId));
   return {
     ...state,
     canvasNodes,
@@ -354,8 +366,22 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
   }
 
   let canvasNodes = [...state.canvasNodes];
-  for (const entityId of validEntityIds) {
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: entityId });
+  const anchorEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
+  for (const [index, entityId] of validEntityIds.entries()) {
+    const entity = state.index.entitiesById.get(entityId);
+    if (!entity) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(
+      canvasNodes,
+      { kind: 'entity', id: entityId },
+      planEntityInsertion(canvasNodes, state.index, entity, {
+        anchorEntityId,
+        selectedScopeId: state.selectedScopeId,
+        insertionIndex: index,
+        insertionCount: validEntityIds.length,
+      }),
+    );
   }
 
   const focusEntityId = validEntityIds[0];
@@ -390,7 +416,7 @@ export function addScopeToCanvas(state: BrowserSessionState, scopeId: string): B
   }
   return {
     ...state,
-    canvasNodes: upsertCanvasNode(state.canvasNodes, { kind: 'scope', id: scopeId }),
+    canvasNodes: upsertCanvasNode(state.canvasNodes, { kind: 'scope', id: scopeId }, planScopeNodePosition(state, scopeId)),
     focusedElement: { kind: 'scope', id: scopeId },
     factsPanelMode: 'scope',
   };
@@ -414,14 +440,59 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       .map((edge) => edge.relationshipId),
   );
 
-  let canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId, pinned: true });
+  let canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId, pinned: true }, planEntityNodePosition(state, entityId));
   let canvasEdges = [...state.canvasEdges];
+  const neighborsToInsert = uniqueValues(
+    neighborhood.edges
+      .filter((edge) => allowedRelationshipIds.has(edge.relationshipId))
+      .flatMap((edge) => [edge.fromEntityId, edge.toEntityId])
+      .filter((candidateId) => candidateId !== entityId),
+  );
+  const inboundNeighborIds = neighborsToInsert.filter((candidateId) => neighborhood.inboundEntityIds.includes(candidateId));
+  const outboundNeighborIds = neighborsToInsert.filter((candidateId) => neighborhood.outboundEntityIds.includes(candidateId));
+  const mixedNeighborIds = neighborsToInsert.filter((candidateId) => !inboundNeighborIds.includes(candidateId) && !outboundNeighborIds.includes(candidateId));
+
+  for (const [index, candidateId] of inboundNeighborIds.entries()) {
+    const entity = state.index.entitiesById.get(candidateId);
+    if (!entity) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
+      anchorEntityId: entityId,
+      anchorDirection: 'left',
+      insertionIndex: index,
+      insertionCount: inboundNeighborIds.length,
+    }));
+  }
+  for (const [index, candidateId] of outboundNeighborIds.entries()) {
+    const entity = state.index.entitiesById.get(candidateId);
+    if (!entity) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
+      anchorEntityId: entityId,
+      anchorDirection: 'right',
+      insertionIndex: index,
+      insertionCount: outboundNeighborIds.length,
+    }));
+  }
+  for (const [index, candidateId] of mixedNeighborIds.entries()) {
+    const entity = state.index.entitiesById.get(candidateId);
+    if (!entity) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
+      anchorEntityId: entityId,
+      anchorDirection: 'around',
+      insertionIndex: index,
+      insertionCount: mixedNeighborIds.length,
+    }));
+  }
+
   for (const edge of neighborhood.edges) {
     if (!allowedRelationshipIds.has(edge.relationshipId)) {
       continue;
     }
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: edge.fromEntityId });
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: edge.toEntityId });
     canvasEdges = upsertCanvasEdge(canvasEdges, {
       relationshipId: edge.relationshipId,
       fromEntityId: edge.fromEntityId,

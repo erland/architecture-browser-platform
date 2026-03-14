@@ -2,6 +2,7 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import {
   addDependenciesToCanvas,
   addEntityToCanvas,
+  addScopeToCanvas,
   addPrimaryEntitiesForScope,
   clearCanvas,
   createEmptyBrowserSessionState,
@@ -179,6 +180,66 @@ describe('browserSessionStore', () => {
     expect(next.selectedEntityIds).toEqual(['entity:module-browser']);
     expect(next.focusedElement).toEqual({ kind: 'entity', id: 'entity:module-browser' });
     expect(next.factsPanelMode).toBe('entity');
+  });
+
+
+  test('incremental placement keeps existing nodes stable and places peer entities near their shared scope', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    const browserNodeBefore = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    expect(browserNodeBefore).toBeDefined();
+
+    state = addEntityToCanvas(state, 'entity:search');
+    const browserNodeAfter = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    const searchNode = state.canvasNodes.find((node) => node.id === 'entity:search');
+
+    expect(browserNodeAfter?.x).toBe(browserNodeBefore?.x);
+    expect(browserNodeAfter?.y).toBe(browserNodeBefore?.y);
+    expect(searchNode?.x).not.toBe(browserNodeAfter?.x);
+    expect(Math.abs((searchNode?.y ?? 0) - (browserNodeAfter?.y ?? 0))).toBeLessThanOrEqual(160);
+  });
+
+  test('dependency expansion places inbound neighbors to the left and outbound neighbors to the right of the focus entity', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    const focusNode = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    const expanded = addDependenciesToCanvas(state, 'entity:browser', 'ALL');
+    const inboundNode = expanded.canvasNodes.find((node) => node.id === 'entity:layout');
+    const outboundNode = expanded.canvasNodes.find((node) => node.id === 'entity:search');
+
+    expect(focusNode).toBeDefined();
+    expect(inboundNode).toBeDefined();
+    expect(outboundNode).toBeDefined();
+    expect(inboundNode!.x).toBeLessThan(focusNode!.x);
+    expect(outboundNode!.x).toBeGreaterThan(focusNode!.x);
+  });
+
+  test('adding an entity while its scope node is visible places the entity near the scope container', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addScopeToCanvas(state, 'scope:web');
+    state = addEntityToCanvas(state, 'entity:browser');
+    const scopeNode = state.canvasNodes.find((node) => node.kind === 'scope' && node.id === 'scope:web');
+    const entityNode = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:browser');
+
+    expect(scopeNode).toBeDefined();
+    expect(entityNode).toBeDefined();
+    expect(entityNode!.x).toBeGreaterThanOrEqual(scopeNode!.x);
+    expect(entityNode!.y).toBeGreaterThan(scopeNode!.y);
   });
 
   test('facts panel focus and fit-view requests are session actions, not component-local state', () => {
