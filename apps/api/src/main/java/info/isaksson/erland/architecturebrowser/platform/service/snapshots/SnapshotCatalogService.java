@@ -7,6 +7,7 @@ import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.Di
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullDiagnostic;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullEntity;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullRelationship;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullViewpoint;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullScope;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullSnapshotPayloadResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.KindCount;
@@ -93,6 +94,7 @@ public class SnapshotCatalogService {
             mapScopes(document),
             mapEntities(document),
             mapRelationships(document),
+            mapViewpoints(document),
             mapDiagnostics(document),
             new MetadataEnvelope(defaultMap(document.metadata())),
             collectWarnings(document)
@@ -331,6 +333,24 @@ public class SnapshotCatalogService {
             .toList();
     }
 
+
+    private List<FullViewpoint> mapViewpoints(ArchitectureIndexDocument document) {
+        return Optional.ofNullable(document.viewpoints()).orElse(List.of()).stream()
+            .map(viewpoint -> new FullViewpoint(
+                viewpoint.id(),
+                viewpoint.title(),
+                viewpoint.description(),
+                viewpoint.availability(),
+                viewpoint.confidence() != null ? viewpoint.confidence() : 0.0d,
+                defaultList(viewpoint.seedEntityIds()),
+                defaultList(viewpoint.seedRoleIds()),
+                defaultList(viewpoint.expandViaSemantics()),
+                defaultList(viewpoint.preferredDependencyViews()),
+                defaultList(viewpoint.evidenceSources())
+            ))
+            .toList();
+    }
+
     private List<FullDiagnostic> mapDiagnostics(ArchitectureIndexDocument document) {
         return Optional.ofNullable(document.diagnostics()).orElse(List.of()).stream()
             .map(diagnostic -> new FullDiagnostic(
@@ -359,6 +379,14 @@ public class SnapshotCatalogService {
                 defaultMap(sourceRef.metadata())
             ))
             .toList();
+    }
+
+
+    private List<String> defaultList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        return List.copyOf(values);
     }
 
     private Map<String, Object> defaultMap(Map<String, Object> metadata) {

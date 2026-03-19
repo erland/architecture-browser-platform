@@ -59,6 +59,7 @@ function createPayload(): FullSnapshotPayload {
     relationships: [
       { externalId: 'rel:1', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:tree', label: 'renders', sourceRefs: [], metadata: {} },
     ],
+    viewpoints: [],
     diagnostics: [
       { externalId: 'diag:tree', severity: 'WARN', phase: 'MODEL', code: 'TREE_WARN', message: 'Tree warning', fatal: false, filePath: 'src/components/BrowserNavigationTree.tsx', scopeId: 'scope:web', entityId: 'entity:tree', sourceRefs: [], metadata: {} },
     ],

@@ -182,6 +182,22 @@ export type FullSnapshotRelationship = {
   metadata: Record<string, unknown>;
 };
 
+
+export type FullSnapshotViewpointAvailability = "available" | "partial" | "unavailable";
+
+export type FullSnapshotViewpoint = {
+  id: string;
+  title: string;
+  description: string;
+  availability: FullSnapshotViewpointAvailability;
+  confidence: number;
+  seedEntityIds: string[];
+  seedRoleIds: string[];
+  expandViaSemantics: string[];
+  preferredDependencyViews: string[];
+  evidenceSources: string[];
+};
+
 export type FullSnapshotDiagnostic = {
   externalId: string;
   severity: string;
@@ -224,6 +240,7 @@ export type FullSnapshotPayload = {
   scopes: FullSnapshotScope[];
   entities: FullSnapshotEntity[];
   relationships: FullSnapshotRelationship[];
+  viewpoints: FullSnapshotViewpoint[];
   diagnostics: FullSnapshotDiagnostic[];
   metadata: {
     metadata: Record<string, unknown>;

@@ -5,6 +5,7 @@ import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { getContainedEntitiesForEntity, getContainingEntitiesForEntity, getDirectEntitiesForScopeByKind, getPrimaryEntitiesForScope, getSubtreeEntitiesForScopeByKind } from '../browserSnapshotIndex';
 import { BrowserTabNav } from '../components/BrowserTabNav';
+import { BrowserViewpointControls } from '../components/BrowserViewpointControls';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
@@ -527,6 +528,18 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
                 onSelectScope={browserSession.selectScope}
                 onAddScopeEntitiesToCanvas={handleAddPrimaryScopeEntitiesToCanvas}
                 onTreeModeChange={browserSession.setTreeMode}
+              />
+
+              <BrowserViewpointControls
+                index={browserSession.state.index}
+                selectedScopeLabel={selectedScopeLabel}
+                selection={browserSession.state.viewpointSelection}
+                appliedViewpoint={browserSession.state.appliedViewpoint}
+                onSelectViewpoint={browserSession.setSelectedViewpoint}
+                onSelectScopeMode={browserSession.setViewpointScopeMode}
+                onSelectApplyMode={browserSession.setViewpointApplyMode}
+                onSelectVariant={browserSession.setViewpointVariant}
+                onApplyViewpoint={browserSession.applySelectedViewpoint}
               />
 
               <BrowserTabNav

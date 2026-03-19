@@ -21,8 +21,8 @@ export type CompletenessStatus = "COMPLETE" | "PARTIAL" | "FAILED";
 
 export type JsonObject = Record<string, unknown>;
 
-export const PLATFORM_IMPORT_VERSION = "2026-03-step2" as const;
-export const SUPPORTED_INDEXER_SCHEMA_VERSIONS = ["1.0.0"] as const;
+export const PLATFORM_IMPORT_VERSION = "2026-03-viewpoints-step1" as const;
+export const SUPPORTED_INDEXER_SCHEMA_VERSIONS = ["1.0.0", "1.3.0"] as const;
 
 export interface SourceReference {
   path: string;
@@ -82,6 +82,23 @@ export interface ArchitectureRelationship {
   metadata: JsonObject;
 }
 
+
+
+export type ViewpointAvailability = "available" | "partial" | "unavailable";
+
+export interface ArchitectureViewpoint {
+  id: string;
+  title: string;
+  description: string;
+  availability: ViewpointAvailability;
+  confidence: number;
+  seedEntityIds?: string[];
+  seedRoleIds?: string[];
+  expandViaSemantics?: string[];
+  preferredDependencyViews?: string[];
+  evidenceSources?: string[];
+}
+
 export interface Diagnostic {
   id: string;
   severity: DiagnosticSeverity;
@@ -113,6 +130,7 @@ export interface ArchitectureIndexDocument {
   scopes: LogicalScope[];
   entities: ArchitectureEntity[];
   relationships: ArchitectureRelationship[];
+  viewpoints?: ArchitectureViewpoint[];
   diagnostics: Diagnostic[];
   completeness: CompletenessMetadata;
   metadata: JsonObject;
@@ -298,6 +316,19 @@ export interface FullSnapshotDiagnostic {
   metadata: JsonObject;
 }
 
+export interface FullSnapshotViewpoint {
+  id: string;
+  title: string;
+  description: string;
+  availability: ViewpointAvailability;
+  confidence: number;
+  seedEntityIds: string[];
+  seedRoleIds: string[];
+  expandViaSemantics: string[];
+  preferredDependencyViews: string[];
+  evidenceSources: string[];
+}
+
 export interface FullSnapshotPayload {
   snapshot: {
     id: string;
@@ -349,6 +380,7 @@ export interface FullSnapshotPayload {
   scopes: FullSnapshotScope[];
   entities: FullSnapshotEntity[];
   relationships: FullSnapshotRelationship[];
+  viewpoints: FullSnapshotViewpoint[];
   diagnostics: FullSnapshotDiagnostic[];
   metadata: {
     metadata: JsonObject;

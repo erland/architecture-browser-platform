@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserFactsPanelModel } from '../components/BrowserFactsPanel';
-import { addEntityToCanvas, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope } from '../browserSessionStore';
+import { addEntityToCanvas, applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-facts-1',
@@ -54,6 +54,7 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'rel:contains:module:function1', kind: 'CONTAINS', fromEntityId: 'entity:module', toEntityId: 'entity:function.render', label: 'contains', sourceRefs: [{ path: 'src/BrowserView.tsx', startLine: 1, endLine: 24, snippet: null, metadata: {} }], metadata: {} },
       { externalId: 'rel:uses', kind: 'USES', fromEntityId: 'entity:component', toEntityId: 'entity:module', label: 'renders', sourceRefs: [{ path: 'src/components/BrowserNavigationTree.tsx', startLine: 15, endLine: 15, snippet: null, metadata: {} }], metadata: {} },
     ],
+    viewpoints: [{ id: 'request-handling', title: 'Request handling', description: 'Trace requests from entrypoints to services and persistence.', availability: 'available', confidence: 0.91, seedEntityIds: [], seedRoleIds: ['api-entrypoint', 'application-service'], expandViaSemantics: ['serves-request', 'invokes-use-case', 'accesses-persistence'], preferredDependencyViews: ['runtime-dependencies'], evidenceSources: ['java-spring', 'jakarta-rest'] }],
     diagnostics: [
       { externalId: 'diag:scope', severity: 'WARN', phase: 'IMPORT', code: 'SCOPE_WARN', message: 'Scope warning', fatal: false, filePath: 'src/BrowserView.tsx', scopeId: 'scope:file', entityId: null, sourceRefs: [], metadata: {} },
       { externalId: 'diag:entity', severity: 'ERROR', phase: 'IMPORT', code: 'ENTITY_ERR', message: 'Entity error', fatal: true, filePath: 'src/components/BrowserNavigationTree.tsx', scopeId: null, entityId: 'entity:component', sourceRefs: [], metadata: {} },
@@ -130,5 +131,32 @@ describe('BrowserFactsPanel model', () => {
     expect(model?.relationship?.externalId).toBe('rel:uses');
     expect(model?.subtitle).toContain('BrowserNavigationTree');
     expect(model?.subtitle).toContain('BrowserViewModule');
+  });
+
+  test('includes applied viewpoint explanation when a viewpoint has been added to the canvas', () => {
+    const payload = createPayload();
+    payload.entities.push(
+      { externalId: 'entity:controller', kind: 'CLASS', origin: 'java', name: 'BrowserControllerEndpoint', displayName: 'BrowserControllerEndpoint', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['api-entrypoint'] } },
+      { externalId: 'entity:service', kind: 'CLASS', origin: 'java', name: 'BrowserService', displayName: 'BrowserService', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['application-service'] } },
+      { externalId: 'entity:repository', kind: 'CLASS', origin: 'java', name: 'BrowserRepository', displayName: 'BrowserRepository', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['persistence-access'] } },
+    );
+    payload.relationships.push(
+      { externalId: 'rel:req', kind: 'CALLS', fromEntityId: 'entity:controller', toEntityId: 'entity:service', label: 'handles', sourceRefs: [], metadata: { architecturalSemantics: ['serves-request'] } },
+      { externalId: 'rel:svc', kind: 'CALLS', fromEntityId: 'entity:service', toEntityId: 'entity:repository', label: 'stores', sourceRefs: [], metadata: { architecturalSemantics: ['accesses-persistence'] } },
+    );
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
+    state = selectBrowserScope(state, 'scope:pkg');
+    state = setSelectedViewpoint(state, 'request-handling');
+    state = applySelectedViewpoint(state);
+
+    const model = buildBrowserFactsPanelModel(state);
+
+    expect(model?.viewpointExplanation?.viewpointId).toBe('request-handling');
+    expect(model?.viewpointExplanation?.seedRoleIds).toEqual(['api-entrypoint', 'application-service']);
+    expect(model?.viewpointExplanation?.expandViaSemantics).toEqual(['serves-request', 'invokes-use-case', 'accesses-persistence']);
+    expect(model?.viewpointExplanation?.entityCount).toBeGreaterThanOrEqual(2);
+    expect(model?.viewpointExplanation?.seedEntities.map((entity) => entity.id)).toContain('entity:controller');
+    expect(model?.viewpointExplanation?.scopeLabel).toContain('info.example.browser');
   });
 });

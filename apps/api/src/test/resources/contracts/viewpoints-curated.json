@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.3.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-19T00:00:00Z",
+    "completedAt": "2026-03-19T00:00:30Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java", "react"],
+    "metadata": {"fixture": "viewpoints-curated"}
+  },
+  "source": {
+    "repositoryId": "fixture-architecture-browser",
+    "acquisitionType": "local-path",
+    "path": "/fixtures/architecture-browser",
+    "remoteUrl": null,
+    "branch": "main",
+    "revision": "abc123",
+    "acquiredAt": "2026-03-19T00:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {"id": "scope:repo", "kind": "REPOSITORY", "name": "architecture-browser", "displayName": "architecture-browser", "parentScopeId": null, "sourceRefs": [], "metadata": {}},
+    {"id": "scope:api", "kind": "MODULE", "name": "apps/api", "displayName": "API", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {}},
+    {"id": "scope:web", "kind": "MODULE", "name": "apps/web", "displayName": "Web", "parentScopeId": "scope:repo", "sourceRefs": [], "metadata": {}},
+    {"id": "scope:pkg:orders", "kind": "PACKAGE", "name": "com.example.orders", "displayName": "com.example.orders", "parentScopeId": "scope:api", "sourceRefs": [], "metadata": {}},
+    {"id": "scope:file:routes", "kind": "FILE", "name": "src/routes.tsx", "displayName": "src/routes.tsx", "parentScopeId": "scope:web", "sourceRefs": [], "metadata": {}}
+  ],
+  "entities": [
+    {"id": "entity:endpoint:orders", "kind": "ENDPOINT", "origin": "INFERRED", "name": "GET /api/orders", "displayName": "GET /api/orders", "scopeId": "scope:pkg:orders", "sourceRefs": [], "metadata": {"architecturalRoles": ["api-entrypoint"]}},
+    {"id": "entity:service:orders", "kind": "SERVICE", "origin": "INFERRED", "name": "OrderApplicationService", "displayName": "OrderApplicationService", "scopeId": "scope:pkg:orders", "sourceRefs": [], "metadata": {"architecturalRoles": ["application-service"]}},
+    {"id": "entity:repo:orders", "kind": "PERSISTENCE_ADAPTER", "origin": "INFERRED", "name": "OrderRepository", "displayName": "OrderRepository", "scopeId": "scope:pkg:orders", "sourceRefs": [], "metadata": {"architecturalRoles": ["persistence-access"]}},
+    {"id": "entity:model:order", "kind": "CLASS", "origin": "OBSERVED", "name": "Order", "displayName": "Order", "scopeId": "scope:pkg:orders", "sourceRefs": [], "metadata": {"architecturalRoles": ["persistent-entity"]}},
+    {"id": "entity:store:postgres", "kind": "DATASTORE", "origin": "INFERRED", "name": "OrdersPostgres", "displayName": "Orders Postgres", "scopeId": "scope:api", "sourceRefs": [], "metadata": {"architecturalRoles": ["datastore"]}},
+    {"id": "entity:adapter:payments", "kind": "SERVICE", "origin": "INFERRED", "name": "PaymentsGatewayAdapter", "displayName": "PaymentsGatewayAdapter", "scopeId": "scope:pkg:orders", "sourceRefs": [], "metadata": {"architecturalRoles": ["integration-adapter"]}},
+    {"id": "entity:external:payments", "kind": "EXTERNAL_SYSTEM", "origin": "INFERRED", "name": "PaymentsGateway", "displayName": "Payments Gateway", "scopeId": "scope:api", "sourceRefs": [], "metadata": {"architecturalRoles": ["external-dependency"]}},
+    {"id": "entity:module:api", "kind": "MODULE", "origin": "OBSERVED", "name": "ApiModule", "displayName": "API Module", "scopeId": "scope:api", "sourceRefs": [], "metadata": {"architecturalRoles": ["module-boundary"]}},
+    {"id": "entity:module:web", "kind": "MODULE", "origin": "OBSERVED", "name": "WebModule", "displayName": "Web Module", "scopeId": "scope:web", "sourceRefs": [], "metadata": {"architecturalRoles": ["module-boundary"]}},
+    {"id": "entity:layout:app-shell", "kind": "UI_MODULE", "origin": "INFERRED", "name": "AppShellLayout", "displayName": "AppShellLayout", "scopeId": "scope:file:routes", "sourceRefs": [], "metadata": {"architecturalRoles": ["ui-layout"]}},
+    {"id": "entity:page:orders", "kind": "UI_MODULE", "origin": "INFERRED", "name": "OrdersPage", "displayName": "OrdersPage", "scopeId": "scope:file:routes", "sourceRefs": [], "metadata": {"architecturalRoles": ["ui-page", "ui-navigation-node"]}}
+  ],
+  "relationships": [
+    {"id": "rel:req:service", "kind": "CALLS", "fromEntityId": "entity:endpoint:orders", "toEntityId": "entity:service:orders", "label": "serves", "sourceRefs": [], "metadata": {"architecturalSemantics": ["serves-request"]}},
+    {"id": "rel:service:repo", "kind": "WRITES", "fromEntityId": "entity:service:orders", "toEntityId": "entity:repo:orders", "label": "writes", "sourceRefs": [], "metadata": {"architecturalSemantics": ["accesses-persistence"]}},
+    {"id": "rel:repo:model", "kind": "CONTAINS", "fromEntityId": "entity:repo:orders", "toEntityId": "entity:model:order", "label": "maps", "sourceRefs": [], "metadata": {"architecturalSemantics": ["accesses-persistence"]}},
+    {"id": "rel:model:store", "kind": "WRITES", "fromEntityId": "entity:model:order", "toEntityId": "entity:store:postgres", "label": "stored in", "sourceRefs": [], "metadata": {"architecturalSemantics": ["stored-in"]}},
+    {"id": "rel:service:adapter", "kind": "CALLS", "fromEntityId": "entity:service:orders", "toEntityId": "entity:adapter:payments", "label": "calls adapter", "sourceRefs": [], "metadata": {"architecturalSemantics": ["calls-external-system"]}},
+    {"id": "rel:adapter:external", "kind": "CALLS", "fromEntityId": "entity:adapter:payments", "toEntityId": "entity:external:payments", "label": "calls external", "sourceRefs": [], "metadata": {"architecturalSemantics": ["calls-external-system"]}},
+    {"id": "rel:module:web-api", "kind": "DEPENDS_ON", "fromEntityId": "entity:module:web", "toEntityId": "entity:module:api", "label": "depends on", "sourceRefs": [], "metadata": {"architecturalSemantics": ["depends-on-module"]}},
+    {"id": "rel:layout:page", "kind": "CONTAINS", "fromEntityId": "entity:layout:app-shell", "toEntityId": "entity:page:orders", "label": "contains route", "sourceRefs": [], "metadata": {"architecturalSemantics": ["contains-route"]}},
+    {"id": "rel:page:self-nav", "kind": "USES", "fromEntityId": "entity:page:orders", "toEntityId": "entity:page:orders", "label": "redirects", "sourceRefs": [], "metadata": {"architecturalSemantics": ["redirects-to"]}},
+    {"id": "rel:layout:guard", "kind": "USES", "fromEntityId": "entity:layout:app-shell", "toEntityId": "entity:page:orders", "label": "guards", "sourceRefs": [], "metadata": {"architecturalSemantics": ["guards-route"]}}
+  ],
+  "viewpoints": [
+    {"id": "request-handling", "title": "Request handling", "description": "Follow requests from entrypoints through services into persistence.", "availability": "available", "confidence": 0.95, "seedEntityIds": [], "seedRoleIds": ["api-entrypoint", "application-service"], "expandViaSemantics": ["serves-request", "invokes-use-case", "accesses-persistence"], "preferredDependencyViews": ["runtime-dependencies"], "evidenceSources": ["java-interpretation"]},
+    {"id": "api-surface", "title": "API surface", "description": "Focus on exposed entrypoints and immediate backend collaborators.", "availability": "available", "confidence": 0.93, "seedEntityIds": [], "seedRoleIds": ["api-entrypoint"], "expandViaSemantics": ["serves-request", "invokes-use-case"], "preferredDependencyViews": ["runtime-dependencies"], "evidenceSources": ["java-normalization"]},
+    {"id": "persistence-model", "title": "Persistence model", "description": "Show persisted structures together with persistence access paths.", "availability": "available", "confidence": 0.9, "seedEntityIds": ["entity:model:order"], "seedRoleIds": ["persistent-entity", "persistence-access"], "expandViaSemantics": ["accesses-persistence", "stored-in"], "preferredDependencyViews": ["java:type-dependencies"], "evidenceSources": ["java-normalization"]},
+    {"id": "integration-map", "title": "Integration map", "description": "Show adapters and their external system dependencies.", "availability": "available", "confidence": 0.89, "seedEntityIds": [], "seedRoleIds": ["integration-adapter"], "expandViaSemantics": ["calls-external-system"], "preferredDependencyViews": ["runtime-dependencies"], "evidenceSources": ["java-interpretation"]},
+    {"id": "module-dependencies", "title": "Module dependencies", "description": "Show high-level module-boundary coupling.", "availability": "available", "confidence": 0.88, "seedEntityIds": [], "seedRoleIds": ["module-boundary"], "expandViaSemantics": ["depends-on-module"], "preferredDependencyViews": ["module-dependencies"], "evidenceSources": ["typescript-normalization"]},
+    {"id": "ui-navigation", "title": "UI navigation", "description": "Show layouts, pages, and route/navigation semantics.", "availability": "available", "confidence": 0.91, "seedEntityIds": [], "seedRoleIds": ["ui-layout", "ui-page", "ui-navigation-node"], "expandViaSemantics": ["contains-route", "navigates-to", "redirects-to", "guards-route"], "preferredDependencyViews": ["ui-navigation"], "evidenceSources": ["react-route-extraction"]}
+  ],
+  "diagnostics": [],
+  "completeness": {"status": "COMPLETE", "indexedFileCount": 8, "totalFileCount": 8, "degradedFileCount": 0, "omittedPaths": [], "notes": []},
+  "metadata": {"fixture": "viewpoints-curated"}
+}

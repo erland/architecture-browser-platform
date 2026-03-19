@@ -44,6 +44,7 @@ function createPayload(): FullSnapshotPayload {
     relationships: [
       { externalId: 'rel:1', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:tree', label: 'renders', sourceRefs: [], metadata: {} },
     ],
+    viewpoints: [],
     diagnostics: [
       { externalId: 'diag:1', severity: 'WARN', phase: 'IMPORT', code: 'WARN_1', message: 'Something degraded', fatal: false, filePath: 'src/views/BrowserView.tsx', scopeId: 'scope:web', entityId: 'entity:browser', sourceRefs: [], metadata: {} },
     ],

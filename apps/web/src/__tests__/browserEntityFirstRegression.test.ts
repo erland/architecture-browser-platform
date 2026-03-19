@@ -61,6 +61,7 @@ function createPayload(detectedTechnologies: string[] = ['java', 'react']): Full
       { externalId: 'rel:contains:package:subpackage', kind: 'CONTAINS', fromEntityId: 'entity:package', toEntityId: 'entity:subpackage', label: 'contains', sourceRefs: [], metadata: {} },
       { externalId: 'rel:uses:component:module', kind: 'USES', fromEntityId: 'entity:component', toEntityId: 'entity:module', label: 'uses', sourceRefs: [], metadata: {} },
     ],
+    viewpoints: [],
     diagnostics: [
       { externalId: 'diag:file', severity: 'WARN', phase: 'IMPORT', code: 'FILE_WARN', message: 'File warning', fatal: false, filePath: 'src/BrowserView.tsx', scopeId: 'scope:file', entityId: null, sourceRefs: [], metadata: {} },
     ],

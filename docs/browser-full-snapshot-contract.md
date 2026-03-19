@@ -24,6 +24,7 @@ Top-level sections:
 - `entities` — full entity list
 - `relationships` — full relationship list
 - `diagnostics` — full diagnostic list
+- `viewpoints` — document-level viewpoint catalog exported by the indexer
 - `metadata` — snapshot-level metadata envelope
 - `warnings` — user-visible warnings already derived from completeness/import state
 
@@ -66,3 +67,34 @@ Existing Browser endpoints remain in place for now so later steps can migrate in
 - search/entity detail
 
 These older endpoints should only be removed after Browser uses the local full snapshot payload path end-to-end.
+
+
+## Viewpoints
+
+The full snapshot payload now includes a document-level `viewpoints` array.
+
+Each viewpoint provides the browser with a canonical, architect-facing slice of the imported graph. The browser resolves these locally using the exported seed roles, explicit seed entities, semantic expansion hints, and preferred dependency-view hints.
+
+Current contract fields include:
+
+- `id`
+- `title`
+- `description`
+- `availability`
+- `confidence`
+- `seedEntityIds`
+- `seedRoleIds`
+- `expandViaSemantics`
+- `preferredDependencyViews`
+- `evidenceSources`
+
+Current curated examples cover:
+
+- `request-handling`
+- `api-surface`
+- `persistence-model`
+- `integration-map`
+- `module-dependencies`
+- `ui-navigation`
+
+The Browser should treat this catalog as imported snapshot metadata, not as a hard-coded UI enum. Special-case browser logic is only needed when a viewpoint benefits from custom ordering or layout.

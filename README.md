@@ -201,6 +201,7 @@ The current Browser mental model is now explicitly:
 - **Tree** = navigate structural scopes
 - **Facts panel** = explain the selected scope and bridge into entity analysis
 - **Canvas** = analyze entities and relationships
+- **Viewpoints** = apply predefined architect-facing graph slices to the canvas
 
 The Browser supports three tree modes for technical snapshots:
 
@@ -211,6 +212,12 @@ The Browser supports three tree modes for technical snapshots:
 Add-to-canvas is now entity-first by default. Scope nodes remain available only through advanced canvas actions when container/debug context is explicitly desired.
 
 The Browser canvas now also uses an interactive layout model with persisted node positions, manual dragging, persisted viewport pan/zoom/fit behavior, contextual incremental placement, explicit arrange commands, and anchored handling for pinned / manually placed nodes.
+
+Viewpoint-specific docs:
+
+- `docs/browser-viewpoints.md`
+- `docs/browser-full-snapshot-contract.md`
+- `docs/browser-facts-details-panel.md`
 
 ## Notes
 

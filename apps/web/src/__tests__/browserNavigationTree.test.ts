@@ -43,6 +43,7 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'entity:tree', kind: 'COMPONENT', origin: 'react', name: 'BrowserNavigationTree', displayName: 'BrowserNavigationTree', scopeId: 'scope:browser', sourceRefs: [], metadata: {} },
     ],
     relationships: [],
+    viewpoints: [],
     diagnostics: [],
     metadata: { metadata: {} },
     warnings: [],

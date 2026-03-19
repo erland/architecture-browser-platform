@@ -14,6 +14,7 @@ import {
   openFactsPanel,
   arrangeAllCanvasNodes,
   arrangeCanvasAroundFocus,
+  applySelectedViewpoint,
   removeCanvasSelection,
   removeEntityFromCanvas,
   requestFitCanvasView,
@@ -22,6 +23,9 @@ import {
   selectBrowserScope,
   selectCanvasEntity,
   setBrowserSearch,
+  setSelectedViewpoint,
+  setViewpointApplyMode,
+  setViewpointScopeMode,
   toggleCanvasNodePin,
 } from '../browserSessionStore';
 import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
@@ -43,8 +47,8 @@ const snapshotSummary: SnapshotSummary = {
   sourceBranch: 'main',
   importedAt: '2026-03-13T00:00:00Z',
   scopeCount: 2,
-  entityCount: 3,
-  relationshipCount: 2,
+  entityCount: 10,
+  relationshipCount: 9,
   diagnosticCount: 1,
   indexedFileCount: 1,
   totalFileCount: 1,
@@ -62,13 +66,101 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'scope:web', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
     ],
     entities: [
-      { externalId: 'entity:browser', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
-      { externalId: 'entity:search', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
-      { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'LayoutTab', displayName: 'LayoutTab', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:browser', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['api-entrypoint'] } },
+      { externalId: 'entity:search', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['application-service'] } },
+      { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'LayoutTab', displayName: 'LayoutTab', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['persistent-entity'] } },
+      { externalId: 'entity:adapter', kind: 'COMPONENT', origin: 'java', name: 'ExternalSyncAdapter', displayName: 'ExternalSyncAdapter', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['integration-adapter'] } },
+      { externalId: 'entity:external', kind: 'SYSTEM', origin: 'external', name: 'CrmSystem', displayName: 'CRM System', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['external-dependency'] } },
+      { externalId: 'entity:web-module', kind: 'MODULE', origin: 'react', name: 'WebModule', displayName: 'Web Module', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['module-boundary'] } },
+      { externalId: 'entity:api-module', kind: 'MODULE', origin: 'java', name: 'ApiModule', displayName: 'API Module', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['module-boundary'] } },
+      { externalId: 'entity:ui-layout', kind: 'COMPONENT', origin: 'react', name: 'AppShell', displayName: 'App Shell', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['ui-layout'] } },
+      { externalId: 'entity:ui-dashboard-page', kind: 'COMPONENT', origin: 'react', name: 'DashboardPage', displayName: 'Dashboard Page', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['ui-page'] } },
+      { externalId: 'entity:ui-settings-page', kind: 'COMPONENT', origin: 'react', name: 'SettingsPage', displayName: 'Settings Page', scopeId: 'scope:web', sourceRefs: [], metadata: { architecturalRoles: ['ui-page', 'ui-navigation-node'] } },
     ],
     relationships: [
-      { externalId: 'rel:1', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:search', label: 'uses', sourceRefs: [], metadata: {} },
-      { externalId: 'rel:2', kind: 'USES', fromEntityId: 'entity:layout', toEntityId: 'entity:browser', label: 'calls', sourceRefs: [], metadata: {} },
+      { externalId: 'rel:1', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:search', label: 'uses', sourceRefs: [], metadata: { architecturalSemantics: ['serves-request'] } },
+      { externalId: 'rel:2', kind: 'USES', fromEntityId: 'entity:layout', toEntityId: 'entity:browser', label: 'calls', sourceRefs: [], metadata: { architecturalSemantics: ['accesses-persistence'] } },
+      { externalId: 'rel:3', kind: 'CALLS', fromEntityId: 'entity:search', toEntityId: 'entity:adapter', label: 'calls adapter', sourceRefs: [], metadata: { architecturalSemantics: ['invokes-use-case'] } },
+      { externalId: 'rel:4', kind: 'CALLS', fromEntityId: 'entity:adapter', toEntityId: 'entity:external', label: 'calls external', sourceRefs: [], metadata: { architecturalSemantics: ['calls-external-system'] } },
+      { externalId: 'rel:5', kind: 'DEPENDS_ON', fromEntityId: 'entity:web-module', toEntityId: 'entity:api-module', label: 'depends on module', sourceRefs: [], metadata: { architecturalSemantics: ['depends-on-module'] } },
+      { externalId: 'rel:6', kind: 'CONTAINS', fromEntityId: 'entity:ui-layout', toEntityId: 'entity:ui-dashboard-page', label: 'contains route', sourceRefs: [], metadata: { architecturalSemantics: ['contains-route'] } },
+      { externalId: 'rel:7', kind: 'NAVIGATES_TO', fromEntityId: 'entity:ui-dashboard-page', toEntityId: 'entity:ui-settings-page', label: 'navigates to settings', sourceRefs: [], metadata: { architecturalSemantics: ['navigates-to'] } },
+      { externalId: 'rel:8', kind: 'REDIRECTS_TO', fromEntityId: 'entity:ui-settings-page', toEntityId: 'entity:ui-dashboard-page', label: 'redirects to dashboard', sourceRefs: [], metadata: { architecturalSemantics: ['redirects-to'] } },
+      { externalId: 'rel:9', kind: 'GUARDS', fromEntityId: 'entity:ui-layout', toEntityId: 'entity:ui-settings-page', label: 'guards route', sourceRefs: [], metadata: { architecturalSemantics: ['guards-route'] } },
+    ],
+    viewpoints: [
+      {
+        id: 'request-handling',
+        title: 'Request handling',
+        description: 'Shows API entrypoints and collaborating services.',
+        availability: 'available',
+        confidence: 0.9,
+        seedEntityIds: [],
+        seedRoleIds: ['api-entrypoint', 'application-service'],
+        expandViaSemantics: ['serves-request'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+      {
+        id: 'api-surface',
+        title: 'API surface',
+        description: 'Shows API entrypoints and their immediate neighbors.',
+        availability: 'available',
+        confidence: 0.88,
+        seedEntityIds: [],
+        seedRoleIds: ['api-entrypoint'],
+        expandViaSemantics: ['serves-request'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+      {
+        id: 'persistence-model',
+        title: 'Persistence model',
+        description: 'Shows persistence-centric entities.',
+        availability: 'available',
+        confidence: 0.8,
+        seedEntityIds: ['entity:layout'],
+        seedRoleIds: ['persistent-entity'],
+        expandViaSemantics: ['accesses-persistence'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+      {
+        id: 'integration-map',
+        title: 'Integration map',
+        description: 'Shows integration adapters and external dependencies.',
+        availability: 'available',
+        confidence: 0.82,
+        seedEntityIds: [],
+        seedRoleIds: ['integration-adapter'],
+        expandViaSemantics: ['calls-external-system'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+      {
+        id: 'module-dependencies',
+        title: 'Module dependencies',
+        description: 'Shows module boundaries and their dependency edges.',
+        availability: 'available',
+        confidence: 0.84,
+        seedEntityIds: [],
+        seedRoleIds: ['module-boundary'],
+        expandViaSemantics: ['depends-on-module'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+      {
+        id: 'ui-navigation',
+        title: 'UI navigation',
+        description: 'Shows layouts, pages, and route/navigation flows.',
+        availability: 'available',
+        confidence: 0.86,
+        seedEntityIds: [],
+        seedRoleIds: ['ui-layout', 'ui-page', 'ui-navigation-node'],
+        expandViaSemantics: ['contains-route', 'navigates-to', 'redirects-to', 'guards-route'],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
     ],
     diagnostics: [
       { externalId: 'diag:1', severity: 'WARN', phase: 'MODEL', code: 'TEST', message: 'Test diagnostic', fatal: false, filePath: null, scopeId: 'scope:web', entityId: 'entity:browser', sourceRefs: [], metadata: {} },
@@ -164,7 +256,8 @@ describe('browserSessionStore', () => {
         { externalId: 'entity:function-render', kind: 'FUNCTION', origin: 'react', name: 'renderBrowser', displayName: 'renderBrowser', scopeId: 'scope:file-browser', sourceRefs: [], metadata: {} },
       ],
       relationships: [],
-      diagnostics: [],
+      viewpoints: [],
+    diagnostics: [],
     } satisfies FullSnapshotPayload;
 
     const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
@@ -225,6 +318,194 @@ describe('browserSessionStore', () => {
     expect(outboundNode).toBeDefined();
     expect(inboundNode!.x).toBeLessThan(focusNode!.x);
     expect(outboundNode!.x).toBeGreaterThan(focusNode!.x);
+  });
+
+  test('viewpoint selection tracks viewpoint id, scope mode, and derived applied graph state', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    const selected = setSelectedViewpoint(opened, 'request-handling');
+    const scoped = setViewpointScopeMode(selected, 'selected-subtree');
+    const merged = setViewpointApplyMode(scoped, 'merge');
+
+    expect(selected.viewpointSelection.viewpointId).toBe('request-handling');
+    expect(selected.appliedViewpoint?.viewpoint.id).toBe('request-handling');
+    expect(scoped.viewpointSelection.scopeMode).toBe('selected-subtree');
+    expect(scoped.appliedViewpoint?.scopeMode).toBe('selected-subtree');
+    expect(merged.viewpointSelection.applyMode).toBe('merge');
+  });
+
+  test('applySelectedViewpoint replaces canvas contents with seeded nodes and semantic edges', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'request-handling');
+    state = applySelectedViewpoint(state);
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
+    expect(state.selectedEntityIds).toEqual(['entity:browser', 'entity:search']);
+    expect(state.appliedViewpoint?.viewpoint.id).toBe('request-handling');
+    expect(state.canvasLayoutMode).toBe('radial');
+  });
+
+
+  test('api-surface apply focuses on entrypoints and immediate service neighbors', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'api-surface');
+    state = applySelectedViewpoint(state);
+
+    const entrypoint = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    const service = state.canvasNodes.find((node) => node.id === 'entity:search');
+    const persistence = state.canvasNodes.find((node) => node.id === 'entity:layout');
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
+    expect(entrypoint).toBeDefined();
+    expect(service).toBeDefined();
+    expect(persistence).toBeUndefined();
+    expect(entrypoint!.x).toBeLessThan(service!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('api-surface');
+  });
+
+  test('request-handling apply uses a readable left-to-right flow layout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'request-handling');
+    state = setViewpointScopeMode(state, 'whole-snapshot');
+    state = applySelectedViewpoint(state);
+
+    const entrypoint = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    const service = state.canvasNodes.find((node) => node.id === 'entity:search');
+    expect(entrypoint).toBeDefined();
+    expect(service).toBeDefined();
+    expect(entrypoint!.x).toBeLessThan(service!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('request-flow');
+  });
+
+  test('persistence-model apply uses a readable service-to-data layout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'persistence-model');
+    state = setViewpointScopeMode(state, 'whole-snapshot');
+    state = applySelectedViewpoint(state);
+
+    const service = state.canvasNodes.find((node) => node.id === 'entity:browser');
+    const persistence = state.canvasNodes.find((node) => node.id === 'entity:layout');
+
+    expect(service).toBeDefined();
+    expect(persistence).toBeDefined();
+    expect(service!.x).toBeLessThan(persistence!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('persistence-model');
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:2']);
+  });
+
+  test('integration-map apply uses a readable caller-to-adapter-to-external layout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'integration-map');
+    state = setViewpointScopeMode(state, 'whole-snapshot');
+    state = applySelectedViewpoint(state);
+
+    const caller = state.canvasNodes.find((node) => node.id === 'entity:search');
+    const adapter = state.canvasNodes.find((node) => node.id === 'entity:adapter');
+    const external = state.canvasNodes.find((node) => node.id === 'entity:external');
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:adapter', 'entity:external', 'entity:search']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:3', 'rel:4']);
+    expect(caller).toBeDefined();
+    expect(adapter).toBeDefined();
+    expect(external).toBeDefined();
+    expect(caller!.x).toBeLessThan(adapter!.x);
+    expect(adapter!.x).toBeLessThan(external!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('integration-map');
+  });
+
+  test('module-dependencies apply uses a readable module-to-module layout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'module-dependencies');
+    state = setViewpointScopeMode(state, 'whole-snapshot');
+    state = applySelectedViewpoint(state);
+
+    const webModule = state.canvasNodes.find((node) => node.id === 'entity:web-module');
+    const apiModule = state.canvasNodes.find((node) => node.id === 'entity:api-module');
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:api-module', 'entity:web-module']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:5']);
+    expect(webModule).toBeDefined();
+    expect(apiModule).toBeDefined();
+    expect(webModule!.x).not.toBe(apiModule!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('module-dependencies');
+  });
+
+
+  test('ui-navigation apply uses a readable layout-to-page flow layout', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'ui-navigation');
+    state = setViewpointScopeMode(state, 'whole-snapshot');
+    state = applySelectedViewpoint(state);
+
+    const layout = state.canvasNodes.find((node) => node.id === 'entity:ui-layout');
+    const dashboard = state.canvasNodes.find((node) => node.id === 'entity:ui-dashboard-page');
+    const settings = state.canvasNodes.find((node) => node.id === 'entity:ui-settings-page');
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:ui-dashboard-page', 'entity:ui-layout', 'entity:ui-settings-page']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:6', 'rel:9', 'rel:7', 'rel:8']);
+    expect(layout).toBeDefined();
+    expect(dashboard).toBeDefined();
+    expect(settings).toBeDefined();
+    expect(layout!.x).toBeLessThan(dashboard!.x);
+    expect(dashboard!.x).toBeLessThanOrEqual(settings!.x);
+    expect(state.appliedViewpoint?.recommendedLayout).toBe('ui-navigation');
+  });
+
+  test('applySelectedViewpoint can merge with existing canvas content', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:layout');
+    state = setSelectedViewpoint(state, 'request-handling');
+    state = setViewpointApplyMode(state, 'merge');
+    state = applySelectedViewpoint(state);
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:layout', 'entity:search']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
   });
 
   test('adding an entity while its scope node is visible places the entity near the scope container', () => {

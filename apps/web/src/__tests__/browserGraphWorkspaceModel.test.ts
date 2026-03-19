@@ -57,6 +57,7 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'rel:1', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:tree', label: 'renders', sourceRefs: [], metadata: {} },
       { externalId: 'rel:2', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:search', label: 'queries', sourceRefs: [], metadata: {} },
     ],
+    viewpoints: [],
     diagnostics: [],
     metadata: { metadata: {} },
     warnings: [],

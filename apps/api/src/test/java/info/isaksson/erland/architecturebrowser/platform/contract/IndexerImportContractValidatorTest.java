@@ -26,6 +26,22 @@ class IndexerImportContractValidatorTest {
         assertTrue(result.valid(), () -> String.join("\n", result.errors()));
     }
 
+
+    @Test
+    void validatesViewpointRichFixture() throws Exception {
+        JsonNode payload = read("/contracts/viewpoint-rich.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
+
+    @Test
+    void validatesCuratedViewpointsFixture() throws Exception {
+        JsonNode payload = read("/contracts/viewpoints-curated.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
     @Test
     void rejectsBrokenFixture() throws Exception {
         JsonNode payload = read("/contracts/invalid-missing-source.json");

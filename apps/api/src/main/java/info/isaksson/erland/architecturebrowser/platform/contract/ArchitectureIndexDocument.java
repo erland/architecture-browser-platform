@@ -14,6 +14,7 @@ public record ArchitectureIndexDocument(
     List<LogicalScope> scopes,
     List<ArchitectureEntity> entities,
     List<ArchitectureRelationship> relationships,
+    List<ArchitectureViewpoint> viewpoints,
     List<Diagnostic> diagnostics,
     CompletenessMetadata completeness,
     Map<String, Object> metadata
@@ -71,6 +72,21 @@ public record ArchitectureIndexDocument(
         String label,
         List<SourceReference> sourceRefs,
         Map<String, Object> metadata
+    ) {}
+
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ArchitectureViewpoint(
+        String id,
+        String title,
+        String description,
+        String availability,
+        Double confidence,
+        List<String> seedEntityIds,
+        List<String> seedRoleIds,
+        List<String> expandViaSemantics,
+        List<String> preferredDependencyViews,
+        List<String> evidenceSources
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

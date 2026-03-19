@@ -60,6 +60,7 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'rel:function:calls', kind: 'CALLS', fromEntityId: 'entity:function.render', toEntityId: 'entity:service', label: 'calls', sourceRefs: [], metadata: {} },
       { externalId: 'rel:service:uses-function', kind: 'USES', fromEntityId: 'entity:service', toEntityId: 'entity:function.render', label: 'uses', sourceRefs: [], metadata: {} },
     ],
+    viewpoints: [],
     diagnostics: [],
     metadata: { metadata: {} },
     warnings: [],

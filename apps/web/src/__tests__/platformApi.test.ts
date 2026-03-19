@@ -15,7 +15,7 @@ describe("platformApi", () => {
 
 
   test("getFullSnapshotPayload uses the dedicated one-shot snapshot endpoint", async () => {
-    const fetchJson = jest.fn(async () => ({ scopes: [] })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
+    const fetchJson = jest.fn(async () => ({ scopes: [], viewpoints: [] })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
     const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });
 
     await api.getFullSnapshotPayload("ws-1", "snap-1");

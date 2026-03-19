@@ -55,6 +55,7 @@ function createPayload(): FullSnapshotPayload {
     scopes: [],
     entities: [],
     relationships: [],
+    viewpoints: [],
     diagnostics: [],
     metadata: {
       metadata: {},

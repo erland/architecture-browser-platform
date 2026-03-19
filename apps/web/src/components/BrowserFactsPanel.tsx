@@ -11,6 +11,7 @@ import {
   type BrowserSnapshotIndex,
 } from '../browserSnapshotIndex';
 import type { BrowserSessionState } from '../browserSessionStore';
+import type { BrowserResolvedViewpointGraph } from '../browserSnapshotIndex';
 
 export type BrowserFactsPanelScopeSummary = {
   id: string;
@@ -43,6 +44,26 @@ export type BrowserFactsPanelScopeBridge = {
   subtreeEntityGroups: BrowserFactsPanelEntityGroup[];
 };
 
+export type BrowserFactsPanelViewpointExplanation = {
+  viewpointId: string;
+  title: string;
+  description: string;
+  availability: string;
+  confidenceLabel: string;
+  confidenceBand: string;
+  variantLabel: string;
+  scopeModeLabel: string;
+  scopeLabel: string;
+  seedRoleIds: string[];
+  expandViaSemantics: string[];
+  preferredDependencyViews: string[];
+  evidenceSources: string[];
+  seedEntities: BrowserFactsPanelEntitySummary[];
+  entityCount: number;
+  relationshipCount: number;
+  recommendedLayout: string;
+};
+
 export type BrowserFactsPanelModel = {
   title: string;
   subtitle: string;
@@ -55,6 +76,7 @@ export type BrowserFactsPanelModel = {
   scopeFacts: BrowserScopeFacts | null;
   entityFacts: BrowserEntityFacts | null;
   scopeBridge: BrowserFactsPanelScopeBridge | null;
+  viewpointExplanation: BrowserFactsPanelViewpointExplanation | null;
 };
 
 function uniqueSourceRefs(sourceRefs: SnapshotSourceRef[]) {
@@ -105,6 +127,20 @@ function toScopeSummary(index: BrowserSnapshotIndex, scope: FullSnapshotScope): 
   };
 }
 
+
+function renderViewpointList(values: string[], emptyText: string) {
+  if (values.length === 0) {
+    return <p className="muted">{emptyText}</p>;
+  }
+  return (
+    <ul className="browser-facts-panel__list">
+      {values.map((value) => (
+        <li key={value} className="browser-facts-panel__list-item">{value}</li>
+      ))}
+    </ul>
+  );
+}
+
 function buildEntityGroups(entities: FullSnapshotEntity[]): BrowserFactsPanelEntityGroup[] {
   const grouped = new Map<string, BrowserFactsPanelEntityGroup>();
   for (const entity of entities) {
@@ -151,6 +187,76 @@ function buildScopeBridge(index: BrowserSnapshotIndex, scopeFacts: BrowserScopeF
   };
 }
 
+
+function formatConfidenceBand(confidence: number) {
+  if (confidence >= 0.85) {
+    return 'High';
+  }
+  if (confidence >= 0.6) {
+    return 'Medium';
+  }
+  return 'Low';
+}
+
+function formatConfidenceLabel(confidence: number) {
+  const percent = Math.max(0, Math.min(100, Math.round(confidence * 100)));
+  if (percent >= 85) {
+    return `High (${percent}%)`;
+  }
+  if (percent >= 60) {
+    return `Medium (${percent}%)`;
+  }
+  return `Low (${percent}%)`;
+}
+
+function formatScopeModeLabel(scopeMode: BrowserResolvedViewpointGraph['scopeMode']) {
+  switch (scopeMode) {
+    case 'selected-scope':
+      return 'Current scope';
+    case 'selected-subtree':
+      return 'Current subtree';
+    case 'whole-snapshot':
+      return 'Whole snapshot';
+    default:
+      return scopeMode;
+  }
+}
+
+function buildViewpointExplanation(state: BrowserSessionState): BrowserFactsPanelViewpointExplanation | null {
+  const index = state.index;
+  const appliedViewpoint = state.appliedViewpoint;
+  if (!index || !appliedViewpoint) {
+    return null;
+  }
+  const selectedScope = appliedViewpoint.selectedScopeId ? index.scopesById.get(appliedViewpoint.selectedScopeId) ?? null : null;
+  return {
+    viewpointId: appliedViewpoint.viewpoint.id,
+    title: appliedViewpoint.viewpoint.title,
+    description: appliedViewpoint.viewpoint.description,
+    availability: appliedViewpoint.viewpoint.availability,
+    confidenceLabel: formatConfidenceLabel(appliedViewpoint.viewpoint.confidence),
+    confidenceBand: formatConfidenceBand(appliedViewpoint.viewpoint.confidence),
+    variantLabel: (appliedViewpoint.variant ?? 'default').replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
+    scopeModeLabel: formatScopeModeLabel(appliedViewpoint.scopeMode),
+    scopeLabel: selectedScope ? (index.scopePathById.get(selectedScope.externalId) ?? displayScopeName(selectedScope)) : 'Whole snapshot',
+    seedRoleIds: [...appliedViewpoint.viewpoint.seedRoleIds],
+    expandViaSemantics: [...appliedViewpoint.viewpoint.expandViaSemantics],
+    preferredDependencyViews: [...appliedViewpoint.preferredDependencyViews],
+    evidenceSources: [...appliedViewpoint.viewpoint.evidenceSources],
+    seedEntities: appliedViewpoint.seedEntityIds
+      .map((entityId) => index.entitiesById.get(entityId))
+      .filter((entity): entity is FullSnapshotEntity => Boolean(entity))
+      .map(toEntitySummary),
+    entityCount: Math.max(
+      appliedViewpoint.entityIds.length,
+      appliedViewpoint.seedEntityIds.length,
+      state.canvasNodes.filter((node) => node.kind === 'entity').length,
+    ),
+    relationshipCount: appliedViewpoint.relationshipIds.length,
+    recommendedLayout: appliedViewpoint.recommendedLayout,
+  };
+}
+
 export function buildBrowserFactsPanelModel(state: BrowserSessionState): BrowserFactsPanelModel | null {
   const index = state.index;
   const payload = state.payload;
@@ -160,6 +266,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
 
   const selectedScopeId = state.selectedScopeId;
   const focused = state.focusedElement;
+  const viewpointExplanation = buildViewpointExplanation(state);
 
   if (focused?.kind === 'relationship') {
     const relationship = index.relationshipsById.get(focused.id);
@@ -191,6 +298,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       scopeFacts: null,
       entityFacts: null,
       scopeBridge: null,
+      viewpointExplanation,
     };
   }
 
@@ -220,6 +328,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       scopeFacts: null,
       entityFacts,
       scopeBridge: null,
+      viewpointExplanation,
     };
   }
 
@@ -253,6 +362,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       scopeFacts,
       entityFacts: null,
       scopeBridge,
+      viewpointExplanation,
     };
   }
 
@@ -277,6 +387,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
     scopeFacts: null,
     entityFacts: null,
     scopeBridge: null,
+    viewpointExplanation,
   };
 }
 
@@ -351,6 +462,61 @@ export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocus
       <div className="browser-facts-panel__summary">
         {model.summary.map((line) => <p key={line} className="muted">{line}</p>)}
       </div>
+
+      {model.viewpointExplanation ? (
+        <section className="browser-facts-panel__section">
+          <div className="browser-facts-panel__section-header">
+            <h4>Applied viewpoint</h4>
+          </div>
+          <div className="browser-count-grid browser-count-grid--facts">
+            <div><strong>{model.viewpointExplanation.availability}</strong><span>Availability</span></div>
+            <div><strong>{model.viewpointExplanation.confidenceLabel}</strong><span>Confidence</span></div>
+            <div><strong>{model.viewpointExplanation.confidenceBand}</strong><span>Confidence band</span></div>
+            <div><strong>{model.viewpointExplanation.variantLabel}</strong><span>Variant</span></div>
+            <div><strong>{model.viewpointExplanation.entityCount}</strong><span>Entities</span></div>
+            <div><strong>{model.viewpointExplanation.relationshipCount}</strong><span>Relationships</span></div>
+          </div>
+          <div className="browser-facts-panel__summary">
+            <p className="muted">{model.viewpointExplanation.title} ({model.viewpointExplanation.viewpointId})</p>
+            <p className="muted">{model.viewpointExplanation.description}</p>
+            <p className="muted">Applied to {model.viewpointExplanation.scopeModeLabel}: {model.viewpointExplanation.scopeLabel}</p>
+            <p className="muted">Recommended layout {model.viewpointExplanation.recommendedLayout}</p>
+          </div>
+
+          <div className="browser-facts-panel__split">
+            <div>
+              <h5>Seed entities</h5>
+              {model.viewpointExplanation.seedEntities.length > 0 ? (
+                <ul className="browser-facts-panel__list">
+                  {model.viewpointExplanation.seedEntities.slice(0, 8).map((entity) => (
+                    <li key={entity.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+                      <button type="button" className="button-secondary" onClick={() => onFocusEntity(entity.id)}>{entity.name}</button>
+                      <span>{entity.kind}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="muted">No explicit seed entities were resolved for the applied viewpoint.</p>}
+            </div>
+            <div>
+              <h5>Seed roles</h5>
+              {renderViewpointList(model.viewpointExplanation.seedRoleIds, 'No seed roles defined for the applied viewpoint.')}
+              <h5>Expansion semantics</h5>
+              {renderViewpointList(model.viewpointExplanation.expandViaSemantics, 'No expansion semantics defined for the applied viewpoint.')}
+            </div>
+          </div>
+
+          <div className="browser-facts-panel__split">
+            <div>
+              <h5>Preferred dependency views</h5>
+              {renderViewpointList(model.viewpointExplanation.preferredDependencyViews, 'No preferred dependency views exported for the applied viewpoint.')}
+            </div>
+            <div>
+              <h5>Evidence sources</h5>
+              {renderViewpointList(model.viewpointExplanation.evidenceSources, 'No evidence sources exported for the applied viewpoint.')}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {model.scopeFacts && model.scopeBridge ? (
         <>

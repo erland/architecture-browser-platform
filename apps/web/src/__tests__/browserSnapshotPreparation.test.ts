@@ -36,6 +36,7 @@ function createPayload(): FullSnapshotPayload {
     scopes: [{ externalId: "scope:repo", kind: "REPOSITORY", name: "platform", displayName: "Platform", parentScopeId: null, sourceRefs: [], metadata: {} }],
     entities: [{ externalId: "entity:browser", kind: "COMPONENT", origin: "react", name: "BrowserView", displayName: "BrowserView", scopeId: "scope:repo", sourceRefs: [], metadata: {} }],
     relationships: [],
+    viewpoints: [],
     diagnostics: [],
     metadata: { metadata: {} },
     warnings: [],

@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "1.3.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-10T12:00:00Z",
+    "completedAt": "2026-03-10T12:00:01Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": [
+      "java",
+      "react"
+    ],
+    "metadata": {
+      "fixture": "viewpoint-rich"
+    }
+  },
+  "source": {
+    "repositoryId": "fixture-architecture-browser",
+    "acquisitionType": "local-path",
+    "path": "/fixtures/architecture-browser",
+    "remoteUrl": null,
+    "branch": "main",
+    "revision": "def456",
+    "acquiredAt": "2026-03-10T12:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {
+      "id": "scope:repo",
+      "kind": "REPOSITORY",
+      "name": "fixture-architecture-browser",
+      "displayName": "fixture-architecture-browser",
+      "parentScopeId": null,
+      "sourceRefs": [],
+      "metadata": {}
+    },
+    {
+      "id": "scope:package:com.example",
+      "kind": "PACKAGE",
+      "name": "com.example",
+      "displayName": "com.example",
+      "parentScopeId": "scope:repo",
+      "sourceRefs": [],
+      "metadata": {
+        "language": "java"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:endpoint:orders",
+      "kind": "ENDPOINT",
+      "origin": "INFERRED",
+      "name": "GET /api/orders",
+      "displayName": "GET /api/orders",
+      "scopeId": "scope:package:com.example",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalRoles": [
+          "api-entrypoint"
+        ]
+      }
+    },
+    {
+      "id": "entity:service:order-app-service",
+      "kind": "SERVICE",
+      "origin": "INFERRED",
+      "name": "OrderApplicationService",
+      "displayName": "OrderApplicationService",
+      "scopeId": "scope:package:com.example",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalRoles": [
+          "application-service"
+        ]
+      }
+    },
+    {
+      "id": "entity:entity:order",
+      "kind": "CLASS",
+      "origin": "OBSERVED",
+      "name": "Order",
+      "displayName": "Order",
+      "scopeId": "scope:package:com.example",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalRoles": [
+          "persistent-entity"
+        ]
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel:endpoint-service",
+      "kind": "CALLS",
+      "fromEntityId": "entity:endpoint:orders",
+      "toEntityId": "entity:service:order-app-service",
+      "label": "serves",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalSemantics": [
+          "serves-request"
+        ]
+      }
+    },
+    {
+      "id": "rel:service-entity",
+      "kind": "WRITES",
+      "fromEntityId": "entity:service:order-app-service",
+      "toEntityId": "entity:entity:order",
+      "label": "writes",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalSemantics": [
+          "accesses-persistence"
+        ]
+      }
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "request-handling",
+      "title": "Request handling",
+      "description": "Highlights request-serving entrypoints and application-service flows.",
+      "availability": "available",
+      "confidence": 0.96,
+      "seedRoleIds": [
+        "api-entrypoint",
+        "application-service"
+      ],
+      "expandViaSemantics": [
+        "invokes-use-case",
+        "serves-request"
+      ],
+      "preferredDependencyViews": [
+        "java:type-dependencies"
+      ],
+      "evidenceSources": [
+        "java-interpretation",
+        "java-normalization"
+      ]
+    },
+    {
+      "id": "persistence-model",
+      "title": "Persistence model",
+      "description": "Highlights persistent entities together with persistence access paths.",
+      "availability": "partial",
+      "confidence": 0.74,
+      "seedEntityIds": [
+        "entity:entity:order"
+      ],
+      "seedRoleIds": [
+        "persistent-entity"
+      ],
+      "expandViaSemantics": [
+        "accesses-persistence"
+      ],
+      "preferredDependencyViews": [
+        "java:type-dependencies"
+      ],
+      "evidenceSources": [
+        "java-normalization"
+      ]
+    }
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 3,
+    "totalFileCount": 3,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}

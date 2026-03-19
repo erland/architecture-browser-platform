@@ -82,6 +82,49 @@ class SnapshotCatalogResourceTest {
             .body("metadata.metadata.size()", equalTo(0));
     }
 
+
+    @Test
+    void fullSnapshotIncludesExportedViewpoints() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-viewpoints", "Catalog Viewpoints");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/viewpoint-rich.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("snapshot.id", equalTo(snapshotId))
+            .body("viewpoints.size()", equalTo(2))
+            .body("viewpoints.find { it.id == 'request-handling' }.availability", equalTo("available"))
+            .body("viewpoints.find { it.id == 'request-handling' }.seedRoleIds", hasItem("api-entrypoint"))
+            .body("viewpoints.find { it.id == 'persistence-model' }.seedEntityIds", hasItem("entity:entity:order"))
+            .body("viewpoints.find { it.id == 'persistence-model' }.preferredDependencyViews", hasItem("java:type-dependencies"));
+    }
+
+
+    @Test
+    void fullSnapshotIncludesCuratedViewpointCatalog() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-curated-viewpoints", "Catalog Curated Viewpoints");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/viewpoints-curated.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("viewpoints.size()", equalTo(6))
+            .body("viewpoints.id", hasItem("request-handling"))
+            .body("viewpoints.id", hasItem("api-surface"))
+            .body("viewpoints.id", hasItem("persistence-model"))
+            .body("viewpoints.id", hasItem("integration-map"))
+            .body("viewpoints.id", hasItem("module-dependencies"))
+            .body("viewpoints.id", hasItem("ui-navigation"))
+            .body("viewpoints.find { it.id == 'integration-map' }.seedRoleIds", hasItem("integration-adapter"))
+            .body("viewpoints.find { it.id == 'ui-navigation' }.expandViaSemantics", hasItem("guards-route"));
+    }
+
     @Test
     void overviewIncludesWarningsForPartialSnapshot() throws Exception {
         String workspaceId = createWorkspace();

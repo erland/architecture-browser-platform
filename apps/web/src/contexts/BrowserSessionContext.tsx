@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { BrowserDependencyDirection, BrowserTreeMode } from '../browserSnapshotIndex';
+import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex';
 import type { FullSnapshotPayload } from '../appModel';
 import {
   type BrowserFactsPanelLocation,
@@ -7,7 +7,9 @@ import {
   type BrowserFocusedElement,
   type BrowserSessionState,
   type BrowserCanvasViewport,
+  type BrowserViewpointApplyMode,
   addDependenciesToCanvas,
+  applySelectedViewpoint,
   addEntityToCanvas,
   addEntitiesToCanvas,
   addPrimaryEntitiesForScope,
@@ -33,6 +35,10 @@ import {
   setBrowserTreeMode,
   selectCanvasEntity,
   setBrowserSearch,
+  setSelectedViewpoint,
+  setViewpointApplyMode,
+  setViewpointVariant,
+  setViewpointScopeMode,
   toggleCanvasNodePin,
 } from '../browserSessionStore';
 
@@ -53,6 +59,11 @@ export type BrowserSessionContextValue = {
   addEntityToCanvas: (entityId: string) => void;
   addEntitiesToCanvas: (entityIds: string[]) => void;
   addPrimaryEntitiesForScope: (scopeId: string) => void;
+  setSelectedViewpoint: (viewpointId: string | null) => void;
+  setViewpointScopeMode: (scopeMode: BrowserViewpointScopeMode) => void;
+  setViewpointApplyMode: (applyMode: BrowserViewpointApplyMode) => void;
+  setViewpointVariant: (variant: BrowserViewpointVariant) => void;
+  applySelectedViewpoint: () => void;
   selectCanvasEntity: (entityId: string, additive?: boolean) => void;
   addDependenciesToCanvas: (entityId: string, direction?: BrowserDependencyDirection) => void;
   removeEntityFromCanvas: (entityId: string) => void;
@@ -90,6 +101,11 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     addEntityToCanvas: (entityId) => setState((current) => addEntityToCanvas(current, entityId)),
     addEntitiesToCanvas: (entityIds) => setState((current) => addEntitiesToCanvas(current, entityIds)),
     addPrimaryEntitiesForScope: (scopeId) => setState((current) => addPrimaryEntitiesForScope(current, scopeId)),
+    setSelectedViewpoint: (viewpointId) => setState((current) => setSelectedViewpoint(current, viewpointId)),
+    setViewpointScopeMode: (scopeMode) => setState((current) => setViewpointScopeMode(current, scopeMode)),
+    setViewpointApplyMode: (applyMode) => setState((current) => setViewpointApplyMode(current, applyMode)),
+    setViewpointVariant: (variant) => setState((current) => setViewpointVariant(current, variant)),
+    applySelectedViewpoint: () => setState((current) => applySelectedViewpoint(current)),
     selectCanvasEntity: (entityId, additive) => setState((current) => selectCanvasEntity(current, entityId, additive)),
     addDependenciesToCanvas: (entityId, direction) => setState((current) => addDependenciesToCanvas(current, entityId, direction)),
     removeEntityFromCanvas: (entityId) => setState((current) => removeEntityFromCanvas(current, entityId)),

@@ -1454,6 +1454,67 @@ dd {
   min-width: 0;
 }
 
+
+.browser-viewpoint-controls {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.browser-viewpoint-controls__header,
+.browser-viewpoint-controls__selection-header,
+.browser-viewpoint-controls__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.browser-viewpoint-controls__header h3 {
+  margin: 0;
+}
+
+.browser-viewpoint-controls__hint,
+.browser-viewpoint-controls__empty {
+  margin: 0;
+}
+
+.browser-viewpoint-controls__field {
+  display: grid;
+  gap: 6px;
+}
+
+.browser-viewpoint-controls__field select {
+  width: 100%;
+}
+
+.browser-viewpoint-controls__selection {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.browser-viewpoint-controls__selection p {
+  margin: 0;
+}
+
+.browser-viewpoint-controls__stats,
+.browser-viewpoint-controls__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browser-viewpoint-controls__toggle {
+  flex: 1 1 140px;
+}
+
+.browser-viewpoint-controls__toggle--active {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.24);
+}
+
 .browser-workspace__mini-context,
 .browser-workspace__inspector-card {
   padding: 14px 16px;

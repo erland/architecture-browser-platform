@@ -78,6 +78,7 @@ public final class SnapshotDtos {
         List<FullScope> scopes,
         List<FullEntity> entities,
         List<FullRelationship> relationships,
+        List<FullViewpoint> viewpoints,
         List<FullDiagnostic> diagnostics,
         MetadataEnvelope metadata,
         List<String> warnings
@@ -115,6 +116,21 @@ public final class SnapshotDtos {
         String label,
         List<SourceRef> sourceRefs,
         java.util.Map<String, Object> metadata
+    ) {
+    }
+
+
+    public record FullViewpoint(
+        String id,
+        String title,
+        String description,
+        String availability,
+        double confidence,
+        List<String> seedEntityIds,
+        List<String> seedRoleIds,
+        List<String> expandViaSemantics,
+        List<String> preferredDependencyViews,
+        List<String> evidenceSources
     ) {
     }
 

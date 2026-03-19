@@ -4,6 +4,7 @@ import type {
   FullSnapshotPayload,
   FullSnapshotRelationship,
   FullSnapshotScope,
+  FullSnapshotViewpoint,
   SnapshotSourceRef,
 } from "./appModel";
 
@@ -11,6 +12,8 @@ export type BrowserNodeKind = "scope" | "entity";
 export type BrowserSearchResultKind = BrowserNodeKind | "relationship" | "diagnostic";
 export type BrowserDependencyDirection = "ALL" | "INBOUND" | "OUTBOUND";
 export type BrowserTreeMode = 'filesystem' | 'package' | 'advanced';
+export type BrowserViewpointScopeMode = "selected-scope" | "selected-subtree" | "whole-snapshot";
+export type BrowserViewpointVariant = 'default' | 'show-writers' | 'show-readers' | 'show-upstream-callers';
 
 export type BrowserScopeTreeNode = {
   scopeId: string;
@@ -51,6 +54,19 @@ export type BrowserDependencyNeighborhood = {
   edges: BrowserDependencyEdge[];
 };
 
+
+export type BrowserResolvedViewpointGraph = {
+  viewpoint: FullSnapshotViewpoint;
+  scopeMode: BrowserViewpointScopeMode;
+  selectedScopeId: string | null;
+  seedEntityIds: string[];
+  entityIds: string[];
+  relationshipIds: string[];
+  preferredDependencyViews: string[];
+  recommendedLayout: 'generic' | 'request-flow' | 'api-surface' | 'persistence-model' | 'integration-map' | 'module-dependencies' | 'ui-navigation' | 'persistence-writers' | 'persistence-readers' | 'upstream-callers';
+  variant?: BrowserViewpointVariant;
+};
+
 export type BrowserScopeFacts = {
   scope: FullSnapshotScope;
   path: string;
@@ -76,6 +92,9 @@ export type BrowserSnapshotIndex = {
   snapshotId: string;
   builtAt: string;
   payload: FullSnapshotPayload;
+  viewpointsById: Map<string, FullSnapshotViewpoint>;
+  entityIdsByArchitecturalRole: Map<string, string[]>;
+  relationshipIdsByArchitecturalSemantic: Map<string, string[]>;
   scopesById: Map<string, FullSnapshotScope>;
   entitiesById: Map<string, FullSnapshotEntity>;
   relationshipsById: Map<string, FullSnapshotRelationship>;
@@ -159,6 +178,16 @@ function compareScopeIds(index: BrowserSnapshotIndex, leftScopeId: string, right
   return compactScopeDisplayName(left).localeCompare(compactScopeDisplayName(right), undefined, { sensitivity: "base" });
 }
 
+function getArchitecturalRoles(entity: FullSnapshotEntity) {
+  const roles = entity.metadata?.architecturalRoles;
+  return Array.isArray(roles) ? roles.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+}
+
+function getArchitecturalSemantics(relationship: FullSnapshotRelationship) {
+  const semantics = relationship.metadata?.architecturalSemantics;
+  return Array.isArray(semantics) ? semantics.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+}
+
 function compareEntityIds(index: BrowserSnapshotIndex, leftEntityId: string, rightEntityId: string) {
   const left = index.entitiesById.get(leftEntityId);
   const right = index.entitiesById.get(rightEntityId);
@@ -174,6 +203,238 @@ function sortScopeIds(index: BrowserSnapshotIndex, scopeIds: Iterable<string>) {
 
 function sortEntityIds(index: BrowserSnapshotIndex, entityIds: Iterable<string>) {
   return [...new Set(entityIds)].sort((a, b) => compareEntityIds(index, a, b));
+}
+
+function getRequestHandlingRolePriority(entity: FullSnapshotEntity) {
+  const roles = new Set(getArchitecturalRoles(entity));
+  if (roles.has('api-entrypoint')) {
+    return 0;
+  }
+  if (roles.has('application-service')) {
+    return 1;
+  }
+  if (roles.has('persistence-access') || roles.has('persistent-entity')) {
+    return 2;
+  }
+  if (roles.has('integration-adapter') || roles.has('external-dependency')) {
+    return 3;
+  }
+  return 4;
+}
+
+
+function getPersistenceModelRolePriority(entity: FullSnapshotEntity) {
+  const roles = new Set(getArchitecturalRoles(entity));
+  if (roles.has('application-service') || roles.has('api-entrypoint')) {
+    return 0;
+  }
+  if (roles.has('persistence-access')) {
+    return 1;
+  }
+  if (roles.has('persistent-entity')) {
+    return 2;
+  }
+  if (roles.has('datastore')) {
+    return 3;
+  }
+  return 4;
+}
+
+function getIntegrationMapRolePriority(entity: FullSnapshotEntity) {
+  const roles = new Set(getArchitecturalRoles(entity));
+  if (roles.has('api-entrypoint') || roles.has('application-service')) {
+    return 0;
+  }
+  if (roles.has('integration-adapter')) {
+    return 1;
+  }
+  if (roles.has('external-dependency')) {
+    return 2;
+  }
+  return 3;
+}
+
+function getModuleDependenciesRolePriority(entity: FullSnapshotEntity) {
+  const roles = new Set(getArchitecturalRoles(entity));
+  if (roles.has('module-boundary')) {
+    return 0;
+  }
+  if (entity.kind === 'MODULE' || entity.kind === 'PACKAGE') {
+    return 1;
+  }
+  return 2;
+}
+
+
+function getUiNavigationRolePriority(entity: FullSnapshotEntity) {
+  const roles = new Set(getArchitecturalRoles(entity));
+  if (roles.has('ui-layout')) {
+    return 0;
+  }
+  if (roles.has('ui-page')) {
+    return 1;
+  }
+  if (roles.has('ui-navigation-node')) {
+    return 2;
+  }
+  return 3;
+}
+
+
+function computeRelationshipDistances(seedEntityIds: string[], relationships: FullSnapshotRelationship[]) {
+  const adjacency = new Map<string, Set<string>>();
+  for (const relationship of relationships) {
+    if (!adjacency.has(relationship.fromEntityId)) {
+      adjacency.set(relationship.fromEntityId, new Set());
+    }
+    if (!adjacency.has(relationship.toEntityId)) {
+      adjacency.set(relationship.toEntityId, new Set());
+    }
+    adjacency.get(relationship.fromEntityId)?.add(relationship.toEntityId);
+    adjacency.get(relationship.toEntityId)?.add(relationship.fromEntityId);
+  }
+  const distances = new Map<string, number>();
+  const queue = [...seedEntityIds];
+  for (const entityId of seedEntityIds) {
+    distances.set(entityId, 0);
+  }
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+    const baseDistance = distances.get(current) ?? 0;
+    for (const neighbor of adjacency.get(current) ?? []) {
+      if (distances.has(neighbor)) {
+        continue;
+      }
+      distances.set(neighbor, baseDistance + 1);
+      queue.push(neighbor);
+    }
+  }
+  return distances;
+}
+
+function sortViewpointEntityIds(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, entityIds: Iterable<string>, relationships: FullSnapshotRelationship[]) {
+  const uniqueEntityIds = [...new Set(entityIds)];
+  if (viewpoint.id !== 'request-handling' && viewpoint.id !== 'api-surface' && viewpoint.id !== 'persistence-model' && viewpoint.id !== 'integration-map' && viewpoint.id !== 'module-dependencies' && viewpoint.id !== 'ui-navigation') {
+    return uniqueEntityIds.sort((a, b) => compareEntityIds(index, a, b));
+  }
+  const apiSeedEntityIds = uniqueEntityIds.filter((entityId) => {
+    const entity = index.entitiesById.get(entityId);
+    return entity ? getArchitecturalRoles(entity).includes('api-entrypoint') : false;
+  });
+  const fallbackSeeds = apiSeedEntityIds.length > 0 ? apiSeedEntityIds : uniqueEntityIds;
+  const distances = computeRelationshipDistances(fallbackSeeds, relationships);
+  return uniqueEntityIds.sort((leftId, rightId) => {
+    const left = index.entitiesById.get(leftId);
+    const right = index.entitiesById.get(rightId);
+    if (!left || !right) {
+      return leftId.localeCompare(rightId);
+    }
+    const priorityDelta = (
+      viewpoint.id === 'api-surface'
+        ? getApiSurfaceRolePriority(left) - getApiSurfaceRolePriority(right)
+        : viewpoint.id === 'persistence-model'
+          ? getPersistenceModelRolePriority(left) - getPersistenceModelRolePriority(right)
+          : viewpoint.id === 'integration-map'
+            ? getIntegrationMapRolePriority(left) - getIntegrationMapRolePriority(right)
+            : viewpoint.id === 'module-dependencies'
+              ? getModuleDependenciesRolePriority(left) - getModuleDependenciesRolePriority(right)
+              : viewpoint.id === 'ui-navigation'
+                ? getUiNavigationRolePriority(left) - getUiNavigationRolePriority(right)
+                : getRequestHandlingRolePriority(left) - getRequestHandlingRolePriority(right)
+    );
+    const distanceDelta = (distances.get(leftId) ?? Number.MAX_SAFE_INTEGER) - (distances.get(rightId) ?? Number.MAX_SAFE_INTEGER);
+    if (viewpoint.id === 'persistence-model') {
+      if (distanceDelta !== 0) {
+        return distanceDelta;
+      }
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+    } else if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+    if (viewpoint.id !== 'persistence-model' && distanceDelta !== 0) {
+      return distanceDelta;
+    }
+    if (viewpoint.id === 'persistence-model' && distanceDelta !== 0) {
+      return distanceDelta;
+    }
+    if (distanceDelta !== 0) {
+      return distanceDelta;
+    }
+    const scopePathDelta = (index.scopePathById.get(left.scopeId ?? '') ?? '').localeCompare(index.scopePathById.get(right.scopeId ?? '') ?? '', undefined, { sensitivity: 'base' });
+    if (scopePathDelta !== 0) {
+      return scopePathDelta;
+    }
+    return compareByDisplayName(left, right);
+  });
+}
+
+
+function getViewpointRelationshipSemanticPriority(viewpoint: FullSnapshotViewpoint, relationship: FullSnapshotRelationship) {
+  const semantics = getArchitecturalSemantics(relationship);
+  const firstSemantic = semantics[0] ?? '';
+  if (viewpoint.id === 'ui-navigation') {
+    if (firstSemantic === 'contains-route') return 0;
+    if (firstSemantic === 'guards-route') return 1;
+    if (firstSemantic === 'navigates-to') return 2;
+    if (firstSemantic === 'redirects-to') return 3;
+  }
+  if (viewpoint.id === 'request-handling') {
+    if (firstSemantic === 'serves-request') return 0;
+    if (firstSemantic === 'invokes-use-case') return 1;
+    if (firstSemantic === 'accesses-persistence') return 2;
+  }
+  if (viewpoint.id === 'api-surface') {
+    if (firstSemantic === 'serves-request') return 0;
+    if (firstSemantic === 'invokes-use-case') return 1;
+  }
+  if (viewpoint.id === 'persistence-model') {
+    if (firstSemantic === 'accesses-persistence') return 0;
+    if (firstSemantic === 'stored-in') return 1;
+  }
+  if (viewpoint.id === 'integration-map') {
+    if (firstSemantic === 'invokes-use-case') return 0;
+    if (firstSemantic === 'calls-external-system') return 1;
+  }
+  if (viewpoint.id === 'module-dependencies') {
+    if (firstSemantic === 'depends-on-module') return 0;
+  }
+  return 100;
+}
+
+function sortViewpointRelationshipIds(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, relationships: FullSnapshotRelationship[]) {
+  if (viewpoint.id !== 'request-handling' && viewpoint.id !== 'api-surface' && viewpoint.id !== 'persistence-model' && viewpoint.id !== 'integration-map' && viewpoint.id !== 'module-dependencies' && viewpoint.id !== 'ui-navigation') {
+    return stableSortRelationships(relationships).map((relationship) => relationship.externalId);
+  }
+  const sorted = [...relationships].sort((left, right) => {
+    const leftFrom = index.entitiesById.get(left.fromEntityId);
+    const rightFrom = index.entitiesById.get(right.fromEntityId);
+    const leftTo = index.entitiesById.get(left.toEntityId);
+    const rightTo = index.entitiesById.get(right.toEntityId);
+    const semanticPriorityDelta = getViewpointRelationshipSemanticPriority(viewpoint, left) - getViewpointRelationshipSemanticPriority(viewpoint, right);
+    if (semanticPriorityDelta !== 0) {
+      return semanticPriorityDelta;
+    }
+    const getPriority = viewpoint.id === 'api-surface' ? getApiSurfaceRolePriority : viewpoint.id === 'persistence-model' ? getPersistenceModelRolePriority : viewpoint.id === 'integration-map' ? getIntegrationMapRolePriority : viewpoint.id === 'module-dependencies' ? getModuleDependenciesRolePriority : viewpoint.id === 'ui-navigation' ? getUiNavigationRolePriority : getRequestHandlingRolePriority;
+    const fromPriorityDelta = getPriority(leftFrom ?? {metadata:{},displayName:null,name:left.fromEntityId} as FullSnapshotEntity) - getPriority(rightFrom ?? {metadata:{},displayName:null,name:right.fromEntityId} as FullSnapshotEntity);
+    if (fromPriorityDelta !== 0) {
+      return fromPriorityDelta;
+    }
+    const toPriorityDelta = getPriority(leftTo ?? {metadata:{},displayName:null,name:left.toEntityId} as FullSnapshotEntity) - getPriority(rightTo ?? {metadata:{},displayName:null,name:right.toEntityId} as FullSnapshotEntity);
+    if (toPriorityDelta !== 0) {
+      return toPriorityDelta;
+    }
+    const labelDelta = (left.label ?? left.kind).localeCompare((right.label ?? right.kind), undefined, { sensitivity: 'base' });
+    if (labelDelta !== 0) {
+      return labelDelta;
+    }
+    return left.externalId.localeCompare(right.externalId);
+  });
+  return sorted.map((relationship) => relationship.externalId);
 }
 
 function buildScopePath(scope: FullSnapshotScope, scopesById: Map<string, FullSnapshotScope>) {
@@ -285,6 +546,41 @@ function collectSourceRefs(...collections: Array<SnapshotSourceRef[] | undefined
   return unique;
 }
 
+function isEntityWithinScopeMode(index: BrowserSnapshotIndex, entityId: string, scopeMode: BrowserViewpointScopeMode, selectedScopeId: string | null) {
+  if (scopeMode === "whole-snapshot") {
+    return true;
+  }
+  const entity = index.entitiesById.get(entityId);
+  if (!entity?.scopeId || !selectedScopeId) {
+    return false;
+  }
+  if (scopeMode === "selected-scope") {
+    return entity.scopeId === selectedScopeId;
+  }
+  return isScopeWithin(index, selectedScopeId, entity.scopeId);
+}
+function getApiSurfaceRolePriority(entity: FullSnapshotEntity) {
+  const roles = getArchitecturalRoles(entity);
+  if (roles.includes('api-entrypoint')) {
+    return 0;
+  }
+  if (roles.includes('application-service')) {
+    return 1;
+  }
+  if (roles.includes('integration-adapter') || roles.includes('external-dependency')) {
+    return 2;
+  }
+  if (roles.includes('persistence-access') || roles.includes('persistent-entity')) {
+    return 3;
+  }
+  return 4;
+}
+
+
+function stableSortRelationships(relationships: FullSnapshotRelationship[]) {
+  return [...relationships].sort((left, right) => left.externalId.localeCompare(right.externalId, undefined, { sensitivity: "base" }));
+}
+
 function isScopeWithin(index: BrowserSnapshotIndex, scopeId: string | null, candidateScopeId: string | null | undefined) {
   if (!scopeId) {
     return true;
@@ -394,13 +690,19 @@ function buildSearchableDocuments(index: BrowserSnapshotIndex) {
   return [...scopeDocuments, ...entityDocuments, ...relationshipDocuments, ...diagnosticDocuments];
 }
 
-export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): BrowserSnapshotIndex {
+export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): BrowserSnapshotIndex;
+export function buildBrowserSnapshotIndex(_snapshotSummary: unknown, payload: FullSnapshotPayload): BrowserSnapshotIndex;
+export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayload?: FullSnapshotPayload): BrowserSnapshotIndex {
+  const payload = (maybePayload ?? payloadOrSummary) as FullSnapshotPayload;
   const scopesById = new Map(payload.scopes.map((scope) => [scope.externalId, scope]));
   const entitiesById = new Map(payload.entities.map((entity) => [entity.externalId, entity]));
   const relationshipsById = new Map(payload.relationships.map((relationship) => [relationship.externalId, relationship]));
   const diagnosticsById = new Map(payload.diagnostics.map((diagnostic) => [diagnostic.externalId, diagnostic]));
   const childScopeIdsByParentId = new Map<string | null, string[]>();
   const entityIdsByScopeId = new Map<string | null, string[]>();
+  const viewpointsById = new Map(payload.viewpoints.map((viewpoint) => [viewpoint.id, viewpoint]));
+  const entityIdsByArchitecturalRole = new Map<string, string[]>();
+  const relationshipIdsByArchitecturalSemantic = new Map<string, string[]>();
   const inboundRelationshipIdsByEntityId = new Map<string, string[]>();
   const outboundRelationshipIdsByEntityId = new Map<string, string[]>();
   const diagnosticIdsByScopeId = new Map<string, string[]>();
@@ -413,9 +715,15 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
 
   for (const entity of payload.entities) {
     pushToMapArray(entityIdsByScopeId, entity.scopeId, entity.externalId);
+    for (const roleId of getArchitecturalRoles(entity)) {
+      pushToMapArray(entityIdsByArchitecturalRole, roleId, entity.externalId);
+    }
   }
 
   for (const relationship of payload.relationships) {
+    for (const semantic of getArchitecturalSemantics(relationship)) {
+      pushToMapArray(relationshipIdsByArchitecturalSemantic, semantic, relationship.externalId);
+    }
     pushToMapArray(outboundRelationshipIdsByEntityId, relationship.fromEntityId, relationship.externalId);
     pushToMapArray(inboundRelationshipIdsByEntityId, relationship.toEntityId, relationship.externalId);
   }
@@ -437,12 +745,15 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
     snapshotId: payload.snapshot.id,
     builtAt: new Date().toISOString(),
     payload,
+    viewpointsById,
     scopesById,
     entitiesById,
     relationshipsById,
     diagnosticsById,
     childScopeIdsByParentId,
     entityIdsByScopeId,
+    entityIdsByArchitecturalRole,
+    relationshipIdsByArchitecturalSemantic,
     subtreeEntityIdsByScopeId: new Map(),
     containingScopeIdsByEntityId: new Map(),
     containedEntityIdsByEntityId: new Map(),
@@ -488,19 +799,35 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
 
 const browserSnapshotIndexCache = new Map<string, BrowserSnapshotIndex>();
 
+function getBrowserSnapshotIndexCacheKey(payload: FullSnapshotPayload) {
+  return [
+    payload.snapshot.id,
+    payload.scopes.length,
+    payload.entities.length,
+    payload.relationships.length,
+    payload.diagnostics.length,
+    payload.viewpoints.length,
+  ].join('::');
+}
+
 export function getOrBuildBrowserSnapshotIndex(payload: FullSnapshotPayload) {
-  const cached = browserSnapshotIndexCache.get(payload.snapshot.id);
+  const cacheKey = getBrowserSnapshotIndexCacheKey(payload);
+  const cached = browserSnapshotIndexCache.get(cacheKey);
   if (cached) {
     return cached;
   }
   const built = buildBrowserSnapshotIndex(payload);
-  browserSnapshotIndexCache.set(payload.snapshot.id, built);
+  browserSnapshotIndexCache.set(cacheKey, built);
   return built;
 }
 
 export function clearBrowserSnapshotIndex(snapshotId?: string) {
   if (snapshotId) {
-    browserSnapshotIndexCache.delete(snapshotId);
+    for (const key of [...browserSnapshotIndexCache.keys()]) {
+      if (key === snapshotId || key.startsWith(`${snapshotId}::`)) {
+        browserSnapshotIndexCache.delete(key);
+      }
+    }
     return;
   }
   browserSnapshotIndexCache.clear();
@@ -806,4 +1133,246 @@ function scoreSearchDocument(document: BrowserSearchDocument, query: string) {
     return 25;
   }
   return 0;
+}
+
+
+export function getAvailableViewpoints(index: BrowserSnapshotIndex, options?: { includePartial?: boolean; includeUnavailable?: boolean }) {
+  const includePartial = options?.includePartial ?? true;
+  const includeUnavailable = options?.includeUnavailable ?? false;
+  return [...index.viewpointsById.values()]
+    .filter((viewpoint) => includeUnavailable || viewpoint.availability !== "unavailable")
+    .filter((viewpoint) => includePartial || viewpoint.availability === "available")
+    .sort((left, right) => left.id.localeCompare(right.id, undefined, { sensitivity: 'base' }));
+}
+
+export function getViewpointById(index: BrowserSnapshotIndex, viewpointId: string) {
+  return index.viewpointsById.get(viewpointId) ?? null;
+}
+
+export function resolveViewpointSeedEntityIds(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, options?: { scopeMode?: BrowserViewpointScopeMode; selectedScopeId?: string | null }) {
+  const scopeMode = options?.scopeMode ?? "whole-snapshot";
+  const selectedScopeId = options?.selectedScopeId ?? null;
+  const entityIds = new Set<string>();
+  for (const entityId of viewpoint.seedEntityIds) {
+    if (index.entitiesById.has(entityId) && isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) {
+      entityIds.add(entityId);
+    }
+  }
+  for (const roleId of viewpoint.seedRoleIds) {
+    for (const entityId of index.entityIdsByArchitecturalRole.get(roleId) ?? []) {
+      if (isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) {
+        entityIds.add(entityId);
+      }
+    }
+  }
+  return sortEntityIds(index, entityIds);
+}
+
+export function resolveViewpointExpansionRelationships(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, seedEntityIds: Iterable<string>) {
+  const allowedSemantics = viewpoint.expandViaSemantics.filter((semantic) => index.relationshipIdsByArchitecturalSemantic.has(semantic));
+  if (allowedSemantics.length === 0) {
+    return [] as FullSnapshotRelationship[];
+  }
+  const candidateRelationshipIds = new Set<string>();
+  for (const semantic of allowedSemantics) {
+    for (const relationshipId of index.relationshipIdsByArchitecturalSemantic.get(semantic) ?? []) {
+      candidateRelationshipIds.add(relationshipId);
+    }
+  }
+
+  const includedSeedIds = new Set([...seedEntityIds].filter((entityId) => index.entitiesById.has(entityId)));
+  const candidates = [...candidateRelationshipIds]
+    .map((relationshipId) => index.relationshipsById.get(relationshipId))
+    .filter((relationship): relationship is FullSnapshotRelationship => Boolean(relationship))
+    .filter((relationship) => {
+      if (includedSeedIds.size === 0) {
+        return true;
+      }
+      return includedSeedIds.has(relationship.fromEntityId)
+        || includedSeedIds.has(relationship.toEntityId)
+        || viewpoint.id === 'request-handling'
+        || viewpoint.id === 'api-surface'
+        || viewpoint.id === 'persistence-model'
+        || viewpoint.id === 'integration-map'
+        || viewpoint.id === 'module-dependencies'
+        || viewpoint.id === 'ui-navigation';
+    });
+  return stableSortRelationships(candidates);
+}
+
+
+function includeIntegrationMapImmediateNeighbors(index: BrowserSnapshotIndex, seedEntityIds: string[], relationships: FullSnapshotRelationship[]) {
+  const includedRelationshipIds = new Set(relationships.map((relationship) => relationship.externalId));
+  const integrationSeedIds = new Set(seedEntityIds.filter((entityId) => {
+    const entity = index.entitiesById.get(entityId);
+    if (!entity) {
+      return false;
+    }
+    const roles = getArchitecturalRoles(entity);
+    return roles.includes('integration-adapter') || roles.includes('external-dependency');
+  }));
+  if (integrationSeedIds.size === 0) {
+    return relationships;
+  }
+  for (const seedEntityId of integrationSeedIds) {
+    const relationshipIds = [
+      ...(index.inboundRelationshipIdsByEntityId.get(seedEntityId) ?? []),
+      ...(index.outboundRelationshipIdsByEntityId.get(seedEntityId) ?? []),
+    ];
+    for (const relationshipId of relationshipIds) {
+      if (includedRelationshipIds.has(relationshipId)) {
+        continue;
+      }
+      const relationship = index.relationshipsById.get(relationshipId);
+      if (!relationship) {
+        continue;
+      }
+      includedRelationshipIds.add(relationshipId);
+      relationships.push(relationship);
+    }
+  }
+  return stableSortRelationships(relationships);
+}
+
+export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, options?: { scopeMode?: BrowserViewpointScopeMode; selectedScopeId?: string | null; variant?: BrowserViewpointVariant }) : BrowserResolvedViewpointGraph {
+  const scopeMode = options?.scopeMode ?? "whole-snapshot";
+  const selectedScopeId = options?.selectedScopeId ?? null;
+  const variant = options?.variant ?? "default";
+  const seedEntityIds = resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId });
+  const resolvedSeedEntityIds = viewpoint.id === 'api-surface'
+    ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
+        const entity = index.entitiesById.get(entityId);
+        return entity ? getArchitecturalRoles(entity).includes('api-entrypoint') : false;
+      }), [])
+    : viewpoint.id === 'integration-map'
+      ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
+          const entity = index.entitiesById.get(entityId);
+          if (!entity) {
+            return false;
+          }
+          const roles = getArchitecturalRoles(entity);
+          return roles.includes('integration-adapter') || roles.includes('external-dependency');
+        }), [])
+      : viewpoint.id === 'ui-navigation'
+        ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
+            const relationshipIds = [
+              ...(index.inboundRelationshipIdsByEntityId.get(entityId) ?? []),
+              ...(index.outboundRelationshipIdsByEntityId.get(entityId) ?? []),
+            ];
+            return relationshipIds.some((relationshipId) => {
+              const relationship = index.relationshipsById.get(relationshipId);
+              if (!relationship) {
+                return false;
+              }
+              const semantics = getArchitecturalSemantics(relationship);
+              return semantics.includes('contains-route') || semantics.includes('navigates-to') || semantics.includes('redirects-to') || semantics.includes('guards-route');
+            });
+          }), [])
+        : sortViewpointEntityIds(index, viewpoint, seedEntityIds, []);
+  let expansionRelationships = resolveViewpointExpansionRelationships(index, viewpoint, resolvedSeedEntityIds);
+  if (viewpoint.id === 'ui-navigation') {
+    expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
+      const semantics = getArchitecturalSemantics(relationship);
+      return semantics.includes('contains-route') || semantics.includes('navigates-to') || semantics.includes('redirects-to') || semantics.includes('guards-route');
+    }));
+  }
+  if (viewpoint.id === 'module-dependencies') {
+    expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
+      const fromEntity = index.entitiesById.get(relationship.fromEntityId);
+      const toEntity = index.entitiesById.get(relationship.toEntityId);
+      return Boolean(fromEntity && toEntity && getArchitecturalRoles(fromEntity).includes('module-boundary') && getArchitecturalRoles(toEntity).includes('module-boundary'));
+    }));
+  }
+  if (viewpoint.id === 'request-handling') {
+    expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
+      const fromEntity = index.entitiesById.get(relationship.fromEntityId);
+      const toEntity = index.entitiesById.get(relationship.toEntityId);
+      if (!fromEntity || !toEntity) {
+        return false;
+      }
+      const fromRoles = getArchitecturalRoles(fromEntity);
+      const toRoles = getArchitecturalRoles(toEntity);
+      const allowedRoles = new Set(['api-entrypoint', 'application-service', 'persistence-access', 'persistent-entity']);
+      return [...fromRoles, ...toRoles].every((role) => !role || allowedRoles.has(role) || (role !== 'integration-adapter' && role !== 'external-dependency'))
+        && !fromRoles.includes('integration-adapter')
+        && !fromRoles.includes('external-dependency')
+        && !toRoles.includes('integration-adapter')
+        && !toRoles.includes('external-dependency');
+    }));
+  }
+  if (viewpoint.id === 'api-surface') {
+    const apiSeedSet = new Set(resolvedSeedEntityIds);
+    expansionRelationships = expansionRelationships.filter((relationship) => apiSeedSet.has(relationship.fromEntityId) || apiSeedSet.has(relationship.toEntityId));
+  }
+  if (viewpoint.id === 'integration-map') {
+    expansionRelationships = includeIntegrationMapImmediateNeighbors(index, resolvedSeedEntityIds, [...expansionRelationships]);
+  }
+  if (viewpoint.id === 'persistence-model' && variant !== 'default') {
+    if (variant === 'show-writers' || variant === 'show-readers') {
+      expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
+        const semantics = getArchitecturalSemantics(relationship);
+        return semantics.includes('accesses-persistence') || semantics.includes('stored-in');
+      }));
+    }
+    if (variant === 'show-upstream-callers') {
+      const included = new Set(expansionRelationships.map((relationship) => relationship.externalId));
+      const extraRelationships: FullSnapshotRelationship[] = [];
+      for (const entityId of resolvedSeedEntityIds) {
+        for (const inboundId of index.inboundRelationshipIdsByEntityId.get(entityId) ?? []) {
+          const inbound = index.relationshipsById.get(inboundId);
+          if (!inbound || included.has(inbound.externalId)) {
+            continue;
+          }
+          const semantics = getArchitecturalSemantics(inbound);
+          if (semantics.includes('invokes-use-case') || semantics.includes('serves-request') || semantics.includes('accesses-persistence')) {
+            extraRelationships.push(inbound);
+            included.add(inbound.externalId);
+          }
+        }
+      }
+      expansionRelationships = stableSortRelationships([...expansionRelationships, ...extraRelationships]);
+    }
+  }
+  if (viewpoint.id === 'request-handling' && variant === 'show-upstream-callers') {
+    const included = new Set(expansionRelationships.map((relationship) => relationship.externalId));
+    const extraRelationships: FullSnapshotRelationship[] = [];
+    for (const entityId of resolvedSeedEntityIds) {
+      for (const inboundId of index.inboundRelationshipIdsByEntityId.get(entityId) ?? []) {
+        const inbound = index.relationshipsById.get(inboundId);
+        if (!inbound || included.has(inbound.externalId)) {
+          continue;
+        }
+        const semantics = getArchitecturalSemantics(inbound);
+        if (semantics.includes('serves-request') || semantics.includes('invokes-use-case')) {
+          extraRelationships.push(inbound);
+          included.add(inbound.externalId);
+        }
+      }
+    }
+    expansionRelationships = stableSortRelationships([...expansionRelationships, ...extraRelationships]);
+  }
+  const entityIds = new Set(resolvedSeedEntityIds);
+  for (const relationship of expansionRelationships) {
+    entityIds.add(relationship.fromEntityId);
+    entityIds.add(relationship.toEntityId);
+  }
+  const sortedSeedEntityIds = sortViewpointEntityIds(index, viewpoint, resolvedSeedEntityIds, expansionRelationships);
+  const sortedEntityIds = sortViewpointEntityIds(index, viewpoint, entityIds, expansionRelationships);
+  const orderedEntityIds = viewpoint.id === 'integration-map'
+    ? sortedEntityIds
+    : [
+        ...sortedSeedEntityIds,
+        ...sortedEntityIds.filter((entityId) => !sortedSeedEntityIds.includes(entityId)),
+      ];
+  return {
+    viewpoint,
+    scopeMode,
+    selectedScopeId,
+    variant,
+    seedEntityIds: sortedSeedEntityIds,
+    entityIds: orderedEntityIds,
+    relationshipIds: sortViewpointRelationshipIds(index, viewpoint, expansionRelationships),
+    preferredDependencyViews: [...viewpoint.preferredDependencyViews],
+    recommendedLayout: variant === 'show-upstream-callers' ? 'upstream-callers' : viewpoint.id === 'persistence-model' && variant === 'show-writers' ? 'persistence-writers' : viewpoint.id === 'persistence-model' && variant === 'show-readers' ? 'persistence-readers' : viewpoint.id === 'request-handling' ? 'request-flow' : viewpoint.id === 'api-surface' ? 'api-surface' : viewpoint.id === 'persistence-model' ? 'persistence-model' : viewpoint.id === 'integration-map' ? 'integration-map' : viewpoint.id === 'module-dependencies' ? 'module-dependencies' : viewpoint.id === 'ui-navigation' ? 'ui-navigation' : 'generic',
+  };
 }

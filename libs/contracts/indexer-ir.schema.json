@@ -16,28 +16,54 @@
     "metadata"
   ],
   "properties": {
-    "schemaVersion": { "type": "string" },
-    "indexerVersion": { "type": "string" },
-    "runMetadata": { "$ref": "#/$defs/runMetadata" },
-    "source": { "$ref": "#/$defs/repositorySource" },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "indexerVersion": {
+      "type": "string"
+    },
+    "runMetadata": {
+      "$ref": "#/$defs/runMetadata"
+    },
+    "source": {
+      "$ref": "#/$defs/repositorySource"
+    },
     "scopes": {
       "type": "array",
-      "items": { "$ref": "#/$defs/logicalScope" }
+      "items": {
+        "$ref": "#/$defs/logicalScope"
+      }
     },
     "entities": {
       "type": "array",
-      "items": { "$ref": "#/$defs/architectureEntity" }
+      "items": {
+        "$ref": "#/$defs/architectureEntity"
+      }
     },
     "relationships": {
       "type": "array",
-      "items": { "$ref": "#/$defs/architectureRelationship" }
+      "items": {
+        "$ref": "#/$defs/architectureRelationship"
+      }
+    },
+    "viewpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/architectureViewpoint"
+      }
     },
     "diagnostics": {
       "type": "array",
-      "items": { "$ref": "#/$defs/diagnostic" }
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
     },
-    "completeness": { "$ref": "#/$defs/completenessMetadata" },
-    "metadata": { "$ref": "#/$defs/jsonObject" }
+    "completeness": {
+      "$ref": "#/$defs/completenessMetadata"
+    },
+    "metadata": {
+      "$ref": "#/$defs/jsonObject"
+    }
   },
   "$defs": {
     "jsonObject": {
@@ -46,62 +72,193 @@
     },
     "sourceReference": {
       "type": "object",
-      "required": ["path", "startLine", "endLine", "snippet", "metadata"],
+      "required": [
+        "path",
+        "startLine",
+        "endLine",
+        "snippet",
+        "metadata"
+      ],
       "properties": {
-        "path": { "type": "string" },
-        "startLine": { "type": ["integer", "null"] },
-        "endLine": { "type": ["integer", "null"] },
-        "snippet": { "type": ["string", "null"] },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "path": {
+          "type": "string"
+        },
+        "startLine": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "endLine": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "snippet": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "runMetadata": {
       "type": "object",
-      "required": ["startedAt", "completedAt", "outcome", "detectedTechnologies", "metadata"],
+      "required": [
+        "startedAt",
+        "completedAt",
+        "outcome",
+        "detectedTechnologies",
+        "metadata"
+      ],
       "properties": {
-        "startedAt": { "type": "string" },
-        "completedAt": { "type": "string" },
-        "outcome": { "enum": ["SUCCESS", "PARTIAL", "FAILED"] },
-        "detectedTechnologies": { "type": "array", "items": { "type": "string" } },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "startedAt": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "SUCCESS",
+            "PARTIAL",
+            "FAILED"
+          ]
+        },
+        "detectedTechnologies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "repositorySource": {
       "type": "object",
-      "required": ["repositoryId", "acquisitionType", "path", "remoteUrl", "branch", "revision", "acquiredAt", "metadata"],
+      "required": [
+        "repositoryId",
+        "acquisitionType",
+        "path",
+        "remoteUrl",
+        "branch",
+        "revision",
+        "acquiredAt",
+        "metadata"
+      ],
       "properties": {
-        "repositoryId": { "type": "string" },
-        "acquisitionType": { "type": "string" },
-        "path": { "type": ["string", "null"] },
-        "remoteUrl": { "type": ["string", "null"] },
-        "branch": { "type": ["string", "null"] },
-        "revision": { "type": ["string", "null"] },
-        "acquiredAt": { "type": "string" },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "repositoryId": {
+          "type": "string"
+        },
+        "acquisitionType": {
+          "type": "string"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "remoteUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acquiredAt": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "logicalScope": {
       "type": "object",
-      "required": ["id", "kind", "name", "displayName", "parentScopeId", "sourceRefs", "metadata"],
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "displayName",
+        "parentScopeId",
+        "sourceRefs",
+        "metadata"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "kind": { "enum": ["REPOSITORY", "MODULE", "PACKAGE", "COMPONENT", "DIRECTORY", "FILE"] },
-        "name": { "type": "string" },
-        "displayName": { "type": "string" },
-        "parentScopeId": { "type": ["string", "null"] },
-        "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceReference" } },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "REPOSITORY",
+            "MODULE",
+            "PACKAGE",
+            "COMPONENT",
+            "DIRECTORY",
+            "FILE"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "parentScopeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "architectureEntity": {
       "type": "object",
-      "required": ["id", "kind", "origin", "name", "displayName", "scopeId", "sourceRefs", "metadata"],
+      "required": [
+        "id",
+        "kind",
+        "origin",
+        "name",
+        "displayName",
+        "scopeId",
+        "sourceRefs",
+        "metadata"
+      ],
       "properties": {
-        "id": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
         "kind": {
           "enum": [
             "CLASS",
@@ -118,59 +275,268 @@
             "CONFIG_ARTIFACT"
           ]
         },
-        "origin": { "enum": ["OBSERVED", "INFERRED"] },
-        "name": { "type": "string" },
-        "displayName": { "type": "string" },
-        "scopeId": { "type": "string" },
-        "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceReference" } },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "origin": {
+          "enum": [
+            "OBSERVED",
+            "INFERRED"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "scopeId": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "architectureRelationship": {
       "type": "object",
-      "required": ["id", "kind", "fromEntityId", "toEntityId", "label", "sourceRefs", "metadata"],
+      "required": [
+        "id",
+        "kind",
+        "fromEntityId",
+        "toEntityId",
+        "label",
+        "sourceRefs",
+        "metadata"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "kind": { "enum": ["DEPENDS_ON", "EXPOSES", "CALLS", "READS", "WRITES", "CONTAINS", "USES"] },
-        "fromEntityId": { "type": "string" },
-        "toEntityId": { "type": "string" },
-        "label": { "type": ["string", "null"] },
-        "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceReference" } },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "DEPENDS_ON",
+            "EXPOSES",
+            "CALLS",
+            "READS",
+            "WRITES",
+            "CONTAINS",
+            "USES"
+          ]
+        },
+        "fromEntityId": {
+          "type": "string"
+        },
+        "toEntityId": {
+          "type": "string"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "diagnostic": {
       "type": "object",
-      "required": ["id", "severity", "phase", "code", "message", "fatal", "filePath", "scopeId", "entityId", "sourceRefs", "metadata"],
+      "required": [
+        "id",
+        "severity",
+        "phase",
+        "code",
+        "message",
+        "fatal",
+        "filePath",
+        "scopeId",
+        "entityId",
+        "sourceRefs",
+        "metadata"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "severity": { "enum": ["INFO", "WARNING", "ERROR"] },
-        "phase": { "enum": ["ACQUISITION", "SCAN", "EXTRACTION", "INTERPRETATION", "PUBLICATION"] },
-        "code": { "type": "string" },
-        "message": { "type": "string" },
-        "fatal": { "type": "boolean" },
-        "filePath": { "type": ["string", "null"] },
-        "scopeId": { "type": ["string", "null"] },
-        "entityId": { "type": ["string", "null"] },
-        "sourceRefs": { "type": "array", "items": { "$ref": "#/$defs/sourceReference" } },
-        "metadata": { "$ref": "#/$defs/jsonObject" }
+        "id": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "ACQUISITION",
+            "SCAN",
+            "EXTRACTION",
+            "INTERPRETATION",
+            "PUBLICATION"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "fatal": {
+          "type": "boolean"
+        },
+        "filePath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scopeId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceReference"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/jsonObject"
+        }
       },
       "additionalProperties": true
     },
     "completenessMetadata": {
       "type": "object",
-      "required": ["status", "indexedFileCount", "totalFileCount", "degradedFileCount", "omittedPaths", "notes"],
+      "required": [
+        "status",
+        "indexedFileCount",
+        "totalFileCount",
+        "degradedFileCount",
+        "omittedPaths",
+        "notes"
+      ],
       "properties": {
-        "status": { "enum": ["COMPLETE", "PARTIAL", "FAILED"] },
-        "indexedFileCount": { "type": "integer" },
-        "totalFileCount": { "type": "integer" },
-        "degradedFileCount": { "type": "integer" },
-        "omittedPaths": { "type": "array", "items": { "type": "string" } },
-        "notes": { "type": "array", "items": { "type": "string" } }
+        "status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "FAILED"
+          ]
+        },
+        "indexedFileCount": {
+          "type": "integer"
+        },
+        "totalFileCount": {
+          "type": "integer"
+        },
+        "degradedFileCount": {
+          "type": "integer"
+        },
+        "omittedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
       "additionalProperties": true
+    },
+    "architectureViewpoint": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "description",
+        "availability",
+        "confidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "availability": {
+          "type": "string",
+          "enum": [
+            "available",
+            "partial",
+            "unavailable"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "seedEntityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "seedRoleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "expandViaSemantics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "preferredDependencyViews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "evidenceSources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
     }
   },
   "additionalProperties": true

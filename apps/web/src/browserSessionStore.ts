@@ -1,4 +1,4 @@
-import { type FullSnapshotPayload } from './appModel';
+import { type FullSnapshotPayload, type FullSnapshotViewpoint } from './appModel';
 import {
   arrangeCanvasNodesAroundEntityFocus,
   arrangeCanvasNodesInGrid,
@@ -8,13 +8,18 @@ import {
 } from './browserCanvasPlacement';
 import {
   type BrowserDependencyDirection,
+  type BrowserResolvedViewpointGraph,
   type BrowserSearchResult,
   type BrowserSnapshotIndex,
   type BrowserTreeMode,
+  type BrowserViewpointScopeMode,
+  type BrowserViewpointVariant,
+  buildViewpointGraph,
   detectDefaultBrowserTreeMode,
   getDependencyNeighborhood,
   getOrBuildBrowserSnapshotIndex,
   getPrimaryEntitiesForScope,
+  getViewpointById,
   searchBrowserSnapshotIndex,
 } from './browserSnapshotIndex';
 
@@ -43,6 +48,15 @@ export type BrowserCanvasViewport = {
   zoom: number;
   offsetX: number;
   offsetY: number;
+};
+
+export type BrowserViewpointApplyMode = 'replace' | 'merge';
+
+export type BrowserViewpointSelection = {
+  viewpointId: string | null;
+  scopeMode: BrowserViewpointScopeMode;
+  applyMode: BrowserViewpointApplyMode;
+  variant: BrowserViewpointVariant;
 };
 
 export type BrowserCanvasEdge = {
@@ -81,6 +95,8 @@ export type BrowserSessionState = {
   factsPanelMode: BrowserFactsPanelMode;
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
+  viewpointSelection: BrowserViewpointSelection;
+  appliedViewpoint: BrowserResolvedViewpointGraph | null;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
@@ -99,6 +115,7 @@ export type PersistedBrowserSessionState = {
   factsPanelMode: BrowserFactsPanelMode;
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
+  viewpointSelection: BrowserViewpointSelection;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
@@ -120,6 +137,13 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
     factsPanelMode: 'hidden',
     factsPanelLocation: 'right',
     graphExpansionActions: [],
+    viewpointSelection: {
+      viewpointId: null,
+      scopeMode: 'selected-scope',
+      applyMode: 'replace',
+      variant: 'default',
+    },
+    appliedViewpoint: null,
     canvasLayoutMode: 'grid',
     treeMode: 'filesystem',
     canvasViewport: {
@@ -144,6 +168,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     factsPanelMode: state.factsPanelMode,
     factsPanelLocation: state.factsPanelLocation,
     graphExpansionActions: state.graphExpansionActions.map((action) => ({ ...action })),
+    viewpointSelection: { ...state.viewpointSelection },
     canvasLayoutMode: state.canvasLayoutMode,
     treeMode: state.treeMode,
     canvasViewport: { ...state.canvasViewport },
@@ -168,6 +193,13 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     factsPanelMode: persisted.factsPanelMode ?? state.factsPanelMode,
     factsPanelLocation: persisted.factsPanelLocation ?? state.factsPanelLocation,
     graphExpansionActions: [...(persisted.graphExpansionActions ?? state.graphExpansionActions)],
+    viewpointSelection: {
+      viewpointId: persisted.viewpointSelection?.viewpointId ?? state.viewpointSelection.viewpointId,
+      scopeMode: persisted.viewpointSelection?.scopeMode ?? state.viewpointSelection.scopeMode,
+      applyMode: persisted.viewpointSelection?.applyMode ?? state.viewpointSelection.applyMode,
+      variant: persisted.viewpointSelection?.variant ?? state.viewpointSelection.variant,
+    },
+    appliedViewpoint: null,
     canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
     treeMode: persisted.treeMode ?? state.treeMode,
     canvasViewport: {
@@ -321,12 +353,16 @@ export function openSnapshotSession(
   };
   const selectedScopeId = nextState.selectedScopeId && index.scopesById.has(nextState.selectedScopeId)
     ? nextState.selectedScopeId
-    : args.payload.scopes[0]?.externalId ?? null;
+    : args.payload.scopes[0]?.externalId
+      ?? null;
   const selectedEntityIds = nextState.selectedEntityIds.filter((entityId) => index.entitiesById.has(entityId));
   const canvasNodes = normalizeCanvasNodes(nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id)));
   const canvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
   const searchResults = computeSearchResults(index, nextState.searchQuery, nextState.searchScopeId);
   const treeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);
+  const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)
+    ? nextState.viewpointSelection.viewpointId
+    : null;
 
   return {
     ...nextState,
@@ -338,18 +374,315 @@ export function openSnapshotSession(
     canvasNodes,
     canvasEdges,
     searchResults,
+    viewpointSelection: {
+      ...nextState.viewpointSelection,
+      viewpointId: selectedViewpointId,
+    },
+    appliedViewpoint: null,
     treeMode,
     canvasViewport: nextState.canvasViewport,
   };
 }
 
+function createCanvasEdgesForRelationshipIds(index: BrowserSnapshotIndex, relationshipIds: string[]) {
+  return relationshipIds
+    .map((relationshipId) => index.relationshipsById.get(relationshipId))
+    .filter((relationship): relationship is NonNullable<typeof relationship> => Boolean(relationship))
+    .map((relationship) => ({
+      relationshipId: relationship.externalId,
+      fromEntityId: relationship.fromEntityId,
+      toEntityId: relationship.toEntityId,
+    }));
+}
+
+function arrangeViewpointCanvasNodes(
+  state: BrowserSessionState,
+  nodes: BrowserCanvasNode[],
+  edges: BrowserCanvasEdge[],
+  graph: BrowserResolvedViewpointGraph,
+) {
+  if (nodes.length === 0) {
+    return nodes;
+  }
+  if ((graph.recommendedLayout === 'request-flow' || graph.recommendedLayout === 'api-surface' || graph.recommendedLayout === 'persistence-model' || graph.recommendedLayout === 'integration-map' || graph.recommendedLayout === 'module-dependencies' || graph.recommendedLayout === 'ui-navigation') && state.index) {
+    const laneX = graph.recommendedLayout === 'api-surface'
+      ? [120, 460, 800, 1140]
+      : graph.recommendedLayout === 'persistence-model'
+        ? [120, 460, 800, 1140]
+        : graph.recommendedLayout === 'integration-map'
+          ? [120, 500, 880, 1260]
+          : graph.recommendedLayout === 'module-dependencies'
+            ? [120, 520, 920]
+            : graph.recommendedLayout === 'ui-navigation'
+              ? [120, 460, 820, 1180]
+              : [120, 420, 720, 1020, 1320];
+    const laneCounts = graph.recommendedLayout === 'api-surface' || graph.recommendedLayout === 'persistence-model' || graph.recommendedLayout === 'integration-map' || graph.recommendedLayout === 'ui-navigation' ? [0, 0, 0, 0] : graph.recommendedLayout === 'module-dependencies' ? [0, 0, 0] : [0, 0, 0, 0, 0];
+    const graphEntityIds = new Set(graph.entityIds);
+    return nodes.map((node, nodeIndex) => {
+      if (node.kind !== 'entity' || !graphEntityIds.has(node.id)) {
+        if (node.kind === 'scope') {
+          return { ...node, x: 40, y: 40 + nodeIndex * 96 };
+        }
+        return node;
+      }
+      const entity = state.index?.entitiesById.get(node.id);
+      const roles = entity ? (Array.isArray(entity.metadata?.architecturalRoles) ? entity.metadata.architecturalRoles.filter((value): value is string => typeof value === 'string') : []) : [];
+      const lane = graph.recommendedLayout === 'api-surface'
+        ? (roles.includes('api-entrypoint')
+            ? 0
+            : roles.includes('application-service')
+              ? 1
+              : roles.includes('integration-adapter') || roles.includes('external-dependency')
+                ? 2
+                : 3)
+        : graph.recommendedLayout === 'persistence-model'
+          ? (roles.includes('api-entrypoint') || roles.includes('application-service')
+              ? 0
+              : roles.includes('persistence-access')
+                ? 1
+                : roles.includes('persistent-entity')
+                  ? 2
+                  : 3)
+          : graph.recommendedLayout === 'integration-map'
+            ? (roles.includes('api-entrypoint') || roles.includes('application-service')
+                ? 0
+                : roles.includes('integration-adapter')
+                  ? 1
+                  : roles.includes('external-dependency')
+                    ? 2
+                    : 3)
+            : graph.recommendedLayout === 'module-dependencies'
+              ? (roles.includes('module-boundary')
+                  ? (() => {
+                      const outbound = edges.some((edge) => edge.fromEntityId === node.id && graph.entityIds.includes(edge.toEntityId));
+                      const inbound = edges.some((edge) => edge.toEntityId === node.id && graph.entityIds.includes(edge.fromEntityId));
+                      if (outbound && !inbound) {
+                        return 0;
+                      }
+                      if (inbound && !outbound) {
+                        return 1;
+                      }
+                      return graph.seedEntityIds.includes(node.id) ? 0 : 1;
+                    })()
+                  : 2)
+            : graph.recommendedLayout === 'ui-navigation'
+              ? (roles.includes('ui-layout')
+                  ? 0
+                  : roles.includes('ui-page')
+                    ? 1
+                    : roles.includes('ui-navigation-node')
+                      ? 2
+                      : 3)
+            : (roles.includes('api-entrypoint')
+                ? 0
+                : roles.includes('application-service')
+                  ? 1
+                  : roles.includes('persistence-access') || roles.includes('persistent-entity')
+                    ? 2
+                    : roles.includes('integration-adapter') || roles.includes('external-dependency')
+                      ? 3
+                      : 4);
+      const laneIndex = laneCounts[lane]++;
+      return {
+        ...node,
+        x: laneX[lane],
+        y: 120 + laneIndex * 132,
+        pinned: graph.seedEntityIds.includes(node.id) || node.pinned,
+      };
+    });
+  }
+  if (graph.seedEntityIds.length > 0) {
+    return arrangeCanvasNodesAroundEntityFocus(nodes, edges, graph.seedEntityIds[0]);
+  }
+  return arrangeCanvasNodesInGrid(nodes);
+}
+
+function resolveViewpointScopeId(state: BrowserSessionState, scopeMode: BrowserViewpointScopeMode) {
+  if (scopeMode === 'whole-snapshot') {
+    return null;
+  }
+  return state.selectedScopeId;
+}
+
+function buildAppliedViewpointGraphWithFallback(state: BrowserSessionState, viewpoint: FullSnapshotViewpoint, selection: BrowserViewpointSelection) {
+  const primary = buildAppliedViewpointGraph(state, viewpoint, selection);
+  if (primary && primary.entityIds.length > 0) {
+    return primary;
+  }
+  if (!state.index) {
+    return primary;
+  }
+
+  let subtreeFallback: BrowserResolvedViewpointGraph | null = null;
+  if (selection.scopeMode === 'selected-scope' && state.selectedScopeId) {
+    subtreeFallback = buildViewpointGraph(state.index, viewpoint, {
+      scopeMode: 'selected-subtree',
+      selectedScopeId: state.selectedScopeId,
+      variant: selection.variant,
+    });
+    if (subtreeFallback.entityIds.length > 0) {
+      return subtreeFallback;
+    }
+  }
+
+  const wholeSnapshotFallback = buildViewpointGraph(state.index, viewpoint, {
+    scopeMode: 'whole-snapshot',
+    selectedScopeId: null,
+    variant: selection.variant,
+  });
+  if (wholeSnapshotFallback.entityIds.length > 0) {
+    return wholeSnapshotFallback;
+  }
+  return subtreeFallback ?? primary;
+}
+
+function buildAppliedViewpointGraph(state: BrowserSessionState, viewpoint: FullSnapshotViewpoint, selection: BrowserViewpointSelection) {
+  if (!state.index) {
+    return null;
+  }
+  return buildViewpointGraph(state.index, viewpoint, {
+    scopeMode: selection.scopeMode,
+    selectedScopeId: resolveViewpointScopeId(state, selection.scopeMode),
+    variant: selection.variant,
+  });
+}
+
 export function selectBrowserScope(state: BrowserSessionState, scopeId: string | null): BrowserSessionState {
   const selectedScopeId = scopeId && state.index?.scopesById.has(scopeId) ? scopeId : null;
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     selectedScopeId,
     focusedElement: selectedScopeId ? { kind: 'scope', id: selectedScopeId } : state.focusedElement,
     factsPanelMode: selectedScopeId ? 'scope' : state.factsPanelMode,
+  };
+  const selectedViewpoint = nextState.viewpointSelection.viewpointId && nextState.index
+    ? getViewpointById(nextState.index, nextState.viewpointSelection.viewpointId)
+    : null;
+  return {
+    ...nextState,
+    appliedViewpoint: selectedViewpoint ? buildAppliedViewpointGraph(nextState, selectedViewpoint, nextState.viewpointSelection) : nextState.appliedViewpoint,
+  };
+}
+
+export function setSelectedViewpoint(state: BrowserSessionState, viewpointId: string | null): BrowserSessionState {
+  const normalizedViewpointId = viewpointId && state.index?.viewpointsById.has(viewpointId) ? viewpointId : null;
+  const nextState: BrowserSessionState = {
+    ...state,
+    viewpointSelection: {
+      ...state.viewpointSelection,
+      viewpointId: normalizedViewpointId,
+    },
+  };
+  const viewpoint = normalizedViewpointId && nextState.index ? getViewpointById(nextState.index, normalizedViewpointId) : null;
+  return {
+    ...nextState,
+    appliedViewpoint: viewpoint ? buildAppliedViewpointGraph(nextState, viewpoint, nextState.viewpointSelection) : null,
+  };
+}
+
+export function setViewpointScopeMode(state: BrowserSessionState, scopeMode: BrowserViewpointScopeMode): BrowserSessionState {
+  const nextState: BrowserSessionState = {
+    ...state,
+    viewpointSelection: {
+      ...state.viewpointSelection,
+      scopeMode,
+    },
+  };
+  const viewpoint = nextState.viewpointSelection.viewpointId && nextState.index ? getViewpointById(nextState.index, nextState.viewpointSelection.viewpointId) : null;
+  return {
+    ...nextState,
+    appliedViewpoint: viewpoint ? buildAppliedViewpointGraph(nextState, viewpoint, nextState.viewpointSelection) : null,
+  };
+}
+
+export function setViewpointApplyMode(state: BrowserSessionState, applyMode: BrowserViewpointApplyMode): BrowserSessionState {
+  return {
+    ...state,
+    viewpointSelection: {
+      ...state.viewpointSelection,
+      applyMode,
+    },
+  };
+}
+
+export function setViewpointVariant(state: BrowserSessionState, variant: BrowserViewpointVariant): BrowserSessionState {
+  const nextState: BrowserSessionState = {
+    ...state,
+    viewpointSelection: {
+      ...state.viewpointSelection,
+      variant,
+    },
+  };
+  const viewpoint = nextState.viewpointSelection.viewpointId && nextState.index ? getViewpointById(nextState.index, nextState.viewpointSelection.viewpointId) : null;
+  return {
+    ...nextState,
+    appliedViewpoint: viewpoint ? buildAppliedViewpointGraph(nextState, viewpoint, nextState.viewpointSelection) : null,
+  };
+}
+
+export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessionState {
+  if (!state.index || !state.viewpointSelection.viewpointId) {
+    return state;
+  }
+  const viewpoint = getViewpointById(state.index, state.viewpointSelection.viewpointId);
+  if (!viewpoint) {
+    return state;
+  }
+  if (viewpoint.availability === 'unavailable') {
+    return state;
+  }
+  const graph = buildAppliedViewpointGraphWithFallback(state, viewpoint, state.viewpointSelection);
+  if (!graph || graph.entityIds.length === 0) {
+    return {
+      ...state,
+      appliedViewpoint: graph,
+    };
+  }
+
+  let canvasNodes = state.viewpointSelection.applyMode === 'replace'
+    ? state.canvasNodes.filter((node) => node.kind === 'scope')
+    : [...state.canvasNodes];
+  for (const [index, entityId] of graph.entityIds.entries()) {
+    const entity = state.index.entitiesById.get(entityId);
+    if (!entity) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(
+      canvasNodes,
+      { kind: 'entity', id: entityId, pinned: graph.seedEntityIds.includes(entityId) },
+      planEntityInsertion(canvasNodes, state.index, entity, {
+        anchorEntityId: graph.seedEntityIds[0] ?? null,
+        selectedScopeId: state.selectedScopeId,
+        insertionIndex: index,
+        insertionCount: graph.entityIds.length,
+      }),
+    );
+  }
+  const canvasEdges = state.viewpointSelection.applyMode === 'replace'
+    ? createCanvasEdgesForRelationshipIds(state.index, graph.relationshipIds)
+    : graph.relationshipIds.reduce((edges, relationshipId) => {
+        const relationship = state.index?.relationshipsById.get(relationshipId);
+        if (!relationship) {
+          return edges;
+        }
+        return upsertCanvasEdge(edges, {
+          relationshipId,
+          fromEntityId: relationship.fromEntityId,
+          toEntityId: relationship.toEntityId,
+        });
+      }, [...state.canvasEdges]);
+
+  const arrangedNodes = arrangeViewpointCanvasNodes(state, canvasNodes, canvasEdges, graph);
+  return {
+    ...state,
+    canvasNodes: arrangedNodes,
+    canvasEdges,
+    selectedEntityIds: [...(graph.seedEntityIds.length > 0 ? graph.seedEntityIds : graph.entityIds)],
+    focusedElement: graph.seedEntityIds[0] ? { kind: 'entity', id: graph.seedEntityIds[0] } : state.focusedElement,
+    factsPanelMode: graph.seedEntityIds[0] ? 'entity' : state.factsPanelMode,
+    appliedViewpoint: graph,
+    canvasLayoutMode: graph.entityIds.length > 0 ? 'radial' : 'grid',
+    fitViewRequestedAt: new Date().toISOString(),
   };
 }
 
@@ -375,6 +708,7 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, entityId]),
     focusedElement: { kind: 'entity', id: entityId },
     factsPanelMode: 'entity',
+    appliedViewpoint: null,
   };
 }
 
@@ -413,6 +747,7 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, ...validEntityIds]),
     focusedElement: { kind: 'entity', id: focusEntityId },
     factsPanelMode: 'entity',
+    appliedViewpoint: null,
   };
 }
 
@@ -441,6 +776,7 @@ export function addScopeToCanvas(state: BrowserSessionState, scopeId: string): B
     canvasNodes: upsertCanvasNode(state.canvasNodes, { kind: 'scope', id: scopeId }, planScopeNodePosition(state, scopeId)),
     focusedElement: { kind: 'scope', id: scopeId },
     factsPanelMode: 'scope',
+    appliedViewpoint: null,
   };
 }
 
@@ -535,6 +871,7 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       direction,
       appliedAt: new Date().toISOString(),
     }],
+    appliedViewpoint: null,
   };
 }
 
@@ -551,6 +888,7 @@ export function removeEntityFromCanvas(state: BrowserSessionState, entityId: str
     selectedEntityIds,
     focusedElement,
     factsPanelMode,
+    appliedViewpoint: null,
   };
 }
 
@@ -636,6 +974,7 @@ export function selectCanvasEntity(state: BrowserSessionState, entityId: string,
     selectedEntityIds: upsertSelectedEntityIds(state.selectedEntityIds, entityId, additive),
     focusedElement: { kind: 'entity', id: entityId },
     factsPanelMode: 'entity',
+    appliedViewpoint: null,
   };
 }
 
@@ -723,6 +1062,7 @@ export function moveCanvasNode(
       y: position.y,
       manuallyPlaced: true,
     }),
+    appliedViewpoint: null,
   };
 }
 
@@ -732,6 +1072,7 @@ export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: Br
   return {
     ...state,
     canvasNodes: upsertPinnedCanvasNode(state.canvasNodes, node.kind, node.id, nextPinned),
+    appliedViewpoint: null,
   };
 }
 
