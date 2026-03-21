@@ -1,10 +1,8 @@
 import type { FullSnapshotEntity } from './appModel';
-import type { BrowserCanvasEdge } from './browserSessionStore';
+import type { BrowserCanvasEdge, BrowserSessionState } from './browserSessionStore';
 import type { BrowserSnapshotIndex } from './browserSnapshotIndex';
 import type { BrowserCanvasNode } from './browserSessionStore';
-
-export const BROWSER_SCOPE_NODE_SIZE = { width: 204, height: 82 } as const;
-export const BROWSER_ENTITY_NODE_SIZE = { width: 196, height: 84 } as const;
+import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from './browserCanvasSizing';
 
 const GRID_X = 224;
 const GRID_Y = 120;
@@ -26,16 +24,24 @@ type BrowserCanvasBounds = {
 };
 
 type BrowserCanvasNodeLike = Pick<BrowserCanvasNode, 'kind' | 'x' | 'y'>;
+type BrowserCanvasNodeSizeLike = BrowserCanvasNodeLike & Partial<Pick<BrowserCanvasNode, 'id'>>;
+
+type BrowserCanvasPlacementOptions = {
+  state?: BrowserSessionState | null;
+};
 
 function isAnchoredCanvasNode(node: Pick<BrowserCanvasNode, 'pinned' | 'manuallyPlaced'>) {
   return Boolean(node.pinned || node.manuallyPlaced);
 }
 
-function getNodeSize(kind: BrowserCanvasNodeLike['kind']) {
-  return kind === 'scope' ? BROWSER_SCOPE_NODE_SIZE : BROWSER_ENTITY_NODE_SIZE;
+function getNodeSize(node: BrowserCanvasNodeSizeLike, options?: BrowserCanvasPlacementOptions) {
+  if (options?.state && node.id) {
+    return getProjectionAwareCanvasNodeSize(options.state, { kind: node.kind, id: node.id });
+  }
+  return node.kind === 'scope' ? BROWSER_SCOPE_NODE_SIZE : BROWSER_ENTITY_NODE_SIZE;
 }
 
-export function getBrowserCanvasBounds(nodes: BrowserCanvasNodeLike[]): BrowserCanvasBounds | null {
+export function getBrowserCanvasBounds(nodes: BrowserCanvasNodeSizeLike[], options?: BrowserCanvasPlacementOptions): BrowserCanvasBounds | null {
   if (nodes.length === 0) {
     return null;
   }
@@ -44,7 +50,7 @@ export function getBrowserCanvasBounds(nodes: BrowserCanvasNodeLike[]): BrowserC
   let maxX = Number.NEGATIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
   for (const node of nodes) {
-    const size = getNodeSize(node.kind);
+    const size = getNodeSize(node, options);
     minX = Math.min(minX, node.x);
     minY = Math.min(minY, node.y);
     maxX = Math.max(maxX, node.x + size.width);
@@ -53,9 +59,9 @@ export function getBrowserCanvasBounds(nodes: BrowserCanvasNodeLike[]): BrowserC
   return { minX, minY, maxX, maxY };
 }
 
-function rectanglesOverlap(a: BrowserCanvasNodeLike, b: BrowserCanvasNodeLike) {
-  const aSize = getNodeSize(a.kind);
-  const bSize = getNodeSize(b.kind);
+function rectanglesOverlap(a: BrowserCanvasNodeSizeLike, b: BrowserCanvasNodeSizeLike, options?: BrowserCanvasPlacementOptions) {
+  const aSize = getNodeSize(a, options);
+  const bSize = getNodeSize(b, options);
   return !(
     a.x + aSize.width + COLLISION_MARGIN <= b.x ||
     b.x + bSize.width + COLLISION_MARGIN <= a.x ||
@@ -64,8 +70,8 @@ function rectanglesOverlap(a: BrowserCanvasNodeLike, b: BrowserCanvasNodeLike) {
   );
 }
 
-function collides(nodes: BrowserCanvasNodeLike[], candidate: BrowserCanvasNodeLike) {
-  return nodes.some((node) => rectanglesOverlap(node, candidate));
+function collides(nodes: BrowserCanvasNodeSizeLike[], candidate: BrowserCanvasNodeSizeLike, options?: BrowserCanvasPlacementOptions) {
+  return nodes.some((node) => rectanglesOverlap(node, candidate, options));
 }
 
 function roundToGrid(value: number, spacing: number) {
@@ -73,16 +79,17 @@ function roundToGrid(value: number, spacing: number) {
 }
 
 export function avoidBrowserCanvasCollisions(
-  nodes: BrowserCanvasNodeLike[],
+  nodes: BrowserCanvasNodeSizeLike[],
   kind: BrowserCanvasNodeLike['kind'],
   desired: BrowserCanvasPlacement,
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
   const seeded = {
     kind,
     x: Math.max(24, roundToGrid(desired.x, GRID_X / 2)),
     y: Math.max(24, roundToGrid(desired.y, GRID_Y / 2)),
   } satisfies BrowserCanvasNodeLike;
-  if (!collides(nodes, seeded)) {
+  if (!collides(nodes, seeded, options)) {
     return { x: seeded.x, y: seeded.y };
   }
 
@@ -101,12 +108,12 @@ export function avoidBrowserCanvasCollisions(
       x: Math.max(24, seeded.x + dx * GRID_X),
       y: Math.max(24, seeded.y + dy * GRID_Y),
     } satisfies BrowserCanvasNodeLike;
-    if (!collides(nodes, candidate)) {
+    if (!collides(nodes, candidate, options)) {
       return { x: candidate.x, y: candidate.y };
     }
   }
 
-  const bounds = getBrowserCanvasBounds(nodes);
+  const bounds = getBrowserCanvasBounds(nodes, options);
   return {
     x: Math.max(24, bounds ? roundToGrid(bounds.maxX + APPEND_CLUSTER_GAP, GRID_X / 2) : 56),
     y: Math.max(24, bounds ? roundToGrid(bounds.minY, GRID_Y / 2) : 64),
@@ -114,8 +121,8 @@ export function avoidBrowserCanvasCollisions(
 }
 
 
-export function getDefaultCanvasNodePosition(kind: BrowserCanvasNodeLike['kind'], nodes: BrowserCanvasNodeLike[]): BrowserCanvasPlacement {
-  return kind === 'scope' ? placeAppendedCanvasNode(nodes, 'scope') : placeAppendedCanvasNode(nodes, 'entity');
+export function getDefaultCanvasNodePosition(kind: BrowserCanvasNodeLike['kind'], nodes: BrowserCanvasNodeSizeLike[], options?: BrowserCanvasPlacementOptions): BrowserCanvasPlacement {
+  return kind === 'scope' ? placeAppendedCanvasNode(nodes, 'scope', 0, options) : placeAppendedCanvasNode(nodes, 'entity', 0, options);
 }
 
 export function placeFirstCanvasNode(kind: BrowserCanvasNodeLike['kind']): BrowserCanvasPlacement {
@@ -123,29 +130,31 @@ export function placeFirstCanvasNode(kind: BrowserCanvasNodeLike['kind']): Brows
 }
 
 export function placeAppendedCanvasNode(
-  nodes: BrowserCanvasNodeLike[],
+  nodes: BrowserCanvasNodeSizeLike[],
   kind: BrowserCanvasNodeLike['kind'],
   index = 0,
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
-  const bounds = getBrowserCanvasBounds(nodes);
+  const bounds = getBrowserCanvasBounds(nodes, options);
   if (!bounds) {
     return placeFirstCanvasNode(kind);
   }
   return avoidBrowserCanvasCollisions(nodes, kind, {
     x: bounds.maxX + APPEND_CLUSTER_GAP + (index % 2) * 32,
     y: bounds.minY + index * PEER_SPACING_Y,
-  });
+  }, options);
 }
 
 export function placeCanvasNodeNearAnchor(
-  nodes: BrowserCanvasNodeLike[],
+  nodes: BrowserCanvasNodeSizeLike[],
   kind: BrowserCanvasNodeLike['kind'],
-  anchor: BrowserCanvasNodeLike,
+  anchor: BrowserCanvasNodeSizeLike,
   index: number,
   total: number,
   direction: 'around' | 'left' | 'right' = 'around',
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
-  const anchorSize = getNodeSize(anchor.kind);
+  const anchorSize = getNodeSize(anchor, options);
   const anchorCenterX = anchor.x + anchorSize.width / 2;
   const anchorCenterY = anchor.y + anchorSize.height / 2;
   const radius = RADIAL_RADIUS + Math.floor(index / 6) * 48;
@@ -159,34 +168,36 @@ export function placeCanvasNodeNearAnchor(
     angle = -Math.PI / 2 + (index * (2 * Math.PI)) / Math.max(1, total);
   }
 
-  const size = getNodeSize(kind);
+  const size = getNodeSize({ kind, x: 0, y: 0 }, options);
   return avoidBrowserCanvasCollisions(nodes, kind, {
     x: anchorCenterX + Math.cos(angle) * radius - size.width / 2,
     y: anchorCenterY + Math.sin(angle) * radius - size.height / 2,
-  });
+  }, options);
 }
 
 export function placeContainedCanvasNode(
-  nodes: BrowserCanvasNodeLike[],
+  nodes: BrowserCanvasNodeSizeLike[],
   kind: BrowserCanvasNodeLike['kind'],
-  containerNode: BrowserCanvasNodeLike,
+  containerNode: BrowserCanvasNodeSizeLike,
   index: number,
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
   return avoidBrowserCanvasCollisions(nodes, kind, {
     x: containerNode.x + CONTAINED_OFFSET_X + (index % 2) * 24,
     y: containerNode.y + CONTAINED_OFFSET_Y + index * PEER_SPACING_Y,
-  });
+  }, options);
 }
 
 export function placePeerCanvasNode(
-  nodes: BrowserCanvasNodeLike[],
+  nodes: BrowserCanvasNodeSizeLike[],
   kind: BrowserCanvasNodeLike['kind'],
-  peerNodes: BrowserCanvasNodeLike[],
+  peerNodes: BrowserCanvasNodeSizeLike[],
   index: number,
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
   const peers = peerNodes.filter((peer) => peer.kind === kind);
   if (peers.length === 0) {
-    return placeAppendedCanvasNode(nodes, kind, index);
+    return placeAppendedCanvasNode(nodes, kind, index, options);
   }
   const sorted = [...peers].sort((left, right) => left.y - right.y || left.x - right.x);
   const lastPeer = sorted[sorted.length - 1];
@@ -195,7 +206,7 @@ export function placePeerCanvasNode(
   return avoidBrowserCanvasCollisions(nodes, kind, {
     x: lastPeer.x + (column === 0 ? PEER_SPACING_X : 0),
     y: sorted[0].y + row * PEER_SPACING_Y + index * 8,
-  });
+  }, options);
 }
 
 export function getCanvasNodeById(nodes: BrowserCanvasNode[], kind: BrowserCanvasNode['kind'], id: string) {
@@ -204,7 +215,7 @@ export function getCanvasNodeById(nodes: BrowserCanvasNode[], kind: BrowserCanva
 
 
 
-export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[]): BrowserCanvasNode[] {
+export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[], options?: BrowserCanvasPlacementOptions): BrowserCanvasNode[] {
   const fixedNodes = nodes
     .filter((node) => isAnchoredCanvasNode(node))
     .sort((left, right) => left.kind.localeCompare(right.kind) || left.id.localeCompare(right.id));
@@ -220,7 +231,7 @@ export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[]): BrowserCan
     const placement = avoidBrowserCanvasCollisions(arranged, 'scope', {
       x: 56,
       y: 64 + index * 132,
-    });
+    }, options);
     arranged = [...arranged, {
       ...node,
       ...placement,
@@ -238,7 +249,7 @@ export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[]): BrowserCan
     const placement = avoidBrowserCanvasCollisions(arranged, 'entity', {
       x: fallbackEntityStartX + (index % columnCount) * PEER_SPACING_X,
       y: entityStartY + Math.floor(index / columnCount) * PEER_SPACING_Y,
-    });
+    }, options);
     arranged = [...arranged, {
       ...node,
       ...placement,
@@ -253,10 +264,11 @@ export function arrangeCanvasNodesAroundEntityFocus(
   nodes: BrowserCanvasNode[],
   edges: BrowserCanvasEdge[],
   focusEntityId: string,
+  options?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasNode[] {
   const focusNode = nodes.find((node) => node.kind === 'entity' && node.id === focusEntityId);
   if (!focusNode) {
-    return arrangeCanvasNodesInGrid(nodes);
+    return arrangeCanvasNodesInGrid(nodes, options);
   }
 
   const fixedNodes = nodes
@@ -271,7 +283,7 @@ export function arrangeCanvasNodesAroundEntityFocus(
     const placement = avoidBrowserCanvasCollisions(arranged, 'scope', {
       x: 56,
       y: 64 + index * 132,
-    });
+    }, options);
     arranged = [...arranged, {
       ...node,
       ...placement,
@@ -283,7 +295,7 @@ export function arrangeCanvasNodesAroundEntityFocus(
     ? { ...focusNode }
     : {
         ...focusNode,
-        ...avoidBrowserCanvasCollisions(arranged, 'entity', { x: 560, y: 280 }),
+        ...avoidBrowserCanvasCollisions(arranged, 'entity', { x: 560, y: 280 }, options),
         manuallyPlaced: false,
       };
 
@@ -304,19 +316,19 @@ export function arrangeCanvasNodesAroundEntityFocus(
   const otherNodes = remainingEntityNodes.filter((node) => !inboundIds.has(node.id) && !outboundIds.has(node.id));
 
   for (const [index, node] of inboundNodes.entries()) {
-    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, inboundNodes.length, 'left');
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, inboundNodes.length, 'left', options);
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
   for (const [index, node] of outboundNodes.entries()) {
-    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, outboundNodes.length, 'right');
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, outboundNodes.length, 'right', options);
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
   for (const [index, node] of mixedNodes.entries()) {
-    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, mixedNodes.length, 'around');
+    const placement = placeCanvasNodeNearAnchor(arranged, 'entity', focusPlaced, index, mixedNodes.length, 'around', options);
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
   for (const [index, node] of otherNodes.entries()) {
-    const placement = placeAppendedCanvasNode(arranged, 'entity', index);
+    const placement = placeAppendedCanvasNode(arranged, 'entity', index, options);
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
 
@@ -327,32 +339,33 @@ export function planEntityInsertion(
   nodes: BrowserCanvasNode[],
   index: BrowserSnapshotIndex,
   entity: FullSnapshotEntity,
-  options?: {
+  insertionOptions?: {
     anchorEntityId?: string | null;
     anchorDirection?: 'around' | 'left' | 'right';
     selectedScopeId?: string | null;
     insertionIndex?: number;
     insertionCount?: number;
   },
+  layoutOptions?: BrowserCanvasPlacementOptions,
 ): BrowserCanvasPlacement {
-  const insertionIndex = options?.insertionIndex ?? 0;
-  const insertionCount = options?.insertionCount ?? 1;
+  const insertionIndex = insertionOptions?.insertionIndex ?? 0;
+  const insertionCount = insertionOptions?.insertionCount ?? 1;
   if (nodes.length === 0) {
     return placeFirstCanvasNode('entity');
   }
 
-  const anchorEntityId = options?.anchorEntityId ?? null;
+  const anchorEntityId = insertionOptions?.anchorEntityId ?? null;
   if (anchorEntityId) {
     const anchorNode = getCanvasNodeById(nodes, 'entity', anchorEntityId);
     if (anchorNode) {
-      return placeCanvasNodeNearAnchor(nodes, 'entity', anchorNode, insertionIndex, insertionCount, options?.anchorDirection ?? 'around');
+      return placeCanvasNodeNearAnchor(nodes, 'entity', anchorNode, insertionIndex, insertionCount, insertionOptions?.anchorDirection ?? 'around', layoutOptions);
     }
   }
 
   const scopeId = entity.scopeId ?? null;
   const scopeNode = scopeId ? getCanvasNodeById(nodes, 'scope', scopeId) : null;
   if (scopeNode) {
-    return placeContainedCanvasNode(nodes, 'entity', scopeNode, insertionIndex);
+    return placeContainedCanvasNode(nodes, 'entity', scopeNode, insertionIndex, layoutOptions);
   }
 
   const peerNodes = nodes.filter((node) => {
@@ -363,17 +376,17 @@ export function planEntityInsertion(
     return peer?.scopeId === scopeId;
   });
   if (peerNodes.length > 0) {
-    return placePeerCanvasNode(nodes, 'entity', peerNodes, insertionIndex);
+    return placePeerCanvasNode(nodes, 'entity', peerNodes, insertionIndex, layoutOptions);
   }
 
-  if (options?.selectedScopeId) {
-    const selectedScopeNode = getCanvasNodeById(nodes, 'scope', options.selectedScopeId,);
+  if (insertionOptions?.selectedScopeId) {
+    const selectedScopeNode = getCanvasNodeById(nodes, 'scope', insertionOptions.selectedScopeId,);
     if (selectedScopeNode) {
-      return placeContainedCanvasNode(nodes, 'entity', selectedScopeNode, insertionIndex);
+      return placeContainedCanvasNode(nodes, 'entity', selectedScopeNode, insertionIndex, layoutOptions);
     }
   }
 
-  return placeAppendedCanvasNode(nodes, 'entity', insertionIndex);
+  return placeAppendedCanvasNode(nodes, 'entity', insertionIndex, layoutOptions);
 }
 
 export function planScopeInsertion(

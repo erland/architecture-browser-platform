@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.3.0",
+  "indexerVersion": "0.1.0-SNAPSHOT",
+  "runMetadata": {
+    "startedAt": "2026-03-19T00:00:00Z",
+    "completedAt": "2026-03-19T00:00:01Z",
+    "outcome": "PARTIAL",
+    "detectedTechnologies": [
+      "java"
+    ],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "sample-java",
+    "acquisitionType": "git",
+    "path": "/tmp/repo",
+    "remoteUrl": "https://example.invalid/sample-java.git",
+    "branch": "main",
+    "revision": "abc123",
+    "acquiredAt": "2026-03-19T00:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {
+      "id": "scope:repo",
+      "kind": "REPOSITORY",
+      "name": "sample-java",
+      "displayName": "sample-java",
+      "parentScopeId": null,
+      "sourceRefs": [],
+      "metadata": {}
+    },
+    {
+      "id": "scope:pkg",
+      "kind": "PACKAGE",
+      "name": "com.example",
+      "displayName": "com.example",
+      "parentScopeId": "scope:repo",
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:class",
+      "kind": "CLASS",
+      "origin": "OBSERVED",
+      "name": "Customer",
+      "displayName": "Customer",
+      "scopeId": "scope:pkg",
+      "sourceRefs": [],
+      "metadata": {},
+      "architecturalRoles": [
+        "domain-type"
+      ]
+    },
+    {
+      "id": "entity:field",
+      "kind": "FIELD",
+      "origin": "OBSERVED",
+      "name": "customerId",
+      "displayName": "customerId",
+      "scopeId": "scope:pkg",
+      "sourceRefs": [],
+      "metadata": {},
+      "architecturalTraits": [
+        "state"
+      ]
+    },
+    {
+      "id": "entity:service",
+      "kind": "SERVICE",
+      "origin": "INFERRED",
+      "name": "CustomerService",
+      "displayName": "CustomerService",
+      "scopeId": "scope:pkg",
+      "sourceRefs": [],
+      "metadata": {},
+      "architecturalRoles": [
+        "application-service"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel:contains",
+      "kind": "CONTAINS",
+      "fromEntityId": "entity:class",
+      "toEntityId": "entity:field",
+      "label": "declares",
+      "sourceRefs": [],
+      "metadata": {},
+      "architecturalSemantics": [
+        "contains-member"
+      ]
+    },
+    {
+      "id": "rel:uses",
+      "kind": "USES",
+      "fromEntityId": "entity:service",
+      "toEntityId": "entity:class",
+      "label": "uses",
+      "sourceRefs": [],
+      "metadata": {},
+      "architecturalSemantics": [
+        "uses-domain-type"
+      ]
+    }
+  ],
+  "viewpoints": [],
+  "diagnostics": [],
+  "completeness": {
+    "status": "PARTIAL",
+    "indexedFileCount": 1,
+    "totalFileCount": 1,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}

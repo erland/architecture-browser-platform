@@ -43,6 +43,13 @@ class IndexerImportContractValidatorTest {
     }
 
     @Test
+    void validatesJavaFieldFixture() throws Exception {
+        JsonNode payload = read("/contracts/java-field-rich.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
+    @Test
     void rejectsBrokenFixture() throws Exception {
         JsonNode payload = read("/contracts/invalid-missing-source.json");
         ContractValidationResult result = validator.validate(payload);

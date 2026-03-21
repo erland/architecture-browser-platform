@@ -1717,6 +1717,12 @@ dd {
   background: linear-gradient(180deg, rgba(3, 105, 161, 0.24), rgba(15, 23, 42, 0.92));
 }
 
+.browser-canvas__node--uml-class {
+  gap: 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.96));
+}
+
 .browser-canvas__node--selected {
   border-color: rgba(96, 165, 250, 0.72);
 }
@@ -1745,6 +1751,60 @@ dd {
 .browser-canvas__node-main strong,
 .browser-canvas__node-main span {
   overflow-wrap: anywhere;
+}
+
+.browser-canvas__node-subtitle {
+  font-size: 0.78rem;
+}
+
+.browser-canvas__uml {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  padding-top: 8px;
+}
+
+.browser-canvas__uml-compartment {
+  display: grid;
+  gap: 6px;
+}
+
+.browser-canvas__uml-compartment + .browser-canvas__uml-compartment {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 8px;
+}
+
+.browser-canvas__uml-compartment-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.browser-canvas__uml-members {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+.browser-canvas__uml-member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.browser-canvas__uml-member-title,
+.browser-canvas__uml-member-kind {
+  overflow-wrap: anywhere;
+}
+
+.browser-canvas__uml-member-kind {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: lowercase;
 }
 
 
@@ -2139,4 +2199,32 @@ dd {
   .browser-workspace__resizer {
     display: none;
   }
+}
+
+.browser-canvas__uml-member-button {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 0;
+  background: transparent;
+  padding: 0.15rem 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.browser-canvas__uml-member-button:hover {
+  text-decoration: underline;
+}
+
+.browser-canvas__uml-member-button--selected {
+  font-weight: 600;
+}
+
+.browser-canvas__uml-member-button--focused {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 0.2rem;
 }

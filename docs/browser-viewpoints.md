@@ -102,6 +102,11 @@ Primary semantics:
 - `accesses-persistence`
 - `stored-in`
 
+Browser-local variant:
+- `show-entity-relations`
+
+The browser-local `show-entity-relations` variant changes the emphasis from persistence access paths to a persistence **entity relationship** view. In that variant the Browser keeps only `persistent-entity` elements and association relationships between them, using normalized metadata such as `associationKind`, `associationCardinality`, and explicit endpoint bounds.
+
 ### `integration-map`
 
 Purpose:
@@ -143,6 +148,21 @@ Primary semantics:
 - `navigates-to`
 - `redirects-to`
 - `guards-route`
+
+
+## Canvas presentation modes
+
+The Browser now separates **what a viewpoint resolves** from **how the resolved entities are drawn** on the canvas.
+
+Supported local presentation modes:
+
+- **Auto** — use the Browser's local default for the viewpoint id
+- **Entity graph** — keep the existing node-per-entity canvas model
+- **Compact UML** — project class-like entities as UML-style classifier boxes with attribute and operation compartments
+
+The current compact UML implementation is platform-local only. It does not change the imported snapshot contract.
+
+For class-oriented viewpoints such as persistence-oriented or domain-oriented analysis, compact UML reduces noise by suppressing separate member nodes while keeping the underlying member entities available in details/inspection flows.
 
 ## Facts-panel explanation
 
@@ -218,6 +238,17 @@ Important responsibilities:
 
 Viewpoint selection and application live in the browser session model.
 
+### Compact UML notes
+
+Compact UML is currently a Browser-only projection layer:
+
+- the imported snapshot still contains the same fine-grained entities
+- member entities still exist in the Browser index
+- compact UML suppresses member nodes from separate canvas placement when they are shown inside classifier compartments
+- the viewpoint controls include a safe fallback toggle back to **Entity graph**
+
+See `docs/browser-compact-uml-presentation.md` for the current behavior and limits.
+
 Relevant files:
 
 - `apps/web/src/browserSessionStore.ts`
@@ -273,3 +304,5 @@ The Browser also supports additive viewpoint variants that do not change the exp
 - `Show upstream callers`
 
 These variants are browser-side refinements layered on top of exported viewpoints. They are currently available for `persistence-model` and `request-handling` where they provide the most value.
+
+For `persistence-model`, the new `show-entity-relations` variant is intended for entity-model exploration rather than repository/access-path exploration.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SnapshotSummary } from '../appModel';
 import type { SnapshotCache } from '../snapshotCache';
 import { useBrowserSession, type BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
@@ -76,14 +76,42 @@ export function useBrowserSessionBootstrap(options: {
   const [status, setStatus] = useState<BrowserSessionBootstrapStatus>('idle');
   const [message, setMessage] = useState<string | null>(null);
 
+  const currentStateRef = useRef(browserSession.state);
+  const openSnapshotSessionRef = useRef(browserSession.openSnapshotSession);
+  currentStateRef.current = browserSession.state;
+  openSnapshotSessionRef.current = browserSession.openSnapshotSession;
+
+  const activeSnapshotId = browserSession.state.activeSnapshot?.snapshotId ?? null;
+  const hasIndex = Boolean(browserSession.state.index);
+  const hasPayload = Boolean(browserSession.state.payload);
+  const snapshotId = options.snapshot?.id ?? null;
+  const snapshotKey = options.snapshot?.snapshotKey ?? null;
+  const bootstrapTargetKey = snapshotId && options.workspaceId ? `${options.workspaceId}:${snapshotId}` : null;
+  const completedBootstrapKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
       if (!options.workspaceId || !options.snapshot) {
+        completedBootstrapKeyRef.current = null;
         if (!cancelled) {
           setStatus('idle');
           setMessage(null);
+        }
+        return;
+      }
+
+      if (
+        bootstrapTargetKey &&
+        completedBootstrapKeyRef.current === bootstrapTargetKey &&
+        activeSnapshotId === snapshotId &&
+        hasIndex &&
+        hasPayload
+      ) {
+        if (!cancelled) {
+          setStatus('ready');
+          setMessage(`Browser session ready for snapshot ${options.snapshot.snapshotKey}.`);
         }
         return;
       }
@@ -99,9 +127,12 @@ export function useBrowserSessionBootstrap(options: {
           workspaceId: options.workspaceId,
           repositoryId: options.repositoryId,
           snapshot: options.snapshot,
-          currentState: browserSession.state,
-          openSnapshotSession: browserSession.openSnapshotSession,
+          currentState: currentStateRef.current,
+          openSnapshotSession: openSnapshotSessionRef.current,
         });
+        if (outcome.status === 'ready' && bootstrapTargetKey) {
+          completedBootstrapKeyRef.current = bootstrapTargetKey;
+        }
         if (!cancelled) {
           setStatus(outcome.status);
           setMessage(outcome.message);
@@ -118,7 +149,7 @@ export function useBrowserSessionBootstrap(options: {
     return () => {
       cancelled = true;
     };
-  }, [browserSession.openSnapshotSession, browserSession.state, options.repositoryId, options.snapshot, options.workspaceId]);
+  }, [activeSnapshotId, hasIndex, hasPayload, options.repositoryId, options.workspaceId, snapshotId, snapshotKey, bootstrapTargetKey]);
 
   return {
     status,

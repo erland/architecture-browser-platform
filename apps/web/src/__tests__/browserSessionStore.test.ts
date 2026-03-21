@@ -25,6 +25,7 @@ import {
   setBrowserSearch,
   setSelectedViewpoint,
   setViewpointApplyMode,
+  setViewpointPresentationPreference,
   setViewpointScopeMode,
   toggleCanvasNodePin,
 } from '../browserSessionStore';
@@ -318,6 +319,21 @@ describe('browserSessionStore', () => {
     expect(outboundNode).toBeDefined();
     expect(inboundNode!.x).toBeLessThan(focusNode!.x);
     expect(outboundNode!.x).toBeGreaterThan(focusNode!.x);
+  });
+
+
+  test('viewpoint presentation preference defaults to auto and can be changed locally', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    expect(opened.viewpointPresentationPreference).toBe('auto');
+
+    const updated = setViewpointPresentationPreference(opened, 'entity-graph');
+    expect(updated.viewpointPresentationPreference).toBe('entity-graph');
+    expect(updated.viewpointSelection).toEqual(opened.viewpointSelection);
   });
 
   test('viewpoint selection tracks viewpoint id, scope mode, and derived applied graph state', () => {

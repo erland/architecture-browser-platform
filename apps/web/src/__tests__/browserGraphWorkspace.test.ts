@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../components/BrowserGraphWorkspace';
-import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope } from '../browserSessionStore';
+import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-canvas-toolbar-1',
@@ -71,6 +71,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
   afterEach(() => {
     clearBrowserSnapshotIndex();
   });
+
+
 
   test('builds module actions around containment and dependencies', () => {
     const index = buildBrowserSnapshotIndex(createPayload());
@@ -215,6 +217,71 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     expect(markup).toContain('125%');
     expect(markup).toContain('1 pinned');
   });
+
+  test('renders compact UML class nodes with attribute and operation compartments', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:id', kind: 'FIELD', origin: 'java', name: 'id', displayName: 'id', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:save', kind: 'FUNCTION', origin: 'java', name: 'save', displayName: 'save', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [
+          { externalId: 'rel:contains:id', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:id', label: 'contains', sourceRefs: [], metadata: {} },
+          { externalId: 'rel:contains:save', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:save', label: 'contains', sourceRefs: [], metadata: {} },
+        ],
+        viewpoints: [
+          { id: 'persistence-model', title: 'Persistence model', description: 'Show entities and repositories.', availability: 'available', confidence: 0.93, seedEntityIds: ['entity:order'], seedRoleIds: ['persistent-structure'], expandViaSemantics: ['reads-persistence'], preferredDependencyViews: ['structural-dependencies'], evidenceSources: ['java-jpa'] },
+        ],
+      },
+    });
+    state = setSelectedViewpoint(state, 'persistence-model');
+    state = {
+      ...state,
+      canvasNodes: [{ id: 'entity:order', kind: 'entity', x: 56, y: 64, pinned: false }],
+      focusedElement: { kind: 'entity', id: 'entity:order' },
+      selectedEntityIds: ['entity:order'],
+    };
+
+    const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state,
+      activeModeLabel: 'Viewpoint',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onArrangeAllCanvasNodes: () => {},
+      onArrangeCanvasAroundFocus: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+      onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
+    }));
+
+    expect(markup).toContain('class');
+    expect(markup).toContain('Order');
+    expect(markup).toContain('attributes');
+    expect(markup).toContain('operations');
+    expect(markup).toContain('id');
+    expect(markup).toContain('save');
+    expect(markup).toContain('field');
+    expect(markup).toContain('function');
+  });
+
 
   test('demotes scope-node canvas actions behind an advanced affordance', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {

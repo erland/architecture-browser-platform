@@ -44,10 +44,12 @@ test('renders viewpoint controls with exported viewpoint choices and applied cou
       selectedScopeLabel="Platform"
       selection={{ viewpointId: 'request-handling', scopeMode: 'selected-scope', applyMode: 'replace', variant: 'default' }}
       appliedViewpoint={{ viewpoint, scopeMode: 'selected-scope', selectedScopeId: 'scope:repo', seedEntityIds: ['entity:controller'], entityIds: ['entity:controller'], relationshipIds: [], preferredDependencyViews: ['runtime-dependencies'], recommendedLayout: 'request-flow', variant: 'default' }}
+      presentationPreference="auto"
       onSelectViewpoint={() => undefined}
       onSelectScopeMode={() => undefined}
       onSelectApplyMode={() => undefined}
       onSelectVariant={() => undefined}
+      onSelectPresentationPreference={() => undefined}
       onApplyViewpoint={() => undefined}
     />,
   );

@@ -122,6 +122,19 @@ describe('BrowserFactsPanel model', () => {
 
   test('builds relationship facts when a relationship is focused', () => {
     const payload = createPayload();
+    payload.relationships[1] = {
+      ...payload.relationships[1],
+      metadata: {
+        associationKind: 'association',
+        associationCardinality: 'many-to-one',
+        sourceLowerBound: 0,
+        sourceUpperBound: '*',
+        targetLowerBound: 1,
+        targetUpperBound: '1',
+        jpaAssociation: 'many-to-one',
+        joinColumn: 'browser_module_id',
+      },
+    };
     let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
     state = focusBrowserElement(state, { kind: 'relationship', id: 'rel:uses' });
 
@@ -131,6 +144,18 @@ describe('BrowserFactsPanel model', () => {
     expect(model?.relationship?.externalId).toBe('rel:uses');
     expect(model?.subtitle).toContain('BrowserNavigationTree');
     expect(model?.subtitle).toContain('BrowserViewModule');
+    expect(model?.relationshipMetadata?.normalized.map((entry) => `${entry.key}:${entry.value}`)).toEqual([
+      'associationKind:association',
+      'associationCardinality:many-to-one',
+      'sourceLowerBound:0',
+      'sourceUpperBound:*',
+      'targetLowerBound:1',
+      'targetUpperBound:1',
+    ]);
+    expect(model?.relationshipMetadata?.evidence.map((entry) => `${entry.key}:${entry.value}`)).toEqual([
+      'jpaAssociation:many-to-one',
+      'joinColumn:browser_module_id',
+    ]);
   });
 
   test('includes applied viewpoint explanation when a viewpoint has been added to the canvas', () => {

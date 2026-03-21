@@ -37,6 +37,25 @@ For remote test deployment:
 - cloned `architecture-browser-platform` repository
 - published platform API, web, and indexer images
 
+
+## Browser persistence entity-relations view
+
+The Browser now supports a browser-local `persistence-model` variant named `show-entity-relations`.
+
+This variant is intended for entity-model exploration and uses normalized association metadata from imported snapshots to show:
+
+- `persistent-entity` elements
+- relationships between those entities
+- readable multiplicity labels such as `1`, `0..1`, and `0..*`
+
+In `auto` presentation mode, this variant prefers **Compact UML**.
+
+See:
+
+- `docs/browser-persistence-entity-relations.md`
+- `docs/browser-compact-uml-presentation.md`
+- `docs/browser-viewpoints.md`
+
 ## Development install
 
 Development is optimized for a local checkout where `architecture-browser-platform` and `architecture-browser-indexer` are sibling directories. The dev stack now includes the real `architecture-browser-indexer` HTTP worker and uses it over HTTP from the API.
@@ -129,6 +148,24 @@ The underlying compose file is:
 ```text
 deploy/docker-compose/docker-compose.test.yml
 ```
+
+
+## Compact UML viewpoint presentation
+
+The web Browser includes a platform-local compact UML presentation mode for class-oriented viewpoints.
+
+This feature:
+
+- keeps the imported snapshot contract unchanged
+- projects class-like entities as UML-style classifier boxes with attributes and operations compartments
+- suppresses projected member entities from separate canvas placement in compact mode
+- keeps inspector/details behavior backed by the real underlying entities
+- provides a safe fallback toggle between **Auto**, **Entity graph**, and **Compact UML**
+
+See:
+
+- `docs/browser-viewpoints.md`
+- `docs/browser-compact-uml-presentation.md`
 
 ## Building publishable images
 

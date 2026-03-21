@@ -7,13 +7,14 @@ import type {
   FullSnapshotViewpoint,
   SnapshotSourceRef,
 } from "./appModel";
+import { getAssociationKind, hasAssociationDisplayMetadata } from './browserRelationshipSemantics';
 
 export type BrowserNodeKind = "scope" | "entity";
 export type BrowserSearchResultKind = BrowserNodeKind | "relationship" | "diagnostic";
 export type BrowserDependencyDirection = "ALL" | "INBOUND" | "OUTBOUND";
 export type BrowserTreeMode = 'filesystem' | 'package' | 'advanced';
 export type BrowserViewpointScopeMode = "selected-scope" | "selected-subtree" | "whole-snapshot";
-export type BrowserViewpointVariant = 'default' | 'show-writers' | 'show-readers' | 'show-upstream-callers';
+export type BrowserViewpointVariant = 'default' | 'show-writers' | 'show-readers' | 'show-upstream-callers' | 'show-entity-relations';
 
 export type BrowserScopeTreeNode = {
   scopeId: string;
@@ -179,8 +180,13 @@ function compareScopeIds(index: BrowserSnapshotIndex, leftScopeId: string, right
 }
 
 function getArchitecturalRoles(entity: FullSnapshotEntity) {
-  const roles = entity.metadata?.architecturalRoles;
-  return Array.isArray(roles) ? roles.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+  const entityWithTopLevelRoles = entity as FullSnapshotEntity & { architecturalRoles?: unknown };
+  const roles = Array.isArray(entityWithTopLevelRoles.architecturalRoles)
+    ? entityWithTopLevelRoles.architecturalRoles
+    : entity.metadata?.architecturalRoles;
+  return Array.isArray(roles)
+    ? roles.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
 }
 
 function getArchitecturalSemantics(relationship: FullSnapshotRelationship) {
@@ -797,40 +803,21 @@ export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayloa
   return index;
 }
 
-const browserSnapshotIndexCache = new Map<string, BrowserSnapshotIndex>();
-
-function getBrowserSnapshotIndexCacheKey(payload: FullSnapshotPayload) {
-  return [
-    payload.snapshot.id,
-    payload.scopes.length,
-    payload.entities.length,
-    payload.relationships.length,
-    payload.diagnostics.length,
-    payload.viewpoints.length,
-  ].join('::');
-}
+const browserSnapshotIndexCache = new WeakMap<FullSnapshotPayload, BrowserSnapshotIndex>();
 
 export function getOrBuildBrowserSnapshotIndex(payload: FullSnapshotPayload) {
-  const cacheKey = getBrowserSnapshotIndexCacheKey(payload);
-  const cached = browserSnapshotIndexCache.get(cacheKey);
+  const cached = browserSnapshotIndexCache.get(payload);
   if (cached) {
     return cached;
   }
   const built = buildBrowserSnapshotIndex(payload);
-  browserSnapshotIndexCache.set(cacheKey, built);
+  browserSnapshotIndexCache.set(payload, built);
   return built;
 }
 
-export function clearBrowserSnapshotIndex(snapshotId?: string) {
-  if (snapshotId) {
-    for (const key of [...browserSnapshotIndexCache.keys()]) {
-      if (key === snapshotId || key.startsWith(`${snapshotId}::`)) {
-        browserSnapshotIndexCache.delete(key);
-      }
-    }
-    return;
-  }
-  browserSnapshotIndexCache.clear();
+export function clearBrowserSnapshotIndex(_snapshotId?: string) {
+  // WeakMap entries are released together with their payload objects.
+  // This function remains as a stable no-op API for tests and callers.
 }
 
 export function getScopeTreeRoots(index: BrowserSnapshotIndex) {
@@ -1149,10 +1136,19 @@ export function getViewpointById(index: BrowserSnapshotIndex, viewpointId: strin
   return index.viewpointsById.get(viewpointId) ?? null;
 }
 
-export function resolveViewpointSeedEntityIds(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, options?: { scopeMode?: BrowserViewpointScopeMode; selectedScopeId?: string | null }) {
+export function resolveViewpointSeedEntityIds(index: BrowserSnapshotIndex, viewpoint: FullSnapshotViewpoint, options?: { scopeMode?: BrowserViewpointScopeMode; selectedScopeId?: string | null; variant?: BrowserViewpointVariant }) {
   const scopeMode = options?.scopeMode ?? "whole-snapshot";
   const selectedScopeId = options?.selectedScopeId ?? null;
+  const variant = options?.variant ?? 'default';
   const entityIds = new Set<string>();
+  if (viewpoint.id === 'persistence-model' && variant === 'show-entity-relations') {
+    for (const entityId of index.entityIdsByArchitecturalRole.get('persistent-entity') ?? []) {
+      if (isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) {
+        entityIds.add(entityId);
+      }
+    }
+    return sortEntityIds(index, entityIds);
+  }
   for (const entityId of viewpoint.seedEntityIds) {
     if (index.entitiesById.has(entityId) && isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) {
       entityIds.add(entityId);
@@ -1201,6 +1197,19 @@ export function resolveViewpointExpansionRelationships(index: BrowserSnapshotInd
 }
 
 
+
+function resolvePersistentEntityAssociationRelationships(index: BrowserSnapshotIndex, seedEntityIds: string[]) {
+  const included = new Set(seedEntityIds);
+  return stableSortRelationships(
+    [...index.relationshipsById.values()].filter((relationship) => {
+      if (!included.has(relationship.fromEntityId) || !included.has(relationship.toEntityId)) {
+        return false;
+      }
+      return getAssociationKind(relationship) === 'association' && hasAssociationDisplayMetadata(relationship);
+    }),
+  );
+}
+
 function includeIntegrationMapImmediateNeighbors(index: BrowserSnapshotIndex, seedEntityIds: string[], relationships: FullSnapshotRelationship[]) {
   const includedRelationshipIds = new Set(relationships.map((relationship) => relationship.externalId));
   const integrationSeedIds = new Set(seedEntityIds.filter((entityId) => {
@@ -1238,7 +1247,7 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
   const scopeMode = options?.scopeMode ?? "whole-snapshot";
   const selectedScopeId = options?.selectedScopeId ?? null;
   const variant = options?.variant ?? "default";
-  const seedEntityIds = resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId });
+  const seedEntityIds = resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId, variant });
   const resolvedSeedEntityIds = viewpoint.id === 'api-surface'
     ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
         const entity = index.entitiesById.get(entityId);
@@ -1269,7 +1278,9 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
             });
           }), [])
         : sortViewpointEntityIds(index, viewpoint, seedEntityIds, []);
-  let expansionRelationships = resolveViewpointExpansionRelationships(index, viewpoint, resolvedSeedEntityIds);
+  let expansionRelationships = viewpoint.id === 'persistence-model' && variant === 'show-entity-relations'
+    ? resolvePersistentEntityAssociationRelationships(index, resolvedSeedEntityIds)
+    : resolveViewpointExpansionRelationships(index, viewpoint, resolvedSeedEntityIds);
   if (viewpoint.id === 'ui-navigation') {
     expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
       const semantics = getArchitecturalSemantics(relationship);
@@ -1373,6 +1384,6 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
     entityIds: orderedEntityIds,
     relationshipIds: sortViewpointRelationshipIds(index, viewpoint, expansionRelationships),
     preferredDependencyViews: [...viewpoint.preferredDependencyViews],
-    recommendedLayout: variant === 'show-upstream-callers' ? 'upstream-callers' : viewpoint.id === 'persistence-model' && variant === 'show-writers' ? 'persistence-writers' : viewpoint.id === 'persistence-model' && variant === 'show-readers' ? 'persistence-readers' : viewpoint.id === 'request-handling' ? 'request-flow' : viewpoint.id === 'api-surface' ? 'api-surface' : viewpoint.id === 'persistence-model' ? 'persistence-model' : viewpoint.id === 'integration-map' ? 'integration-map' : viewpoint.id === 'module-dependencies' ? 'module-dependencies' : viewpoint.id === 'ui-navigation' ? 'ui-navigation' : 'generic',
+    recommendedLayout: variant === 'show-upstream-callers' ? 'upstream-callers' : viewpoint.id === 'persistence-model' && variant === 'show-writers' ? 'persistence-writers' : viewpoint.id === 'persistence-model' && variant === 'show-readers' ? 'persistence-readers' : viewpoint.id === 'persistence-model' && variant === 'show-entity-relations' ? 'persistence-model' : viewpoint.id === 'request-handling' ? 'request-flow' : viewpoint.id === 'api-surface' ? 'api-surface' : viewpoint.id === 'persistence-model' ? 'persistence-model' : viewpoint.id === 'integration-map' ? 'integration-map' : viewpoint.id === 'module-dependencies' ? 'module-dependencies' : viewpoint.id === 'ui-navigation' ? 'ui-navigation' : 'generic',
   };
 }

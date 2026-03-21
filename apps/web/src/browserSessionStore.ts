@@ -59,6 +59,8 @@ export type BrowserViewpointSelection = {
   variant: BrowserViewpointVariant;
 };
 
+export type BrowserViewpointPresentationPreference = 'auto' | 'entity-graph' | 'compact-uml';
+
 export type BrowserCanvasEdge = {
   relationshipId: string;
   fromEntityId: string;
@@ -97,6 +99,7 @@ export type BrowserSessionState = {
   graphExpansionActions: BrowserGraphExpansionAction[];
   viewpointSelection: BrowserViewpointSelection;
   appliedViewpoint: BrowserResolvedViewpointGraph | null;
+  viewpointPresentationPreference: BrowserViewpointPresentationPreference;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
@@ -116,6 +119,7 @@ export type PersistedBrowserSessionState = {
   factsPanelLocation: BrowserFactsPanelLocation;
   graphExpansionActions: BrowserGraphExpansionAction[];
   viewpointSelection: BrowserViewpointSelection;
+  viewpointPresentationPreference: BrowserViewpointPresentationPreference;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
@@ -144,6 +148,7 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
       variant: 'default',
     },
     appliedViewpoint: null,
+    viewpointPresentationPreference: 'auto',
     canvasLayoutMode: 'grid',
     treeMode: 'filesystem',
     canvasViewport: {
@@ -169,6 +174,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     factsPanelLocation: state.factsPanelLocation,
     graphExpansionActions: state.graphExpansionActions.map((action) => ({ ...action })),
     viewpointSelection: { ...state.viewpointSelection },
+    viewpointPresentationPreference: state.viewpointPresentationPreference,
     canvasLayoutMode: state.canvasLayoutMode,
     treeMode: state.treeMode,
     canvasViewport: { ...state.canvasViewport },
@@ -200,6 +206,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
       variant: persisted.viewpointSelection?.variant ?? state.viewpointSelection.variant,
     },
     appliedViewpoint: null,
+    viewpointPresentationPreference: persisted.viewpointPresentationPreference ?? state.viewpointPresentationPreference,
     canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
     treeMode: persisted.treeMode ?? state.treeMode,
     canvasViewport: {
@@ -316,7 +323,7 @@ function planEntityNodePosition(
 ) {
   const entity = state.index?.entitiesById.get(entityId);
   if (!state.index || !entity) {
-    return getDefaultCanvasNodePosition('entity', state.canvasNodes);
+    return getDefaultCanvasNodePosition('entity', state.canvasNodes, { state });
   }
   return planEntityInsertion(state.canvasNodes, state.index, entity, {
     anchorEntityId: options?.anchorEntityId ?? (state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null),
@@ -324,7 +331,7 @@ function planEntityNodePosition(
     selectedScopeId: state.selectedScopeId,
     insertionIndex: options?.insertionIndex,
     insertionCount: options?.insertionCount,
-  });
+  }, { state });
 }
 
 function planScopeNodePosition(state: BrowserSessionState, scopeId: string, insertionIndex = 0) {
@@ -426,7 +433,17 @@ function arrangeViewpointCanvasNodes(
         return node;
       }
       const entity = state.index?.entitiesById.get(node.id);
-      const roles = entity ? (Array.isArray(entity.metadata?.architecturalRoles) ? entity.metadata.architecturalRoles.filter((value): value is string => typeof value === 'string') : []) : [];
+      const roles = entity
+        ? (() => {
+            const entityWithTopLevelRoles = entity as typeof entity & { architecturalRoles?: unknown };
+            const rawRoles = Array.isArray(entityWithTopLevelRoles.architecturalRoles)
+              ? entityWithTopLevelRoles.architecturalRoles
+              : entity.metadata?.architecturalRoles;
+            return Array.isArray(rawRoles)
+              ? rawRoles.filter((value: unknown): value is string => typeof value === 'string')
+              : [];
+          })()
+        : [];
       const lane = graph.recommendedLayout === 'api-surface'
         ? (roles.includes('api-entrypoint')
             ? 0
@@ -492,9 +509,9 @@ function arrangeViewpointCanvasNodes(
     });
   }
   if (graph.seedEntityIds.length > 0) {
-    return arrangeCanvasNodesAroundEntityFocus(nodes, edges, graph.seedEntityIds[0]);
+    return arrangeCanvasNodesAroundEntityFocus(nodes, edges, graph.seedEntityIds[0], { state });
   }
-  return arrangeCanvasNodesInGrid(nodes);
+  return arrangeCanvasNodesInGrid(nodes, { state });
 }
 
 function resolveViewpointScopeId(state: BrowserSessionState, scopeMode: BrowserViewpointScopeMode) {
@@ -595,6 +612,17 @@ export function setViewpointScopeMode(state: BrowserSessionState, scopeMode: Bro
   };
 }
 
+
+export function setViewpointPresentationPreference(
+  state: BrowserSessionState,
+  preference: BrowserViewpointPresentationPreference,
+): BrowserSessionState {
+  return {
+    ...state,
+    viewpointPresentationPreference: preference,
+  };
+}
+
 export function setViewpointApplyMode(state: BrowserSessionState, applyMode: BrowserViewpointApplyMode): BrowserSessionState {
   return {
     ...state,
@@ -655,7 +683,7 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
         selectedScopeId: state.selectedScopeId,
         insertionIndex: index,
         insertionCount: graph.entityIds.length,
-      }),
+      }, { state }),
     );
   }
   const canvasEdges = state.viewpointSelection.applyMode === 'replace'
@@ -736,7 +764,7 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
         selectedScopeId: state.selectedScopeId,
         insertionIndex: index,
         insertionCount: validEntityIds.length,
-      }),
+      }, { state }),
     );
   }
 
@@ -820,7 +848,7 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       anchorDirection: 'left',
       insertionIndex: index,
       insertionCount: inboundNeighborIds.length,
-    }));
+    }, { state }));
   }
   for (const [index, candidateId] of outboundNeighborIds.entries()) {
     const entity = state.index.entitiesById.get(candidateId);
@@ -832,7 +860,7 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       anchorDirection: 'right',
       insertionIndex: index,
       insertionCount: outboundNeighborIds.length,
-    }));
+    }, { state }));
   }
   for (const [index, candidateId] of mixedNeighborIds.entries()) {
     const entity = state.index.entitiesById.get(candidateId);
@@ -844,7 +872,7 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       anchorDirection: 'around',
       insertionIndex: index,
       insertionCount: mixedNeighborIds.length,
-    }));
+    }, { state }));
   }
 
   for (const edge of neighborhood.edges) {
@@ -1082,7 +1110,7 @@ export function arrangeAllCanvasNodes(state: BrowserSessionState): BrowserSessio
   }
   return {
     ...state,
-    canvasNodes: arrangeCanvasNodesInGrid(state.canvasNodes),
+    canvasNodes: arrangeCanvasNodesInGrid(state.canvasNodes, { state }),
     canvasLayoutMode: 'grid',
     fitViewRequestedAt: new Date().toISOString(),
   };
@@ -1097,7 +1125,7 @@ export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSes
   }
   return {
     ...state,
-    canvasNodes: arrangeCanvasNodesAroundEntityFocus(state.canvasNodes, state.canvasEdges, state.focusedElement.id),
+    canvasNodes: arrangeCanvasNodesAroundEntityFocus(state.canvasNodes, state.canvasEdges, state.focusedElement.id, { state }),
     canvasLayoutMode: 'radial',
     fitViewRequestedAt: new Date().toISOString(),
   };

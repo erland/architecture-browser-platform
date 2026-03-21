@@ -64,6 +64,17 @@ export type BrowserFactsPanelViewpointExplanation = {
   recommendedLayout: string;
 };
 
+export type BrowserFactsPanelRelationshipMetadataEntry = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+export type BrowserFactsPanelRelationshipMetadata = {
+  normalized: BrowserFactsPanelRelationshipMetadataEntry[];
+  evidence: BrowserFactsPanelRelationshipMetadataEntry[];
+};
+
 export type BrowserFactsPanelModel = {
   title: string;
   subtitle: string;
@@ -73,6 +84,7 @@ export type BrowserFactsPanelModel = {
   diagnostics: FullSnapshotDiagnostic[];
   sourceRefs: SnapshotSourceRef[];
   relationship: FullSnapshotRelationship | null;
+  relationshipMetadata: BrowserFactsPanelRelationshipMetadata | null;
   scopeFacts: BrowserScopeFacts | null;
   entityFacts: BrowserEntityFacts | null;
   scopeBridge: BrowserFactsPanelScopeBridge | null;
@@ -127,6 +139,98 @@ function toScopeSummary(index: BrowserSnapshotIndex, scope: FullSnapshotScope): 
   };
 }
 
+
+function formatRelationshipMetadataLabel(key: string) {
+  switch (key) {
+    case 'associationKind':
+      return 'Association kind';
+    case 'associationCardinality':
+      return 'Association cardinality';
+    case 'sourceLowerBound':
+      return 'Source lower bound';
+    case 'sourceUpperBound':
+      return 'Source upper bound';
+    case 'targetLowerBound':
+      return 'Target lower bound';
+    case 'targetUpperBound':
+      return 'Target upper bound';
+    case 'jpaAssociation':
+      return 'JPA association';
+    case 'joinColumn':
+      return 'Join column';
+    case 'joinTable':
+      return 'Join table';
+    case 'mappedBy':
+      return 'Mapped by';
+    default:
+      return key;
+  }
+}
+
+function buildRelationshipMetadata(relationship: FullSnapshotRelationship): BrowserFactsPanelRelationshipMetadata | null {
+  const metadata = (relationship.metadata ?? {}) as Record<string, unknown>;
+  const nested = metadata.metadata && typeof metadata.metadata === 'object' && !Array.isArray(metadata.metadata)
+    ? (metadata.metadata as Record<string, unknown>)
+    : null;
+
+  const readValue = (key: string): string | null => {
+    const direct = metadata[key];
+    if (direct !== undefined && direct !== null) {
+      const value = String(direct).trim();
+      if (value.length > 0) {
+        return value;
+      }
+    }
+    if (nested) {
+      const nestedValue = nested[key];
+      if (nestedValue !== undefined && nestedValue !== null) {
+        const value = String(nestedValue).trim();
+        if (value.length > 0) {
+          return value;
+        }
+      }
+    }
+    return null;
+  };
+
+  const normalizedKeys = [
+    'associationKind',
+    'associationCardinality',
+    'sourceLowerBound',
+    'sourceUpperBound',
+    'targetLowerBound',
+    'targetUpperBound',
+  ] as const;
+  const normalized: BrowserFactsPanelRelationshipMetadataEntry[] = [];
+  for (const key of normalizedKeys) {
+    const value = readValue(key);
+    if (value) {
+      normalized.push({
+        key,
+        label: formatRelationshipMetadataLabel(key),
+        value,
+      });
+    }
+  }
+
+  const evidenceKeys = ['jpaAssociation', 'joinColumn', 'joinTable', 'mappedBy'] as const;
+  const evidence: BrowserFactsPanelRelationshipMetadataEntry[] = [];
+  for (const key of evidenceKeys) {
+    const value = readValue(key);
+    if (value) {
+      evidence.push({
+        key,
+        label: formatRelationshipMetadataLabel(key),
+        value,
+      });
+    }
+  }
+
+  if (normalized.length === 0 && evidence.length === 0) {
+    return null;
+  }
+  return { normalized, evidence };
+}
 
 function renderViewpointList(values: string[], emptyText: string) {
   if (values.length === 0) {
@@ -281,6 +385,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       ...(fromEntity?.sourceRefs ?? []),
       ...(toEntity?.sourceRefs ?? []),
     ]);
+    const relationshipMetadata = buildRelationshipMetadata(relationship);
     return {
       title: relationship.label?.trim() || relationship.kind,
       subtitle: formatRelationshipLabel(index, relationship),
@@ -295,6 +400,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       diagnostics: relatedDiagnostics,
       sourceRefs,
       relationship,
+      relationshipMetadata,
       scopeFacts: null,
       entityFacts: null,
       scopeBridge: null,
@@ -325,6 +431,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       diagnostics: entityFacts.diagnostics,
       sourceRefs: entityFacts.sourceRefs,
       relationship: null,
+      relationshipMetadata: null,
       scopeFacts: null,
       entityFacts,
       scopeBridge: null,
@@ -359,6 +466,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       diagnostics: scopeFacts.diagnostics,
       sourceRefs: scopeFacts.sourceRefs,
       relationship: null,
+      relationshipMetadata: null,
       scopeFacts,
       entityFacts: null,
       scopeBridge,
@@ -384,6 +492,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
     diagnostics: payload.diagnostics.slice(0, 8),
     sourceRefs: [],
     relationship: null,
+    relationshipMetadata: null,
     scopeFacts: null,
     entityFacts: null,
     scopeBridge: null,
@@ -664,6 +773,42 @@ export function BrowserFactsPanel({ state, onSelectScope, onFocusEntity, onFocus
               );
             })}
           </ul>
+        </section>
+      ) : null}
+
+      {model.relationship && model.relationshipMetadata ? (
+        <section className="browser-facts-panel__section">
+          <div className="browser-facts-panel__section-header">
+            <h4>Relationship semantics</h4>
+          </div>
+          <div className="browser-facts-panel__split">
+            <div>
+              <h5>Normalized</h5>
+              {model.relationshipMetadata.normalized.length > 0 ? (
+                <ul className="browser-facts-panel__list">
+                  {model.relationshipMetadata.normalized.map((entry) => (
+                    <li key={`normalized:${entry.key}`} className="browser-facts-panel__list-item">
+                      <strong>{entry.label}</strong>
+                      <span>{entry.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="muted">No normalized relationship metadata.</p>}
+            </div>
+            <div>
+              <h5>Framework evidence</h5>
+              {model.relationshipMetadata.evidence.length > 0 ? (
+                <ul className="browser-facts-panel__list">
+                  {model.relationshipMetadata.evidence.map((entry) => (
+                    <li key={`evidence:${entry.key}`} className="browser-facts-panel__list-item">
+                      <strong>{entry.label}</strong>
+                      <span>{entry.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="muted">No framework-specific relationship evidence.</p>}
+            </div>
+          </div>
         </section>
       ) : null}
 

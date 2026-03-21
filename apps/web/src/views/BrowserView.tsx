@@ -4,7 +4,6 @@ import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
 import { getContainedEntitiesForEntity, getContainingEntitiesForEntity, getDirectEntitiesForScopeByKind, getPrimaryEntitiesForScope, getSubtreeEntitiesForScopeByKind } from '../browserSnapshotIndex';
-import { BrowserTabNav } from '../components/BrowserTabNav';
 import { BrowserViewpointControls } from '../components/BrowserViewpointControls';
 import { BrowserTopSearch, type BrowserTopSearchResultAction, type BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
@@ -54,7 +53,7 @@ function readStoredPaneWidth(key: string, fallback: number) {
 }
 
 
-export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories, onOpenCompare, onOpenOperations, onOpenLegacy }: BrowserViewProps) {
+export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories, onOpenLegacy }: BrowserViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTabKey>(() => readBrowserTabFromLocation());
@@ -535,19 +534,13 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
                 selectedScopeLabel={selectedScopeLabel}
                 selection={browserSession.state.viewpointSelection}
                 appliedViewpoint={browserSession.state.appliedViewpoint}
+                presentationPreference={browserSession.state.viewpointPresentationPreference}
                 onSelectViewpoint={browserSession.setSelectedViewpoint}
                 onSelectScopeMode={browserSession.setViewpointScopeMode}
                 onSelectApplyMode={browserSession.setViewpointApplyMode}
                 onSelectVariant={browserSession.setViewpointVariant}
+                onSelectPresentationPreference={browserSession.setViewpointPresentationPreference}
                 onApplyViewpoint={browserSession.applySelectedViewpoint}
-              />
-
-              <BrowserTabNav
-                activeTab={activeTab}
-                onSelectTab={setActiveTab}
-                onOpenCompare={onOpenCompare}
-                onOpenOperations={onOpenOperations}
-                onOpenLegacy={onOpenLegacy}
               />
 
               <section className="card browser-workspace__mini-context">

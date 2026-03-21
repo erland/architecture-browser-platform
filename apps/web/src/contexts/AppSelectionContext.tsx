@@ -93,16 +93,29 @@ export function AppSelectionProvider({ children }: { children: ReactNode }) {
       });
     },
     setSelectedRepositoryId: (nextValue) => {
-      setSelection((current) => ({
-        ...current,
-        selectedRepositoryId: typeof nextValue === 'function' ? nextValue(current.selectedRepositoryId) : nextValue,
-      }));
+      setSelection((current) => {
+        const resolvedRepositoryId = typeof nextValue === 'function' ? nextValue(current.selectedRepositoryId) : nextValue;
+        if (resolvedRepositoryId === current.selectedRepositoryId) {
+          return current;
+        }
+        return {
+          ...current,
+          selectedRepositoryId: resolvedRepositoryId,
+          selectedSnapshotId: current.selectedSnapshotId,
+        };
+      });
     },
     setSelectedSnapshotId: (nextValue) => {
-      setSelection((current) => ({
-        ...current,
-        selectedSnapshotId: typeof nextValue === 'function' ? nextValue(current.selectedSnapshotId) : nextValue,
-      }));
+      setSelection((current) => {
+        const resolvedSnapshotId = typeof nextValue === 'function' ? nextValue(current.selectedSnapshotId) : nextValue;
+        if (resolvedSnapshotId === current.selectedSnapshotId) {
+          return current;
+        }
+        return {
+          ...current,
+          selectedSnapshotId: resolvedSnapshotId,
+        };
+      });
     },
     resetSelections,
   }), [resetSelections, selection]);

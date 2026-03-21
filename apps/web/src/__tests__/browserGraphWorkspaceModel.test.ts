@@ -11,6 +11,7 @@ import {
   focusBrowserElement,
   openSnapshotSession,
   toggleCanvasNodePin,
+  setSelectedViewpoint,
 } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
@@ -145,4 +146,41 @@ describe('browserGraphWorkspaceModel', () => {
     expect(arrangedModel.nodes.find((node) => node.id === 'entity:tree')?.x).toBe(pinnedBefore?.x);
     expect(arrangedModel.nodes.find((node) => node.id === 'entity:tree')?.y).toBe(pinnedBefore?.y);
   });
+
+  test('carries compact UML classifier compartments into the workspace model for class-centric viewpoints', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: ['java'] },
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:id', kind: 'FIELD', origin: 'java', name: 'id', displayName: 'id', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:save', kind: 'FUNCTION', origin: 'java', name: 'save', displayName: 'save', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [
+          { externalId: 'rel:contains:id', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:id', label: null, sourceRefs: [], metadata: {} },
+          { externalId: 'rel:contains:save', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:save', label: null, sourceRefs: [], metadata: {} },
+        ],
+        viewpoints: [
+          { id: 'domain-model', title: 'Domain model', description: 'Show domain classifiers.', availability: 'available', confidence: 0.9, seedEntityIds: ['entity:order'], seedRoleIds: [], expandViaSemantics: [], preferredDependencyViews: ['structural-dependencies'], evidenceSources: ['java'] },
+        ],
+      },
+    });
+    state = setSelectedViewpoint(state, 'domain-model');
+    state = addEntityToCanvas(state, 'entity:order');
+
+    const model = buildBrowserGraphWorkspaceModel(state);
+    const orderNode = model.nodes.find((node) => node.id === 'entity:order');
+
+    expect(model.presentationMode).toBe('compact-uml');
+    expect(model.suppressedEntityIds).toEqual(['entity:order:id', 'entity:order:save']);
+    expect(model.nodes.map((node) => node.id)).toEqual(['entity:order']);
+    expect(model.edges).toEqual([]);
+    expect(orderNode?.kind).toBe('uml-class');
+    expect(orderNode?.memberEntityIds).toEqual(['entity:order:id', 'entity:order:save']);
+    expect(orderNode?.compartments.map((compartment) => compartment.kind)).toEqual(['attributes', 'operations']);
+  });
+
 });

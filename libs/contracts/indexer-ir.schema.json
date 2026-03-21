@@ -264,6 +264,7 @@
             "CLASS",
             "INTERFACE",
             "FUNCTION",
+            "FIELD",
             "MODULE",
             "ENDPOINT",
             "SERVICE",
@@ -298,6 +299,22 @@
         },
         "metadata": {
           "$ref": "#/$defs/jsonObject"
+        },
+        "architecturalRoles": {
+          "type": "array",
+          "description": "Optional normalized architectural roles for the entity. Values are stable lowercase identifiers intended for viewpoint-friendly consumers.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "architecturalTraits": {
+          "type": "array",
+          "description": "Optional normalized architectural traits for the entity. Values are stable lowercase identifiers intended for viewpoint-friendly consumers.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": true
@@ -320,6 +337,8 @@
         "kind": {
           "enum": [
             "DEPENDS_ON",
+            "EXTENDS",
+            "IMPLEMENTS",
             "EXPOSES",
             "CALLS",
             "READS",
@@ -348,6 +367,13 @@
         },
         "metadata": {
           "$ref": "#/$defs/jsonObject"
+        },
+        "architecturalSemantics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       },
       "additionalProperties": true

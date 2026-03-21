@@ -4,6 +4,7 @@ export type EntityKind =
   | "CLASS"
   | "INTERFACE"
   | "FUNCTION"
+  | "FIELD"
   | "MODULE"
   | "ENDPOINT"
   | "SERVICE"
@@ -14,7 +15,7 @@ export type EntityKind =
   | "EXTERNAL_SYSTEM"
   | "CONFIG_ARTIFACT";
 export type EntityOrigin = "OBSERVED" | "INFERRED";
-export type RelationshipKind = "DEPENDS_ON" | "EXPOSES" | "CALLS" | "READS" | "WRITES" | "CONTAINS" | "USES";
+export type RelationshipKind = "DEPENDS_ON" | "EXTENDS" | "IMPLEMENTS" | "EXPOSES" | "CALLS" | "READS" | "WRITES" | "CONTAINS" | "USES";
 export type DiagnosticSeverity = "INFO" | "WARNING" | "ERROR";
 export type DiagnosticPhase = "ACQUISITION" | "SCAN" | "EXTRACTION" | "INTERPRETATION" | "PUBLICATION";
 export type CompletenessStatus = "COMPLETE" | "PARTIAL" | "FAILED";

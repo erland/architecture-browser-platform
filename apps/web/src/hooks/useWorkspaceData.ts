@@ -139,18 +139,42 @@ export function useWorkspaceData({
 
   useEffect(() => {
     if (!repositories.length) {
-      setSelectedRepositoryId(null);
-      setRepositoryEditor(emptyRepositoryEditor());
+      if (selectedRepositoryId !== null) {
+        setSelectedRepositoryId(null);
+      }
+      setRepositoryEditor((current) => current.id === null
+        && current.name === ""
+        && current.localPath === ""
+        && current.remoteUrl === ""
+        && current.defaultBranch === "main"
+        && current.metadataJson === ""
+        ? current
+        : emptyRepositoryEditor());
       return;
     }
 
     const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId) ?? null;
     if (selectedRepository) {
-      setRepositoryEditor(toRepositoryEditor(selectedRepository));
+      setRepositoryEditor((current) => {
+        const next = toRepositoryEditor(selectedRepository);
+        return current.id === next.id
+          && current.name === next.name
+          && current.localPath === next.localPath
+          && current.remoteUrl === next.remoteUrl
+          && current.defaultBranch === next.defaultBranch
+          && current.metadataJson === next.metadataJson
+          ? current
+          : next;
+      });
       return;
     }
 
-    setSelectedRepositoryId(null);
+    const fallbackRepositoryId = repositories[0]?.id ?? null;
+    if (fallbackRepositoryId !== selectedRepositoryId) {
+      setSelectedRepositoryId(fallbackRepositoryId);
+      return;
+    }
+
     setRepositoryEditor(emptyRepositoryEditor());
   }, [repositories, selectedRepositoryId, setSelectedRepositoryId]);
 

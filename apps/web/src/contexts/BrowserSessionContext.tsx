@@ -8,6 +8,7 @@ import {
   type BrowserSessionState,
   type BrowserCanvasViewport,
   type BrowserViewpointApplyMode,
+  type BrowserViewpointPresentationPreference,
   addDependenciesToCanvas,
   applySelectedViewpoint,
   addEntityToCanvas,
@@ -39,6 +40,7 @@ import {
   setViewpointApplyMode,
   setViewpointVariant,
   setViewpointScopeMode,
+  setViewpointPresentationPreference,
   toggleCanvasNodePin,
 } from '../browserSessionStore';
 
@@ -63,6 +65,7 @@ export type BrowserSessionContextValue = {
   setViewpointScopeMode: (scopeMode: BrowserViewpointScopeMode) => void;
   setViewpointApplyMode: (applyMode: BrowserViewpointApplyMode) => void;
   setViewpointVariant: (variant: BrowserViewpointVariant) => void;
+  setViewpointPresentationPreference: (preference: BrowserViewpointPresentationPreference) => void;
   applySelectedViewpoint: () => void;
   selectCanvasEntity: (entityId: string, additive?: boolean) => void;
   addDependenciesToCanvas: (entityId: string, direction?: BrowserDependencyDirection) => void;
@@ -105,6 +108,7 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     setViewpointScopeMode: (scopeMode) => setState((current) => setViewpointScopeMode(current, scopeMode)),
     setViewpointApplyMode: (applyMode) => setState((current) => setViewpointApplyMode(current, applyMode)),
     setViewpointVariant: (variant) => setState((current) => setViewpointVariant(current, variant)),
+    setViewpointPresentationPreference: (preference) => setState((current) => setViewpointPresentationPreference(current, preference)),
     applySelectedViewpoint: () => setState((current) => applySelectedViewpoint(current)),
     selectCanvasEntity: (entityId, additive) => setState((current) => selectCanvasEntity(current, entityId, additive)),
     addDependenciesToCanvas: (entityId, direction) => setState((current) => addDependenciesToCanvas(current, entityId, direction)),

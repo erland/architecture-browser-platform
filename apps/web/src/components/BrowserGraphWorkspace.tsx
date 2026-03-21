@@ -73,6 +73,10 @@ type PanState = {
   startOffsetY: number;
 };
 
+function renderCompartmentSubtitle(kind: string) {
+  return kind.toLowerCase();
+}
+
 function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
   if (!kinds || kinds.length === 0) {
     return entities;
@@ -318,7 +322,7 @@ export function BrowserGraphWorkspace({
       return;
     }
     dragStateRef.current = {
-      node: { kind: node.kind, id: node.id },
+      node: { kind: node.kind === 'scope' ? 'scope' : 'entity', id: node.id },
       startClientX: event.clientX,
       startClientY: event.clientY,
       startX: node.x,
@@ -598,9 +602,51 @@ export function BrowserGraphWorkspace({
                     onFocusEntity(node.id);
                   }}
                 >
-                  <span className="badge">{node.kind}</span>
+                  <span className="badge">{node.badgeLabel}</span>
                   <strong>{node.title}</strong>
+                  {node.kind !== 'uml-class' && node.subtitle ? (
+                    <span className="browser-canvas__node-subtitle muted">{node.subtitle}</span>
+                  ) : null}
                 </button>
+
+                {node.kind === 'uml-class' && node.compartments.length > 0 ? (
+                  <div className="browser-canvas__uml" aria-label={`${node.title} class details`}>
+                    {node.compartments.map((compartment) => (
+                      <section
+                        key={`${node.id}:${compartment.kind}`}
+                        className="browser-canvas__uml-compartment"
+                        aria-label={compartment.kind}
+                      >
+                        <div className="browser-canvas__uml-compartment-label">{compartment.kind}</div>
+                        <ul className="browser-canvas__uml-members">
+                          {compartment.items.map((item) => (
+                            <li key={item.entityId} className="browser-canvas__uml-member">
+                              <button
+                                type="button"
+                                className={[
+                                  'browser-canvas__uml-member-button',
+                                  item.selected ? 'browser-canvas__uml-member-button--selected' : '',
+                                  item.focused ? 'browser-canvas__uml-member-button--focused' : '',
+                                ].filter(Boolean).join(' ')}
+                                onMouseDown={(event) => {
+                                  event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onSelectEntity(item.entityId, event.shiftKey || event.metaKey || event.ctrlKey);
+                                  onFocusEntity(item.entityId);
+                                }}
+                              >
+                                <span className="browser-canvas__uml-member-title">{item.title}</span>
+                                <span className="browser-canvas__uml-member-kind">{renderCompartmentSubtitle(item.kind)}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+                ) : null}
 
               </article>
             ))}

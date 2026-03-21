@@ -1,6 +1,6 @@
 import type { FullSnapshotViewpoint } from '../appModel';
 import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex';
-import type { BrowserViewpointApplyMode, BrowserViewpointSelection } from '../browserSessionStore';
+import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../browserSessionStore';
 import { getAvailableViewpoints } from '../browserSnapshotIndex';
 
 const VIEWPOINT_SCOPE_MODE_META: Record<BrowserViewpointScopeMode, { label: string; description: string }> = {
@@ -14,6 +14,14 @@ const VIEWPOINT_VARIANT_META: Record<BrowserViewpointVariant, { label: string; d
   'show-writers': { label: 'Show writers', description: 'Bias persistence views toward components that update stored structures.' },
   'show-readers': { label: 'Show readers', description: 'Bias persistence views toward components that read stored structures.' },
   'show-upstream-callers': { label: 'Show upstream callers', description: 'Expand to upstream callers that trigger the selected flow.' },
+  'show-entity-relations': { label: 'Show entity relations', description: 'Show persistent entities and the relations between them.' },
+};
+
+
+const VIEWPOINT_PRESENTATION_META: Record<BrowserViewpointPresentationPreference, { label: string; description: string }> = {
+  auto: { label: 'Auto', description: "Use the browser's local default for the selected viewpoint." },
+  'entity-graph': { label: 'Entity graph', description: 'Show separate class, field, and method nodes on the canvas.' },
+  'compact-uml': { label: 'Compact UML', description: 'Collapse class members into UML-style classifier compartments when possible.' },
 };
 
 const VIEWPOINT_APPLY_MODE_META: Record<BrowserViewpointApplyMode, { label: string; description: string }> = {
@@ -41,10 +49,12 @@ export type BrowserViewpointControlsProps = {
   selectedScopeLabel: string | null;
   selection: BrowserViewpointSelection;
   appliedViewpoint: BrowserResolvedViewpointGraph | null;
+  presentationPreference: BrowserViewpointPresentationPreference;
   onSelectViewpoint: (viewpointId: string | null) => void;
   onSelectScopeMode: (scopeMode: BrowserViewpointScopeMode) => void;
   onSelectApplyMode: (applyMode: BrowserViewpointApplyMode) => void;
   onSelectVariant: (variant: BrowserViewpointVariant) => void;
+  onSelectPresentationPreference: (preference: BrowserViewpointPresentationPreference) => void;
   onApplyViewpoint: () => void;
 };
 
@@ -53,15 +63,17 @@ export function BrowserViewpointControls({
   selectedScopeLabel,
   selection,
   appliedViewpoint,
+  presentationPreference,
   onSelectViewpoint,
   onSelectScopeMode,
   onSelectApplyMode,
   onSelectVariant,
+  onSelectPresentationPreference,
   onApplyViewpoint,
 }: BrowserViewpointControlsProps) {
   const viewpoints = index ? getAvailableViewpoints(index, { includePartial: true }) : [];
   const selectedViewpoint = selection.viewpointId ? viewpoints.find((viewpoint) => viewpoint.id === selection.viewpointId) ?? null : null;
-  const supportedVariants: BrowserViewpointVariant[] = !selectedViewpoint ? ['default'] : selectedViewpoint.id === 'persistence-model' ? ['default', 'show-writers', 'show-readers', 'show-upstream-callers'] : selectedViewpoint.id === 'request-handling' ? ['default', 'show-upstream-callers'] : ['default'];
+  const supportedVariants: BrowserViewpointVariant[] = !selectedViewpoint ? ['default'] : selectedViewpoint.id === 'persistence-model' ? ['default', 'show-writers', 'show-readers', 'show-upstream-callers', 'show-entity-relations'] : selectedViewpoint.id === 'request-handling' ? ['default', 'show-upstream-callers'] : ['default'];
   const helperText = selection.scopeMode === 'selected-scope'
     ? selectedScopeLabel ? `Viewpoint seeds are limited to ${selectedScopeLabel}.` : 'Select a scope to limit viewpoint seeding to the current branch.'
     : selection.scopeMode === 'selected-subtree'
@@ -155,6 +167,21 @@ export function BrowserViewpointControls({
             </button>
           );
         })}
+      </div>
+
+      <div className="browser-viewpoint-controls__toggles" role="group" aria-label="Viewpoint presentation mode">
+        {Object.entries(VIEWPOINT_PRESENTATION_META).map(([preference, meta]) => (
+          <button
+            key={preference}
+            type="button"
+            className={presentationPreference === preference ? 'button-secondary browser-viewpoint-controls__toggle browser-viewpoint-controls__toggle--active' : 'button-secondary browser-viewpoint-controls__toggle'}
+            onClick={() => onSelectPresentationPreference(preference as BrowserViewpointPresentationPreference)}
+            disabled={!index || !selectedViewpoint}
+            title={meta.description}
+          >
+            {meta.label}
+          </button>
+        ))}
       </div>
 
       <div className="browser-viewpoint-controls__toggles" role="group" aria-label="Viewpoint apply mode">
