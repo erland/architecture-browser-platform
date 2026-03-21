@@ -56,6 +56,21 @@ See:
 - `docs/browser-compact-uml-presentation.md`
 - `docs/browser-viewpoints.md`
 
+## Refactor maintenance helpers
+
+After the step 1–10 refactor series, the repository includes two root helpers:
+
+- `npm run clean:generated` — removes packaged build output and machine-local artifacts
+- `npm run verify:refactor` — runs the lightweight refactor verification flow and records a report in `docs/reports/refactor-verification.txt`
+
+For full local verification after restoring dependencies:
+
+```bash
+npm install
+npm run verify:refactor
+cd apps/api && mvn test
+```
+
 ## Development install
 
 Development is optimized for a local checkout where `architecture-browser-platform` and `architecture-browser-indexer` are sibling directories. The dev stack now includes the real `architecture-browser-indexer` HTTP worker and uses it over HTTP from the API.
