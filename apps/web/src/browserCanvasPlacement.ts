@@ -3,16 +3,19 @@ import type { BrowserCanvasEdge, BrowserSessionState } from './browserSessionSto
 import type { BrowserSnapshotIndex } from './browserSnapshotIndex';
 import type { BrowserCanvasNode } from './browserSessionStore';
 import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from './browserCanvasSizing';
+import {
+  APPEND_CLUSTER_GAP,
+  COLLISION_MARGIN,
+  CONTAINED_OFFSET_X,
+  CONTAINED_OFFSET_Y,
+  GRID_X,
+  GRID_Y,
+  PEER_SPACING_X,
+  PEER_SPACING_Y,
+  RADIAL_RADIUS,
+  roundToGrid,
+} from './browserCanvasPlacement.policy';
 
-const GRID_X = 224;
-const GRID_Y = 120;
-const COLLISION_MARGIN = 24;
-const APPEND_CLUSTER_GAP = 96;
-const RADIAL_RADIUS = 220;
-const PEER_SPACING_X = 224;
-const PEER_SPACING_Y = 116;
-const CONTAINED_OFFSET_X = 44;
-const CONTAINED_OFFSET_Y = 108;
 
 export type BrowserCanvasPlacement = { x: number; y: number };
 
@@ -74,9 +77,6 @@ function collides(nodes: BrowserCanvasNodeSizeLike[], candidate: BrowserCanvasNo
   return nodes.some((node) => rectanglesOverlap(node, candidate, options));
 }
 
-function roundToGrid(value: number, spacing: number) {
-  return Math.round(value / spacing) * spacing;
-}
 
 export function avoidBrowserCanvasCollisions(
   nodes: BrowserCanvasNodeSizeLike[],
