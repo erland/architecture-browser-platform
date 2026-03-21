@@ -1,5 +1,6 @@
 import type { BrowserSearchDocument, BrowserSearchResult, BrowserSnapshotIndex } from './browserSnapshotIndex.types';
-import { isScopeWithin, normalizeSearchText } from './browserSnapshotIndex.shared';
+import { normalizeSearchText } from './browserSnapshotIndex.display';
+import { isScopeWithin } from './browserSnapshotIndex.semantics';
 
 function scoreSearchDocument(document: BrowserSearchDocument, query: string) {
   const title = normalizeSearchText(document.title);

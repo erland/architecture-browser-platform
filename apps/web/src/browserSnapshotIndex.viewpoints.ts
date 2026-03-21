@@ -1,16 +1,7 @@
 import type { FullSnapshotRelationship, FullSnapshotViewpoint } from './appModel';
 import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from './browserSnapshotIndex.types';
-import {
-  getArchitecturalRoles,
-  getArchitecturalSemantics,
-  includeIntegrationMapImmediateNeighbors,
-  isEntityWithinScopeMode,
-  resolvePersistentEntityAssociationRelationships,
-  sortEntityIds,
-  sortViewpointEntityIds,
-  sortViewpointRelationshipIds,
-  stableSortRelationships,
-} from './browserSnapshotIndex.shared';
+import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships } from './browserSnapshotIndex.semantics';
+import { sortEntityIds, sortViewpointEntityIds, sortViewpointRelationshipIds, stableSortRelationships } from './browserSnapshotIndex.sort';
 
 export function getAvailableViewpoints(index: BrowserSnapshotIndex, options?: { includePartial?: boolean; includeUnavailable?: boolean }) {
   const includePartial = options?.includePartial ?? true;

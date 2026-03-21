@@ -1,6 +1,10 @@
 import type { FullSnapshotDiagnostic, FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotScope } from './appModel';
 import type { BrowserDependencyDirection, BrowserDependencyNeighborhood, BrowserEntityFacts, BrowserScopeFacts, BrowserScopeTreeNode, BrowserSnapshotIndex, BrowserTreeMode } from './browserSnapshotIndex.types';
-import { collectDescendantStats, collectSourceRefs, displayNameOf, matchesTreeModeScopeKind, sortEntityIds, sortScopeIds } from './browserSnapshotIndex.shared';
+import { collectDescendantStats } from './browserSnapshotIndex.aggregates';
+import { displayNameOf } from './browserSnapshotIndex.display';
+import { collectSourceRefs } from './browserSnapshotIndex.sourceRefs';
+import { matchesTreeModeScopeKind } from './browserSnapshotIndex.semantics';
+import { sortEntityIds, sortScopeIds } from './browserSnapshotIndex.sort';
 
 export function getScopeTreeRoots(index: BrowserSnapshotIndex) {
   return index.scopeTree;

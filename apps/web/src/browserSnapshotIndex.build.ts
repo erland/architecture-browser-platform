@@ -1,16 +1,9 @@
 import type { FullSnapshotPayload } from './appModel';
 import type { BrowserSnapshotIndex } from './browserSnapshotIndex.types';
-import {
-  buildContainingScopeIds,
-  buildScopePath,
-  buildScopeTree,
-  buildSearchableDocuments,
-  collectSubtreeEntityIds,
-  getArchitecturalRoles,
-  getArchitecturalSemantics,
-  pushToMapArray,
-  sortEntityIds,
-} from './browserSnapshotIndex.shared';
+import { buildContainingScopeIds, buildScopePath, buildScopeTree, collectSubtreeEntityIds, pushToMapArray } from './browserSnapshotIndex.aggregates';
+import { buildSearchableDocuments } from './browserSnapshotIndex.display';
+import { getArchitecturalRoles, getArchitecturalSemantics } from './browserSnapshotIndex.semantics';
+import { sortEntityIds } from './browserSnapshotIndex.sort';
 
 export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): BrowserSnapshotIndex;
 export function buildBrowserSnapshotIndex(_snapshotSummary: unknown, payload: FullSnapshotPayload): BrowserSnapshotIndex;
