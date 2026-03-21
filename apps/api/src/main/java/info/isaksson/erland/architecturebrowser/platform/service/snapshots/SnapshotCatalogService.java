@@ -1,45 +1,23 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.CompletenessInfo;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.DiagnosticSummary;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullDiagnostic;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullEntity;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullRelationship;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullViewpoint;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullScope;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullSnapshotPayloadResponse;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.KindCount;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.MetadataEnvelope;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.NameCount;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.RunInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotDetailResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotOverviewResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceInfo;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceRef;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
 import info.isaksson.erland.architecturebrowser.platform.domain.ImportedFactEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegistrationEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RunOutcome;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
-import info.isaksson.erland.architecturebrowser.platform.service.JsonSupport;
 import info.isaksson.erland.architecturebrowser.platform.service.management.NotFoundException;
 import info.isaksson.erland.architecturebrowser.platform.service.management.RepositoryManagementService;
 import info.isaksson.erland.architecturebrowser.platform.service.management.WorkspaceManagementService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class SnapshotCatalogService {
@@ -50,10 +28,13 @@ public class SnapshotCatalogService {
     RepositoryManagementService repositoryManagementService;
 
     @Inject
-    JsonSupport jsonSupport;
+    SnapshotCatalogDocumentReader documentReader;
 
     @Inject
-    ObjectMapper objectMapper;
+    SnapshotCatalogDocumentMapper documentMapper;
+
+    @Inject
+    SnapshotCatalogOverviewBuilder overviewBuilder;
 
     public List<SnapshotSummaryResponse> listByWorkspace(String workspaceId) {
         workspaceManagementService.requireWorkspace(workspaceId);
@@ -74,50 +55,50 @@ public class SnapshotCatalogService {
 
     public SnapshotDetailResponse getDetail(String workspaceId, String snapshotId) {
         SnapshotEntity snapshot = requireSnapshot(workspaceId, snapshotId);
-        ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
+        ArchitectureIndexDocument document = documentReader.parseDocument(snapshot.rawPayloadJson);
         return new SnapshotDetailResponse(
             toSummary(snapshot),
-            toSourceInfo(document),
-            toRunInfo(document),
-            collectWarnings(document)
+            documentMapper.toSourceInfo(document),
+            documentMapper.toRunInfo(document),
+            overviewBuilder.collectWarnings(document)
         );
     }
 
     public FullSnapshotPayloadResponse getFullSnapshotPayload(String workspaceId, String snapshotId) {
         SnapshotEntity snapshot = requireSnapshot(workspaceId, snapshotId);
-        ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
+        ArchitectureIndexDocument document = documentReader.parseDocument(snapshot.rawPayloadJson);
         return new FullSnapshotPayloadResponse(
             toSummary(snapshot),
-            toSourceInfo(document),
-            toRunInfo(document),
-            toCompletenessInfo(document),
-            mapScopes(document),
-            mapEntities(document),
-            mapRelationships(document),
-            mapViewpoints(document),
-            mapDiagnostics(document),
-            new MetadataEnvelope(defaultMap(document.metadata())),
-            collectWarnings(document)
+            documentMapper.toSourceInfo(document),
+            documentMapper.toRunInfo(document),
+            documentMapper.toCompletenessInfo(document),
+            documentMapper.mapScopes(document),
+            documentMapper.mapEntities(document),
+            documentMapper.mapRelationships(document),
+            documentMapper.mapViewpoints(document),
+            documentMapper.mapDiagnostics(document),
+            new MetadataEnvelope(documentMapper.metadataEnvelope(document)),
+            overviewBuilder.collectWarnings(document)
         );
     }
 
     public SnapshotOverviewResponse getOverview(String workspaceId, String snapshotId) {
         SnapshotEntity snapshot = requireSnapshot(workspaceId, snapshotId);
-        ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
+        ArchitectureIndexDocument document = documentReader.parseDocument(snapshot.rawPayloadJson);
         List<ImportedFactEntity> facts = ImportedFactEntity.list("snapshotId", snapshot.id);
 
         return new SnapshotOverviewResponse(
             toSummary(snapshot),
-            toSourceInfo(document),
-            toRunInfo(document),
-            toCompletenessInfo(document),
-            summarizeKinds(facts, FactType.SCOPE),
-            summarizeKinds(facts, FactType.ENTITY),
-            summarizeKinds(facts, FactType.RELATIONSHIP),
-            summarizeKinds(facts, FactType.DIAGNOSTIC),
-            buildTopScopes(document, facts),
-            buildRecentDiagnostics(document),
-            collectWarnings(document)
+            documentMapper.toSourceInfo(document),
+            documentMapper.toRunInfo(document),
+            documentMapper.toCompletenessInfo(document),
+            overviewBuilder.summarizeKinds(facts, FactType.SCOPE),
+            overviewBuilder.summarizeKinds(facts, FactType.ENTITY),
+            overviewBuilder.summarizeKinds(facts, FactType.RELATIONSHIP),
+            overviewBuilder.summarizeKinds(facts, FactType.DIAGNOSTIC),
+            overviewBuilder.buildTopScopes(document, facts),
+            overviewBuilder.buildRecentDiagnostics(document),
+            overviewBuilder.collectWarnings(document)
         );
     }
 
@@ -172,264 +153,5 @@ public class SnapshotCatalogService {
             throw new NotFoundException("Snapshot not found: " + snapshotId);
         }
         return snapshot;
-    }
-
-    private ArchitectureIndexDocument parseDocument(String rawPayloadJson) {
-        try {
-            JsonNode payload = jsonSupport.readTree(rawPayloadJson);
-            return objectMapper.convertValue(payload, ArchitectureIndexDocument.class);
-        } catch (RuntimeException ex) {
-            throw new IllegalStateException("Stored snapshot payload could not be parsed.", ex);
-        }
-    }
-
-    private SourceInfo toSourceInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.RepositorySource source = document.source();
-        if (source == null) {
-            return new SourceInfo(null, null, null, null, null, null, null);
-        }
-        return new SourceInfo(
-            source.repositoryId(),
-            source.acquisitionType(),
-            source.path(),
-            source.remoteUrl(),
-            source.branch(),
-            source.revision(),
-            source.acquiredAt()
-        );
-    }
-
-    private RunInfo toRunInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.RunMetadata runMetadata = document.runMetadata();
-        if (runMetadata == null) {
-            return new RunInfo(null, null, null, List.of());
-        }
-        return new RunInfo(
-            runMetadata.startedAt(),
-            runMetadata.completedAt(),
-            runMetadata.outcome(),
-            Optional.ofNullable(runMetadata.detectedTechnologies()).orElse(List.of())
-        );
-    }
-
-    private CompletenessInfo toCompletenessInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.CompletenessMetadata completeness = document.completeness();
-        if (completeness == null) {
-            return new CompletenessInfo(null, 0, 0, 0, List.of(), List.of());
-        }
-        return new CompletenessInfo(
-            completeness.status(),
-            completeness.indexedFileCount(),
-            completeness.totalFileCount(),
-            completeness.degradedFileCount(),
-            Optional.ofNullable(completeness.omittedPaths()).orElse(List.of()),
-            Optional.ofNullable(completeness.notes()).orElse(List.of())
-        );
-    }
-
-    private List<KindCount> summarizeKinds(List<ImportedFactEntity> facts, FactType factType) {
-        Map<String, Long> counts = facts.stream()
-            .filter(fact -> fact.factType == factType)
-            .collect(Collectors.groupingBy(fact -> safeKey(fact.factKind), Collectors.counting()));
-        return counts.entrySet().stream()
-            .sorted(Map.Entry.<String, Long>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
-            .map(entry -> new KindCount(entry.getKey(), entry.getValue()))
-            .toList();
-    }
-
-    private List<NameCount> buildTopScopes(ArchitectureIndexDocument document, List<ImportedFactEntity> facts) {
-        Map<String, String> scopeNames = new LinkedHashMap<>();
-        for (ArchitectureIndexDocument.LogicalScope scope : Optional.ofNullable(document.scopes()).orElse(List.of())) {
-            scopeNames.put(scope.id(), firstNonBlank(scope.displayName(), scope.name(), scope.id()));
-        }
-
-        Map<String, Long> counts = new LinkedHashMap<>();
-        for (ImportedFactEntity fact : facts) {
-            String scopeId = fact.factType == FactType.SCOPE ? fact.externalId : fact.scopeExternalId;
-            if (scopeId == null || scopeId.isBlank()) {
-                continue;
-            }
-            counts.merge(scopeId, 1L, Long::sum);
-        }
-
-        return counts.entrySet().stream()
-            .sorted(Map.Entry.<String, Long>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
-            .limit(8)
-            .map(entry -> new NameCount(entry.getKey(), scopeNames.getOrDefault(entry.getKey(), entry.getKey()), entry.getValue()))
-            .toList();
-    }
-
-    private List<DiagnosticSummary> buildRecentDiagnostics(ArchitectureIndexDocument document) {
-        List<DiagnosticSummary> results = new ArrayList<>();
-        for (ArchitectureIndexDocument.Diagnostic diagnostic : Optional.ofNullable(document.diagnostics()).orElse(List.of())) {
-            results.add(new DiagnosticSummary(
-                diagnostic.id(),
-                diagnostic.code(),
-                diagnostic.severity(),
-                diagnostic.message(),
-                diagnostic.filePath(),
-                diagnostic.entityId(),
-                diagnostic.scopeId()
-            ));
-        }
-        return results.stream()
-            .sorted(Comparator.comparing(DiagnosticSummary::severity, Comparator.nullsLast(String::compareTo))
-                .thenComparing(DiagnosticSummary::code, Comparator.nullsLast(String::compareTo)))
-            .limit(12)
-            .toList();
-    }
-
-    private List<String> collectWarnings(ArchitectureIndexDocument document) {
-        List<String> warnings = new ArrayList<>();
-        if (document.completeness() != null && "PARTIAL".equalsIgnoreCase(document.completeness().status())) {
-            warnings.add("Snapshot is partial: browse data is available, but some files were omitted or degraded during indexing.");
-        }
-        if (document.completeness() != null && document.completeness().notes() != null) {
-            warnings.addAll(document.completeness().notes());
-        }
-        return List.copyOf(warnings);
-    }
-
-    private List<FullScope> mapScopes(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.scopes()).orElse(List.of()).stream()
-            .map(scope -> new FullScope(
-                scope.id(),
-                scope.kind(),
-                scope.name(),
-                scope.displayName(),
-                scope.parentScopeId(),
-                mapSourceRefs(scope.sourceRefs()),
-                defaultMap(scope.metadata())
-            ))
-            .toList();
-    }
-
-    private List<FullEntity> mapEntities(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.entities()).orElse(List.of()).stream()
-            .map(entity -> new FullEntity(
-                entity.id(),
-                entity.kind(),
-                entity.origin(),
-                entity.name(),
-                entity.displayName(),
-                entity.scopeId(),
-                mapSourceRefs(entity.sourceRefs()),
-                defaultMap(entity.metadata())
-            ))
-            .toList();
-    }
-
-    private List<FullRelationship> mapRelationships(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.relationships()).orElse(List.of()).stream()
-            .map(relationship -> new FullRelationship(
-                relationship.id(),
-                relationship.kind(),
-                relationship.fromEntityId(),
-                relationship.toEntityId(),
-                relationship.label(),
-                mapSourceRefs(relationship.sourceRefs()),
-                defaultMap(relationship.metadata())
-            ))
-            .toList();
-    }
-
-
-    private List<FullViewpoint> mapViewpoints(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.viewpoints()).orElse(List.of()).stream()
-            .map(viewpoint -> new FullViewpoint(
-                viewpoint.id(),
-                viewpoint.title(),
-                viewpoint.description(),
-                viewpoint.availability(),
-                viewpoint.confidence() != null ? viewpoint.confidence() : 0.0d,
-                defaultList(viewpoint.seedEntityIds()),
-                defaultList(viewpoint.seedRoleIds()),
-                defaultList(viewpoint.expandViaSemantics()),
-                defaultList(viewpoint.preferredDependencyViews()),
-                defaultList(viewpoint.evidenceSources())
-            ))
-            .toList();
-    }
-
-    private List<FullDiagnostic> mapDiagnostics(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.diagnostics()).orElse(List.of()).stream()
-            .map(diagnostic -> new FullDiagnostic(
-                diagnostic.id(),
-                diagnostic.severity(),
-                diagnostic.phase(),
-                diagnostic.code(),
-                diagnostic.message(),
-                diagnostic.fatal(),
-                diagnostic.filePath(),
-                diagnostic.scopeId(),
-                diagnostic.entityId(),
-                mapSourceRefs(diagnostic.sourceRefs()),
-                defaultMap(diagnostic.metadata())
-            ))
-            .toList();
-    }
-
-    private List<SourceRef> mapSourceRefs(List<ArchitectureIndexDocument.SourceReference> sourceRefs) {
-        return Optional.ofNullable(sourceRefs).orElse(List.of()).stream()
-            .map(sourceRef -> new SourceRef(
-                sourceRef.path(),
-                sourceRef.startLine(),
-                sourceRef.endLine(),
-                sourceRef.snippet(),
-                defaultMap(sourceRef.metadata())
-            ))
-            .toList();
-    }
-
-
-    private List<String> defaultList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        return List.copyOf(values);
-    }
-
-    private Map<String, Object> defaultMap(Map<String, Object> metadata) {
-        if (metadata == null || metadata.isEmpty()) {
-            return Map.of();
-        }
-        LinkedHashMap<String, Object> sanitized = new LinkedHashMap<>();
-        metadata.forEach((key, value) -> {
-            if (key != null) {
-                sanitized.put(key, sanitizeMetadataValue(value));
-            }
-        });
-        return Collections.unmodifiableMap(sanitized);
-    }
-
-    private Object sanitizeMetadataValue(Object value) {
-        if (value instanceof Map<?, ?> nestedMap) {
-            LinkedHashMap<String, Object> sanitized = new LinkedHashMap<>();
-            nestedMap.forEach((nestedKey, nestedValue) -> {
-                if (nestedKey != null) {
-                    sanitized.put(String.valueOf(nestedKey), sanitizeMetadataValue(nestedValue));
-                }
-            });
-            return Collections.unmodifiableMap(sanitized);
-        }
-        if (value instanceof List<?> nestedList) {
-            return nestedList.stream()
-                .map(this::sanitizeMetadataValue)
-                .toList();
-        }
-        return value;
-    }
-
-    private String safeKey(String value) {
-        return value == null || value.isBlank() ? "unknown" : value.trim();
-    }
-
-    private String firstNonBlank(String... values) {
-        for (String value : values) {
-            if (value != null && !value.isBlank()) {
-                return value.trim();
-            }
-        }
-        return "unknown";
     }
 }
