@@ -317,3 +317,33 @@ After the next refactors, the browser-local subsystem should read like this:
 - **React layer**: “how the UI binds to all of the above”
 
 That is the ownership model Wave B should preserve.
+
+
+## Wave B enforced canvas submodules
+
+After B4/B5, the canvas store layer is expected to stay split across focused files:
+
+- `apps/web/src/browserSessionStore.canvas.commands.ts`
+  - owns higher-level add/expand actions that derive canvas nodes/edges from snapshot semantics
+  - may depend on snapshot-index query helpers and canvas placement planners
+- `apps/web/src/browserSessionStore.canvas.mutations.ts`
+  - owns pure state mutations for focus, selection, facts-panel mode, pinning, and direct removal/move flows
+  - should not perform snapshot-derived expansion logic
+- `apps/web/src/browserSessionStore.canvas.viewport.ts`
+  - owns viewport transitions, fit requests, and arrangement/relayout flows
+  - should not own selection or dependency-expansion rules
+- `apps/web/src/browserSessionStore.canvas.helpers.ts`
+  - owns shared canvas-store helper logic used by the focused submodules
+  - should remain store-local and avoid taking over browserSnapshotIndex responsibilities
+
+### Dependency direction rules for canvas files
+
+The intended dependency direction inside the canvas store layer is:
+
+1. `browserSessionStore.canvas.ts` acts only as a facade/barrel.
+2. `commands`, `mutations`, and `viewport` may use shared helpers/utilities.
+3. `commands` may call into snapshot-index query helpers and placement planners.
+4. `mutations` should stay focused on direct state transformation and avoid snapshot-query logic.
+5. `viewport` should stay focused on layout/viewport transitions and avoid selection/query semantics.
+
+A change that needs both snapshot-derived expansion logic and direct state cleanup should normally be split so the expansion stays in `commands` and the pure state edits stay in `mutations`.

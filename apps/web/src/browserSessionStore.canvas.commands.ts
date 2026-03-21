@@ -9,6 +9,11 @@ import {
   planEntityNodePosition,
   planScopeNodePosition,
 } from './browserSessionStore.utils';
+import {
+  createEntityCanvasFocusState,
+  insertAnchoredEntities,
+  splitDependencyNeighborIds,
+} from './browserSessionStore.canvas.helpers';
 
 export function addEntityToCanvas(state: BrowserSessionState, entityId: string): BrowserSessionState {
   const entity = state.index?.entitiesById.get(entityId);
@@ -19,10 +24,7 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
   return {
     ...state,
     canvasNodes,
-    selectedEntityIds: uniqueValues([...state.selectedEntityIds, entityId]),
-    focusedElement: { kind: 'entity', id: entityId },
-    factsPanelMode: 'entity',
-    appliedViewpoint: null,
+    ...createEntityCanvasFocusState(state, entityId),
   };
 }
 
@@ -120,46 +122,15 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       .flatMap((edge) => [edge.fromEntityId, edge.toEntityId])
       .filter((candidateId) => candidateId !== entityId),
   );
-  const inboundNeighborIds = neighborsToInsert.filter((candidateId) => neighborhood.inboundEntityIds.includes(candidateId));
-  const outboundNeighborIds = neighborsToInsert.filter((candidateId) => neighborhood.outboundEntityIds.includes(candidateId));
-  const mixedNeighborIds = neighborsToInsert.filter((candidateId) => !inboundNeighborIds.includes(candidateId) && !outboundNeighborIds.includes(candidateId));
+  const { inboundNeighborIds, outboundNeighborIds, mixedNeighborIds } = splitDependencyNeighborIds(
+    neighborsToInsert,
+    neighborhood.inboundEntityIds,
+    neighborhood.outboundEntityIds,
+  );
 
-  for (const [index, candidateId] of inboundNeighborIds.entries()) {
-    const entity = state.index.entitiesById.get(candidateId);
-    if (!entity) {
-      continue;
-    }
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
-      anchorEntityId: entityId,
-      anchorDirection: 'left',
-      insertionIndex: index,
-      insertionCount: inboundNeighborIds.length,
-    }, { state }));
-  }
-  for (const [index, candidateId] of outboundNeighborIds.entries()) {
-    const entity = state.index.entitiesById.get(candidateId);
-    if (!entity) {
-      continue;
-    }
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
-      anchorEntityId: entityId,
-      anchorDirection: 'right',
-      insertionIndex: index,
-      insertionCount: outboundNeighborIds.length,
-    }, { state }));
-  }
-  for (const [index, candidateId] of mixedNeighborIds.entries()) {
-    const entity = state.index.entitiesById.get(candidateId);
-    if (!entity) {
-      continue;
-    }
-    canvasNodes = upsertCanvasNode(canvasNodes, { kind: 'entity', id: candidateId }, planEntityInsertion(canvasNodes, state.index, entity, {
-      anchorEntityId: entityId,
-      anchorDirection: 'around',
-      insertionIndex: index,
-      insertionCount: mixedNeighborIds.length,
-    }, { state }));
-  }
+  canvasNodes = insertAnchoredEntities(state, canvasNodes, inboundNeighborIds, entityId, 'left');
+  canvasNodes = insertAnchoredEntities(state, canvasNodes, outboundNeighborIds, entityId, 'right');
+  canvasNodes = insertAnchoredEntities(state, canvasNodes, mixedNeighborIds, entityId, 'around');
 
   for (const edge of neighborhood.edges) {
     if (!allowedRelationshipIds.has(edge.relationshipId)) {
@@ -176,15 +147,12 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
     ...state,
     canvasNodes,
     canvasEdges,
-    selectedEntityIds: uniqueValues([...state.selectedEntityIds, entityId]),
-    focusedElement: { kind: 'entity', id: entityId },
-    factsPanelMode: 'entity',
+    ...createEntityCanvasFocusState(state, entityId),
     graphExpansionActions: [...state.graphExpansionActions, {
       type: 'dependencies',
       entityId,
       direction,
       appliedAt: new Date().toISOString(),
     }],
-    appliedViewpoint: null,
   };
 }
