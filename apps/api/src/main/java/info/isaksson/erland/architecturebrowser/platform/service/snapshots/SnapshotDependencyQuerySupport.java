@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.DependencyDtos.DependencyDirection;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.DependencyDtos.DependencySummary;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.KindCount;
@@ -16,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@ApplicationScoped
 public class SnapshotDependencyQuerySupport {
     public SnapshotDependencyIndex.ScopeNode selectScope(String scopeId, SnapshotDependencyIndex index) {
         if (scopeId == null || scopeId.isBlank()) {

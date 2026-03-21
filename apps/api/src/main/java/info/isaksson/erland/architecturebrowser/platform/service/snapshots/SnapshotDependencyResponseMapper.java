@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.DependencyDtos.DependencyEntityResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.DependencyDtos.DependencyFocusResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.DependencyDtos.DependencyRelationshipResponse;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@ApplicationScoped
 public class SnapshotDependencyResponseMapper {
     private final SnapshotDependencyQuerySupport querySupport;
 

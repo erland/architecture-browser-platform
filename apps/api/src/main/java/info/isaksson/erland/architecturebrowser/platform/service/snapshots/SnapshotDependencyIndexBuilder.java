@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@ApplicationScoped
 public class SnapshotDependencyIndexBuilder {
     private final ObjectMapper objectMapper;
 

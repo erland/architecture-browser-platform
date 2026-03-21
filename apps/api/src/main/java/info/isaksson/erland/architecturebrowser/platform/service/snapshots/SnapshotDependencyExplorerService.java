@@ -29,6 +29,15 @@ public class SnapshotDependencyExplorerService {
     @Inject
     ObjectMapper objectMapper;
 
+    @Inject
+    SnapshotDependencyIndexBuilder snapshotDependencyIndexBuilder;
+
+    @Inject
+    SnapshotDependencyQuerySupport snapshotDependencyQuerySupport;
+
+    @Inject
+    SnapshotDependencyResponseMapper snapshotDependencyResponseMapper;
+
     public DependencyViewResponse getView(String workspaceId,
                                           String snapshotId,
                                           String scopeId,
@@ -36,23 +45,21 @@ public class SnapshotDependencyExplorerService {
                                           String focusEntityId) {
         SnapshotSummaryResponse snapshot = snapshotCatalogService.getSummary(workspaceId, snapshotId);
         SnapshotDependencyIndex index = buildIndex(snapshotId);
-        SnapshotDependencyQuerySupport querySupport = new SnapshotDependencyQuerySupport();
-        SnapshotDependencyResponseMapper responseMapper = new SnapshotDependencyResponseMapper(querySupport);
 
-        SnapshotDependencyIndex.ScopeNode selectedScope = querySupport.selectScope(scopeId, index);
+        SnapshotDependencyIndex.ScopeNode selectedScope = snapshotDependencyQuerySupport.selectScope(scopeId, index);
         ScopeReference scopeReference = selectedScope != null
             ? new ScopeReference(
                 selectedScope.externalId(),
                 selectedScope.kind(),
                 selectedScope.name(),
                 selectedScope.displayName(),
-                querySupport.buildScopePath(selectedScope, index),
+                snapshotDependencyQuerySupport.buildScopePath(selectedScope, index),
                 false
             )
             : new ScopeReference(null, "SNAPSHOT", "All scopes", "All scopes", "All scopes", true);
 
         Set<String> scopedScopeIds = selectedScope != null
-            ? querySupport.collectScopeIds(selectedScope.externalId(), index)
+            ? snapshotDependencyQuerySupport.collectScopeIds(selectedScope.externalId(), index)
             : new LinkedHashSet<>(index.scopeById().keySet());
         Set<String> scopedEntityIds = index.entityById().values().stream()
             .filter(entity -> entity.scopeId() != null && scopedScopeIds.contains(entity.scopeId()))
@@ -60,11 +67,11 @@ public class SnapshotDependencyExplorerService {
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
         List<SnapshotDependencyIndex.RelationshipNode> candidateRelationships = index.relationships().stream()
-            .filter(relationship -> querySupport.includeRelationship(relationship, scopedEntityIds, direction))
+            .filter(relationship -> snapshotDependencyQuerySupport.includeRelationship(relationship, scopedEntityIds, direction))
             .sorted(Comparator
                 .comparing(SnapshotDependencyIndex.RelationshipNode::kind)
-                .thenComparing(relationship -> querySupport.resolveEntityLabel(relationship.fromEntityId(), index))
-                .thenComparing(relationship -> querySupport.resolveEntityLabel(relationship.toEntityId(), index)))
+                .thenComparing(relationship -> snapshotDependencyQuerySupport.resolveEntityLabel(relationship.fromEntityId(), index))
+                .thenComparing(relationship -> snapshotDependencyQuerySupport.resolveEntityLabel(relationship.toEntityId(), index)))
             .toList();
 
         List<SnapshotDependencyIndex.RelationshipNode> visibleRelationships = focusEntityId != null && !focusEntityId.isBlank()
@@ -90,8 +97,8 @@ public class SnapshotDependencyExplorerService {
             .map(index.entityById()::get)
             .filter(Objects::nonNull)
             .sorted(Comparator.comparing((SnapshotDependencyIndex.EntityNode entity) -> !scopedEntityIds.contains(entity.externalId()))
-                .thenComparing(entity -> querySupport.resolveEntityLabel(entity.externalId(), index)))
-            .map(entity -> responseMapper.toEntityResponse(
+                .thenComparing(entity -> snapshotDependencyQuerySupport.resolveEntityLabel(entity.externalId(), index)))
+            .map(entity -> snapshotDependencyResponseMapper.toEntityResponse(
                 entity,
                 index,
                 scopedEntityIds.contains(entity.externalId()),
@@ -101,10 +108,10 @@ public class SnapshotDependencyExplorerService {
             .toList();
 
         List<DependencyRelationshipResponse> relationships = visibleRelationships.stream()
-            .map(relationship -> responseMapper.toRelationshipResponse(relationship, index, scopedEntityIds))
+            .map(relationship -> snapshotDependencyResponseMapper.toRelationshipResponse(relationship, index, scopedEntityIds))
             .toList();
 
-        DependencyFocusResponse focus = responseMapper.resolveFocus(
+        DependencyFocusResponse focus = snapshotDependencyResponseMapper.resolveFocus(
             focusEntityId,
             index,
             scopedEntityIds,
@@ -117,8 +124,8 @@ public class SnapshotDependencyExplorerService {
             snapshot,
             scopeReference,
             direction,
-            querySupport.summarizeKinds(visibleRelationships.stream().map(SnapshotDependencyIndex.RelationshipNode::kind).toList()),
-            querySupport.buildSummary(scopedEntityIds, visibleRelationships),
+            snapshotDependencyQuerySupport.summarizeKinds(visibleRelationships.stream().map(SnapshotDependencyIndex.RelationshipNode::kind).toList()),
+            snapshotDependencyQuerySupport.buildSummary(scopedEntityIds, visibleRelationships),
             entities,
             relationships,
             focus
@@ -126,6 +133,6 @@ public class SnapshotDependencyExplorerService {
     }
 
     private SnapshotDependencyIndex buildIndex(String snapshotId) {
-        return new SnapshotDependencyIndexBuilder(objectMapper).buildIndex(ImportedFactEntity.list("snapshotId", snapshotId));
+        return snapshotDependencyIndexBuilder.buildIndex(ImportedFactEntity.list("snapshotId", snapshotId));
     }
 }
