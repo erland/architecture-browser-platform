@@ -2,9 +2,11 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { SnapshotSummary } from '../appModel';
 import { useCompareExplorer } from './useCompareExplorer';
 import { useBrowserExplorer } from './useBrowserExplorer';
-import { buildSnapshotExplorerFacade } from './snapshotExplorer/useSnapshotExplorerFacade';
-import { useSnapshotExplorerCustomization } from './snapshotExplorer/useSnapshotExplorerCustomization';
-import type { FeedbackSetters } from './snapshotExplorer/useSnapshotExplorer.types';
+import {
+  buildSnapshotExplorerFacade,
+  useSnapshotExplorerCustomization,
+  type FeedbackSetters,
+} from './snapshotExplorer';
 
 export function useSnapshotExplorer(
   selectedWorkspaceId: string | null,

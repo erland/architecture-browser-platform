@@ -10,6 +10,7 @@ import type {
   SavedViewRecord,
 } from '../../appModel';
 import type { FeedbackSetters } from './useSnapshotExplorer.types';
+import { toSnapshotExplorerErrorMessage } from './useSnapshotExplorer.shared';
 
 type CustomizationBindingArgs = {
   selectedWorkspaceId: string | null;
@@ -36,9 +37,6 @@ type CustomizationBindingArgs = {
   focusedEntryPointId: string;
 };
 
-function toErrorMessage(caught: unknown) {
-  return caught instanceof Error ? caught.message : 'Unknown error';
-}
 
 export function useSnapshotExplorerCustomization(
   args: CustomizationBindingArgs,
@@ -86,7 +84,7 @@ export function useSnapshotExplorerCustomization(
       setSelectedSavedViewId((current) => (current && payload.savedViews.some((item) => item.id === current) ? current : ''));
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     }
   }
 
@@ -125,7 +123,7 @@ export function useSnapshotExplorerCustomization(
       await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     } finally {
       setBusyMessage(null);
     }
@@ -139,7 +137,7 @@ export function useSnapshotExplorerCustomization(
       await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     } finally {
       setBusyMessage(null);
     }
@@ -170,7 +168,7 @@ export function useSnapshotExplorerCustomization(
       await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     } finally {
       setBusyMessage(null);
     }
@@ -202,7 +200,7 @@ export function useSnapshotExplorerCustomization(
       await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     } finally {
       setBusyMessage(null);
     }
@@ -216,7 +214,7 @@ export function useSnapshotExplorerCustomization(
       await loadCustomizationOverview(selectedWorkspaceId, selectedSnapshotId);
       setError(null);
     } catch (caught) {
-      setError(toErrorMessage(caught));
+      setError(toSnapshotExplorerErrorMessage(caught));
     } finally {
       setBusyMessage(null);
     }

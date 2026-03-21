@@ -9,7 +9,7 @@ import {
 
 export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, treeMode: BrowserTreeMode) {
   const summary = useMemo(() => index ? buildNavigationTreeSummary(index, treeMode) : null, [index, treeMode]);
-  const roots = summary?.roots ?? [] as BrowserScopeTreeNode[];
+  const roots = summary?.roots ?? ([] as BrowserScopeTreeNode[]);
   const categoryGroups = summary?.categoryGroups ?? [];
   const totalDescendants = summary?.totalDescendants ?? 0;
   const totalDirectEntities = summary?.totalDirectEntities ?? 0;
