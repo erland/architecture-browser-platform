@@ -68,14 +68,14 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
     <div className="content-stack compare-view">
       <section className="card section-intro">
         <p className="eyebrow">Compare</p>
-        <h2>Dedicated snapshot comparison view</h2>
+        <h2>Indexed version comparison view</h2>
         <p className="lead">
-          Step 9 moves snapshot comparison out of the temporary stacked browser flow and into a dedicated route where the active snapshot becomes the baseline for change analysis.
+          Compare lets you inspect changes between indexed versions without leaving the Browser-first workflow. The active indexed version becomes the baseline for change analysis.
         </p>
         <div className="actions actions--wrap">
-          <button type="button" onClick={onOpenSnapshots}>Choose snapshots</button>
+          <button type="button" onClick={onOpenSnapshots}>Choose indexed versions</button>
           <button type="button" className="button-secondary" onClick={onOpenBrowser}>Open Browser view</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open legacy view</button>
         </div>
       </section>
 
@@ -98,7 +98,7 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
             <span className="badge">Step 9</span>
           </div>
           <p className="muted">
-            Compare now has a dedicated route and dedicated orchestration. The baseline snapshot comes from shared app context, and the target snapshot is selected from the current workspace catalog.
+            Compare now has a dedicated route and dedicated orchestration. The baseline indexed version comes from shared app context, and the target indexed version is selected from the current workspace catalog.
           </p>
         </article>
       </section>
@@ -113,17 +113,17 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
       {!workspaceData.selectedWorkspace ? (
         <article className="card empty-state-card">
           <h2>No workspace selected</h2>
-          <p className="muted">Choose a workspace first, then return here to compare snapshots from that workspace.</p>
+          <p className="muted">Choose a workspace first, then return here to compare indexed versions from that workspace.</p>
           <div className="actions">
-            <button type="button" onClick={onOpenSnapshots}>Open Snapshots</button>
+            <button type="button" onClick={onOpenSnapshots}>Open indexed versions</button>
           </div>
         </article>
       ) : !compareExplorer.selectedSnapshot ? (
         <article className="card empty-state-card">
-          <h2>No baseline snapshot selected</h2>
-          <p className="muted">Use the Snapshots view to choose the baseline snapshot you want to compare.</p>
+          <h2>No baseline indexed version selected</h2>
+          <p className="muted">Use Manage sources → Indexed versions to choose the baseline indexed version you want to compare.</p>
           <div className="actions">
-            <button type="button" onClick={onOpenSnapshots}>Open Snapshots</button>
+            <button type="button" onClick={onOpenSnapshots}>Open indexed versions</button>
             <button type="button" className="button-secondary" onClick={onOpenBrowser}>Open Browser</button>
           </div>
         </article>
@@ -132,14 +132,14 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
           <section className="grid grid--top compare-summary-grid">
             <article className="card">
               <div className="section-heading">
-                <h2>Baseline snapshot</h2>
+                <h2>Baseline indexed version</h2>
                 <span className={completenessBadgeClass(compareExplorer.selectedSnapshot.completenessStatus)}>
                   {compareExplorer.selectedSnapshot.completenessStatus}
                 </span>
               </div>
               <dl className="kv kv--compact">
-                <div><dt>Repository</dt><dd>{repositoryLabel}</dd></div>
-                <div><dt>Snapshot key</dt><dd>{compareExplorer.selectedSnapshot.snapshotKey}</dd></div>
+                <div><dt>Source tree</dt><dd>{repositoryLabel}</dd></div>
+                <div><dt>Indexed version key</dt><dd>{compareExplorer.selectedSnapshot.snapshotKey}</dd></div>
                 <div><dt>Branch</dt><dd>{compareExplorer.selectedSnapshot.sourceBranch ?? '—'}</dd></div>
                 <div><dt>Revision</dt><dd>{compareExplorer.selectedSnapshot.sourceRevision ?? '—'}</dd></div>
                 <div><dt>Imported</dt><dd>{compareExplorer.selectedSnapshot.importedAt || '—'}</dd></div>
@@ -152,14 +152,14 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
                 <span className="badge">Focused workflow</span>
               </div>
               <p className="muted compare-guidance">
-                Pick a target snapshot from the same workspace to compare model deltas, changed dependencies, and entry-point changes without the rest of the stacked workspace page competing for screen space.
+                Pick a target indexed version from the same workspace to compare model deltas, changed dependencies, and entry-point changes without the rest of the stacked legacy page competing for screen space.
               </p>
               {compareExplorer.snapshotComparison ? (
                 <p>
                   <strong>{summarizeComparisonHeadline(compareExplorer.snapshotComparison.summary)}</strong>
                 </p>
               ) : (
-                <p className="muted">Select a target snapshot below to load the comparison summary.</p>
+                <p className="muted">Select a target indexed version below to load the comparison summary.</p>
               )}
             </article>
           </section>

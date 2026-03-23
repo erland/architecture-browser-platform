@@ -21,18 +21,29 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
   useEffect(() => {
     setExpandedScopeIds((current) => {
       const next = new Set(current);
+      let changed = false;
       for (const scopeId of computeDefaultExpandedScopeIds(index, selectedScopeId, treeMode)) {
-        next.add(scopeId);
+        if (!next.has(scopeId)) {
+          next.add(scopeId);
+          changed = true;
+        }
       }
-      return [...next];
+      return changed ? [...next] : current;
     });
   }, [index, selectedScopeId, treeMode]);
 
   useEffect(() => {
     setExpandedCategories((current) => {
       const next = new Set(current);
+      let changed = false;
       for (const kind of computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId, treeMode)) {
-        next.add(kind);
+        if (!next.has(kind)) {
+          next.add(kind);
+          changed = true;
+        }
+      }
+      if (!changed) {
+        return current;
       }
       return categoryGroups.map((group) => group.kind).filter((kind) => next.has(kind));
     });

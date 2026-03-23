@@ -22,9 +22,9 @@ export function WorkspacesView() {
     <div className="content-stack">
       <section className="card section-intro">
         <p className="eyebrow">Workspaces</p>
-        <h2>Dedicated workspace administration</h2>
+        <h2>Workspace context administration</h2>
         <p className="lead">
-          Step 3 moves workspace creation, selection, update, and archival into a dedicated view. Repository registration and browser workflows stay in their current screens until later steps.
+          Use this view for workspace-level setup, selection, update, and archival. Source tree registration and Browser workflows stay in their own views.
         </p>
       </section>
 
@@ -42,7 +42,7 @@ export function WorkspacesView() {
         </article>
 
         <article className="card">
-          <h2>Create workspace</h2>
+          <h2>Create workspace context</h2>
           <form className="form" onSubmit={workspaceData.handleCreateWorkspace}>
             <label>
               <span>Workspace key</span>
@@ -79,11 +79,11 @@ export function WorkspacesView() {
 
           <article className="card section-note">
             <div className="section-heading">
-              <h2>What moved out</h2>
+              <h2>What lives elsewhere</h2>
               <span className="badge">Step 3</span>
             </div>
             <p className="muted">
-              Repository registration, run requests, snapshots, and operations remain available in other views for now. This page is intentionally focused on lifecycle management of workspaces.
+              Source tree registration, indexed versions, and operations remain available in other views. This page is intentionally focused on workspace-level lifecycle management.
             </p>
           </article>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { BrowserSearchResult } from '../browserSnapshotIndex';
 
 export type BrowserTopSearchScopeMode = 'selected-scope' | 'entire-snapshot';
@@ -15,7 +15,6 @@ type BrowserTopSearchProps = {
   onQueryChange: (query: string) => void;
   scopeMode: BrowserTopSearchScopeMode;
   onScopeModeChange: (mode: BrowserTopSearchScopeMode) => void;
-  selectedScopeLabel: string | null;
   results: BrowserSearchResult[];
   onActivateResult: (action: BrowserTopSearchResultAction) => void;
   disabled?: boolean;
@@ -80,7 +79,6 @@ export function BrowserTopSearch({
   onQueryChange,
   scopeMode,
   onScopeModeChange,
-  selectedScopeLabel,
   results,
   onActivateResult,
   disabled = false,
@@ -94,18 +92,6 @@ export function BrowserTopSearch({
     }
     setIsOpen(true);
   }, [query, results.length]);
-
-  const helperText = useMemo(() => {
-    if (scopeMode === 'selected-scope' && selectedScopeLabel) {
-      return `Local search is limited to ${selectedScopeLabel}.`;
-    }
-    if (scopeMode === 'selected-scope') {
-      return 'Select a scope to limit local search to the current branch.';
-    }
-    return 'Local search is scanning the entire prepared snapshot.';
-  }, [scopeMode, selectedScopeLabel]);
-
-  const resultHelperText = 'Scope results navigate in the tree. Use Add to seed entity analysis on the canvas.';
 
   return (
     <section className="browser-top-search" aria-label="Local Browser search">
@@ -129,7 +115,7 @@ export function BrowserTopSearch({
             onClick={() => onScopeModeChange('selected-scope')}
             disabled={disabled}
           >
-            Current scope
+            Scope
           </button>
           <button
             type="button"
@@ -137,17 +123,16 @@ export function BrowserTopSearch({
             onClick={() => onScopeModeChange('entire-snapshot')}
             disabled={disabled}
           >
-            Entire snapshot
+            Snapshot
           </button>
         </div>
       </div>
 
-      <div className="browser-top-search__meta">
-        <p className="muted">{helperText}</p>
-        {query.trim() ? <span className="badge">{results.length} hits</span> : <span className="badge">Type to search locally</span>}
-      </div>
-
-      {query.trim() ? <p className="muted browser-top-search__hint">{resultHelperText}</p> : null}
+      {query.trim() ? (
+        <div className="browser-top-search__meta">
+          <span className="badge">{results.length} hits</span>
+        </div>
+      ) : null}
 
       {isOpen ? (
         <div className="browser-top-search__results card" role="listbox" aria-label="Local search results">

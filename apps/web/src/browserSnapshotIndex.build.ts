@@ -9,13 +9,18 @@ export function buildBrowserSnapshotIndex(payload: FullSnapshotPayload): Browser
 export function buildBrowserSnapshotIndex(_snapshotSummary: unknown, payload: FullSnapshotPayload): BrowserSnapshotIndex;
 export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayload?: FullSnapshotPayload): BrowserSnapshotIndex {
   const payload = (maybePayload ?? payloadOrSummary) as FullSnapshotPayload;
-  const scopesById = new Map(payload.scopes.map((scope) => [scope.externalId, scope]));
-  const entitiesById = new Map(payload.entities.map((entity) => [entity.externalId, entity]));
-  const relationshipsById = new Map(payload.relationships.map((relationship) => [relationship.externalId, relationship]));
-  const diagnosticsById = new Map(payload.diagnostics.map((diagnostic) => [diagnostic.externalId, diagnostic]));
+  const scopes = payload.scopes ?? [];
+  const entities = payload.entities ?? [];
+  const relationships = payload.relationships ?? [];
+  const diagnostics = payload.diagnostics ?? [];
+  const viewpoints = payload.viewpoints ?? [];
+  const scopesById = new Map(scopes.map((scope) => [scope.externalId, scope]));
+  const entitiesById = new Map(entities.map((entity) => [entity.externalId, entity]));
+  const relationshipsById = new Map(relationships.map((relationship) => [relationship.externalId, relationship]));
+  const diagnosticsById = new Map(diagnostics.map((diagnostic) => [diagnostic.externalId, diagnostic]));
   const childScopeIdsByParentId = new Map<string | null, string[]>();
   const entityIdsByScopeId = new Map<string | null, string[]>();
-  const viewpointsById = new Map(payload.viewpoints.map((viewpoint) => [viewpoint.id, viewpoint]));
+  const viewpointsById = new Map(viewpoints.map((viewpoint) => [viewpoint.id, viewpoint]));
   const entityIdsByArchitecturalRole = new Map<string, string[]>();
   const relationshipIdsByArchitecturalSemantic = new Map<string, string[]>();
   const inboundRelationshipIdsByEntityId = new Map<string, string[]>();
@@ -24,21 +29,21 @@ export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayloa
   const diagnosticIdsByEntityId = new Map<string, string[]>();
   const scopePathById = new Map<string, string>();
 
-  for (const scope of payload.scopes) pushToMapArray(childScopeIdsByParentId, scope.parentScopeId, scope.externalId);
-  for (const entity of payload.entities) {
+  for (const scope of scopes) pushToMapArray(childScopeIdsByParentId, scope.parentScopeId, scope.externalId);
+  for (const entity of entities) {
     pushToMapArray(entityIdsByScopeId, entity.scopeId, entity.externalId);
     for (const roleId of getArchitecturalRoles(entity)) pushToMapArray(entityIdsByArchitecturalRole, roleId, entity.externalId);
   }
-  for (const relationship of payload.relationships) {
+  for (const relationship of relationships) {
     for (const semantic of getArchitecturalSemantics(relationship)) pushToMapArray(relationshipIdsByArchitecturalSemantic, semantic, relationship.externalId);
     pushToMapArray(outboundRelationshipIdsByEntityId, relationship.fromEntityId, relationship.externalId);
     pushToMapArray(inboundRelationshipIdsByEntityId, relationship.toEntityId, relationship.externalId);
   }
-  for (const diagnostic of payload.diagnostics) {
+  for (const diagnostic of diagnostics) {
     if (diagnostic.scopeId) pushToMapArray(diagnosticIdsByScopeId, diagnostic.scopeId, diagnostic.externalId);
     if (diagnostic.entityId) pushToMapArray(diagnosticIdsByEntityId, diagnostic.entityId, diagnostic.externalId);
   }
-  for (const scope of payload.scopes) scopePathById.set(scope.externalId, buildScopePath(scope, scopesById));
+  for (const scope of scopes) scopePathById.set(scope.externalId, buildScopePath(scope, scopesById));
 
   const index: BrowserSnapshotIndex = {
     snapshotId: payload.snapshot.id,
@@ -68,8 +73,8 @@ export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayloa
     searchableDocuments: [],
   };
 
-  for (const entity of payload.entities) index.containingScopeIdsByEntityId.set(entity.externalId, buildContainingScopeIds(index, entity));
-  for (const relationship of payload.relationships) {
+  for (const entity of entities) index.containingScopeIdsByEntityId.set(entity.externalId, buildContainingScopeIds(index, entity));
+  for (const relationship of relationships) {
     if (relationship.kind === 'CONTAINS') {
       pushToMapArray(index.containedEntityIdsByEntityId, relationship.fromEntityId, relationship.toEntityId);
       pushToMapArray(index.containerEntityIdsByEntityId, relationship.toEntityId, relationship.fromEntityId);
@@ -77,7 +82,7 @@ export function buildBrowserSnapshotIndex(payloadOrSummary: unknown, maybePayloa
   }
   for (const [entityId, containedIds] of index.containedEntityIdsByEntityId.entries()) index.containedEntityIdsByEntityId.set(entityId, sortEntityIds(index, containedIds));
   for (const [entityId, containerIds] of index.containerEntityIdsByEntityId.entries()) index.containerEntityIdsByEntityId.set(entityId, sortEntityIds(index, containerIds));
-  for (const scope of payload.scopes) index.subtreeEntityIdsByScopeId.set(scope.externalId, collectSubtreeEntityIds(index, scope.externalId, index.subtreeEntityIdsByScopeId));
+  for (const scope of scopes) index.subtreeEntityIdsByScopeId.set(scope.externalId, collectSubtreeEntityIds(index, scope.externalId, index.subtreeEntityIdsByScopeId));
 
   index.scopeTree = buildScopeTree(index);
   index.searchableDocuments = buildSearchableDocuments(index);

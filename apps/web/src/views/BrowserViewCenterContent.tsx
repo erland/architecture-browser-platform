@@ -1,4 +1,6 @@
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
+import { BrowserSourceTreeLauncher } from '../components/BrowserSourceTreeLauncher';
+import type { SourceTreeLauncherItem } from '../appModel.sourceTree';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
 
 export type BrowserViewCenterContentProps = {
@@ -7,9 +9,12 @@ export type BrowserViewCenterContentProps = {
   hasSelectedWorkspace: boolean;
   hasSelectedSnapshot: boolean;
   hasPreparedSession: boolean;
+  launcherWorkspaceName: string | null;
+  sourceTreeLauncherItems: SourceTreeLauncherItem[];
+  onSelectSourceTree: (item: SourceTreeLauncherItem) => void;
   onOpenRepositories: () => void;
   onOpenSnapshots: () => void;
-  onOpenLegacy: () => void;
+  onOpenWorkspaces: () => void;
   onAddScopeAnalysis: (scopeId: string, mode: 'primary' | 'direct' | 'subtree' | 'children-primary', kinds?: string[], childScopeKinds?: string[]) => void;
   onAddContainedEntities: (entityId: string, kinds?: string[]) => void;
   onAddPeerEntities: (entityId: string, containerKinds?: string[], peerKinds?: string[]) => void;
@@ -21,49 +26,40 @@ export function BrowserViewCenterContent({
   hasSelectedWorkspace,
   hasSelectedSnapshot,
   hasPreparedSession,
+  launcherWorkspaceName,
+  sourceTreeLauncherItems,
+  onSelectSourceTree,
   onOpenRepositories,
   onOpenSnapshots,
-  onOpenLegacy,
+  onOpenWorkspaces,
   onAddScopeAnalysis,
   onAddContainedEntities,
   onAddPeerEntities,
 }: BrowserViewCenterContentProps) {
-  if (!hasSelectedWorkspace) {
-    return (
-      <article className="card empty-state-card browser-empty-state">
-        <h2>No workspace selected</h2>
-        <p className="muted">Choose a workspace first, then select a snapshot to enter the focused Browser experience.</p>
-        <div className="actions">
-          <button type="button" onClick={onOpenRepositories}>Open Repositories</button>
-          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots</button>
-        </div>
-      </article>
-    );
-  }
-
-  if (!hasSelectedSnapshot) {
-    return (
-      <article className="card empty-state-card browser-empty-state">
-        <h2>No snapshot selected</h2>
-        <p className="muted">Use the Snapshots view to choose an imported snapshot, prepare it locally, then return here to browse the architecture fully in-browser.</p>
-        <div className="actions">
-          <button type="button" onClick={onOpenSnapshots}>Open Snapshots</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
-        </div>
-      </article>
-    );
-  }
-
   if (!hasPreparedSession) {
+    const title = !hasSelectedWorkspace
+      ? 'Open a source tree'
+      : !hasSelectedSnapshot
+        ? 'Choose an indexed version to open'
+        : 'Finishing Browser session preparation';
+
+    const description = !hasSelectedWorkspace
+      ? 'Choose a previously indexed source tree or add a new one, then Browser will become the main workspace for architecture analysis.'
+      : !hasSelectedSnapshot
+        ? 'Select a source tree below or open the indexed version catalog to pick which indexed version should be loaded into Browser.'
+        : 'Browser is waiting for the prepared local snapshot payload. You can select another indexed source tree or open the indexed version catalog.';
+
     return (
-      <article className="card empty-state-card browser-empty-state">
-        <h2>Prepared Browser session required</h2>
-        <p className="muted">This Browser route now depends entirely on the prepared local snapshot payload and indexes. Prepare the snapshot from Snapshots before continuing.</p>
-        <div className="actions">
-          <button type="button" onClick={onOpenSnapshots}>Prepare snapshot</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
-        </div>
-      </article>
+      <BrowserSourceTreeLauncher
+        title={title}
+        description={description}
+        workspaceName={launcherWorkspaceName}
+        items={sourceTreeLauncherItems}
+        onSelectSourceTree={onSelectSourceTree}
+        onOpenRepositories={onOpenRepositories}
+        onOpenSnapshots={onOpenSnapshots}
+        onOpenWorkspaces={onOpenWorkspaces}
+      />
     );
   }
 

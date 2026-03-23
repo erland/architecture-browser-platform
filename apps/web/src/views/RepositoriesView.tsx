@@ -82,10 +82,10 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
   return (
     <div className="content-stack">
       <section className="card section-intro">
-        <p className="eyebrow">Repositories</p>
-        <h2>Dedicated repository registration and run flow</h2>
+        <p className="eyebrow">Source trees</p>
+        <h2>Source tree registration and indexing flow</h2>
         <p className="lead">
-          Step 12 makes the post-indexing journey clearer. After a successful run, the UI now calls out the newest imported snapshot so the user can jump straight into Browser instead of searching for the next step.
+          Register source trees and trigger indexing here. After a successful run, the newest indexed version is called out so you can jump straight into Browser instead of searching for the next step.
         </p>
       </section>
 
@@ -94,19 +94,19 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
           <div className="section-heading">
             <div>
               <p className="eyebrow">Next step after indexing</p>
-              <h2>{runCompletion.requestedResult === 'SUCCESS' ? 'Open the newest snapshot in Browser' : 'Run completed without a ready snapshot'}</h2>
+              <h2>{runCompletion.requestedResult === 'SUCCESS' ? 'Open the newest indexed version in Browser' : 'Run completed without a ready indexed version'}</h2>
             </div>
             <span className={runCompletion.snapshot ? 'badge badge--status' : 'badge badge--warning'}>
-              {runCompletion.snapshot ? 'Snapshot ready' : runCompletion.requestedResult}
+              {runCompletion.snapshot ? 'Indexed version ready' : runCompletion.requestedResult}
             </span>
           </div>
           {runCompletion.snapshot ? (
             <>
               <p className="lead discoverability-callout__lead">
-                The latest imported snapshot for this repository is now selected in shared app context. Open Browser to continue with architecture exploration, or go to Snapshots if you want to inspect metadata first.
+                The latest indexed version for this source tree is now selected in shared app context. Open Browser to continue with architecture exploration, or go to Indexed versions if you want to inspect metadata first.
               </p>
               <dl className="kv kv--compact discoverability-kv">
-                <div><dt>Snapshot</dt><dd>{latestWorkspaceSnapshotLabel(runCompletion.snapshot)}</dd></div>
+                <div><dt>Indexed version</dt><dd>{latestWorkspaceSnapshotLabel(runCompletion.snapshot)}</dd></div>
                 <div><dt>Imported</dt><dd>{formatDateTime(runCompletion.snapshot.importedAt)}</dd></div>
                 <div><dt>Status</dt><dd>{runCompletion.snapshot.completenessStatus} · {runCompletion.snapshot.derivedRunOutcome}</dd></div>
               </dl>
@@ -122,17 +122,17 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
                   {openingBrowser
                     ? 'Preparing Browser…'
                     : browserPreparation.isReady
-                      ? 'Open latest snapshot in Browser'
+                      ? 'Open latest indexed version in Browser'
                       : browserPreparation.status === 'failed'
                         ? 'Retry Browser preparation'
                         : 'Prepare and open Browser'}
                 </button>
-                <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Review in Snapshots</button>
+                <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Review indexed versions</button>
               </div>
             </>
           ) : (
             <p className="muted">
-              This run did not produce a ready snapshot to open directly. Review the latest run status below, then use Snapshots once a successful import has completed.
+              This run did not produce a ready indexed version to open directly. Review the latest run status below, then use Indexed versions once a successful import has completed.
             </p>
           )}
         </section>
@@ -162,15 +162,15 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
                 <div><dt>Name</dt><dd>{workspaceData.selectedWorkspace.name}</dd></div>
                 <div><dt>Key</dt><dd>{workspaceData.selectedWorkspace.workspaceKey}</dd></div>
                 <div><dt>Status</dt><dd>{workspaceData.selectedWorkspace.status}</dd></div>
-                <div><dt>Repositories</dt><dd>{workspaceData.repositories.length}</dd></div>
-                <div><dt>Latest snapshot</dt><dd>{latestWorkspaceSnapshotLabel(latestWorkspaceSnapshot)}</dd></div>
+                <div><dt>Source trees</dt><dd>{workspaceData.repositories.length}</dd></div>
+                <div><dt>Latest indexed version</dt><dd>{latestWorkspaceSnapshotLabel(latestWorkspaceSnapshot)}</dd></div>
               </dl>
               <p className="muted">
-                Repository registration and run requests are handled here for the selected workspace. The newest snapshot becomes the clearest handoff into Snapshots and Browser.
+                Source tree registration and indexing requests are handled here for the selected workspace. The newest indexed version becomes the clearest handoff into Indexed versions and Browser.
               </p>
             </>
           ) : (
-            <p className="muted">No workspace selected yet. Use the Workspaces view first, then return here to manage repositories and trigger runs.</p>
+            <p className="muted">No workspace selected yet. Use Workspace context first, then return here to manage source trees and trigger indexing runs.</p>
           )}
         </article>
       </section>
@@ -199,7 +199,7 @@ export function RepositoriesView({ onOpenBrowser, onOpenSnapshots }: Repositorie
             <span className="badge">Step 12</span>
           </div>
           <p className="muted">
-            Repository create, edit, archive, and run actions remain here, but the path after a successful run is now explicit: Browser for exploration, Snapshots for review, Compare for delta analysis.
+            Source tree create, edit, archive, and run actions remain here, but the path after a successful run is now explicit: Browser for exploration, Indexed versions for review, Compare for delta analysis.
           </p>
         </article>
       </section>

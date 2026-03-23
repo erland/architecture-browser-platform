@@ -78,7 +78,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
   const browserOpenLabel = openingBrowser
     ? 'Preparing Browser…'
     : browserPreparation.isReady
-      ? 'Open selected snapshot in Browser'
+      ? 'Open selected indexed version in Browser'
       : browserPreparation.status === 'failed'
         ? 'Retry Browser preparation'
         : 'Prepare and open Browser';
@@ -86,10 +86,10 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
   return (
     <div className="content-stack">
       <section className="card section-intro">
-        <p className="eyebrow">Snapshots</p>
-        <h2>Dedicated snapshot catalog and selection flow</h2>
+        <p className="eyebrow">Indexed versions</p>
+        <h2>Indexed version catalog and selection flow</h2>
         <p className="lead">
-          Step 12 strengthens the handoff into Browser and Compare. The selected snapshot is now treated as the explicit bridge between indexing and architecture exploration.
+          This catalog is the handoff into Browser and Compare. The selected indexed version acts as the explicit bridge between indexing and architecture exploration.
         </p>
       </section>
 
@@ -98,12 +98,12 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
           <div className="section-heading">
             <div>
               <p className="eyebrow">Recommended next step</p>
-              <h2>Open the selected snapshot in Browser</h2>
+              <h2>Open the selected indexed version in Browser</h2>
             </div>
             <span className={completenessBadgeClass(selectedSnapshot.completenessStatus)}>{selectedSnapshot.completenessStatus}</span>
           </div>
           <p className="lead discoverability-callout__lead">
-            You have already selected a snapshot. Continue into Browser for architecture exploration, or switch to Compare if you want to evaluate changes against another imported snapshot.
+            You have already selected an indexed version. Continue into Browser for architecture exploration, or switch to Compare if you want to evaluate changes against another imported version.
           </p>
           {browserPreparation.message ? (
             <p className={browserPreparation.status === 'failed' ? 'error' : 'notice'}>{browserPreparation.message}</p>
@@ -131,13 +131,13 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
         <section className="card discoverability-callout discoverability-callout--subtle">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Latest imported snapshot</p>
-              <h2>Select a snapshot to continue</h2>
+              <p className="eyebrow">Latest indexed version</p>
+              <h2>Select an indexed version to continue</h2>
             </div>
             <span className="badge">Ready for review</span>
           </div>
           <p className="muted">
-            The most recently imported snapshot is <strong>{latestSnapshot.snapshotKey}</strong> from{' '}
+            The most recently indexed version is <strong>{latestSnapshot.snapshotKey}</strong> from{' '}
             <strong>{latestSnapshot.repositoryName ?? latestSnapshot.repositoryKey ?? latestSnapshot.repositoryRegistrationId}</strong>. Select it below, then open Browser or Compare.
           </p>
         </section>
@@ -167,21 +167,21 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                 <div><dt>Name</dt><dd>{workspaceData.selectedWorkspace.name}</dd></div>
                 <div><dt>Key</dt><dd>{workspaceData.selectedWorkspace.workspaceKey}</dd></div>
                 <div><dt>Status</dt><dd>{workspaceData.selectedWorkspace.status}</dd></div>
-                <div><dt>Snapshots</dt><dd>{workspaceData.snapshots.length}</dd></div>
+                <div><dt>Indexed versions</dt><dd>{workspaceData.snapshots.length}</dd></div>
               </dl>
               <p className="muted">
-                Choose a snapshot here, then continue to Browser or Compare. Browser is now the primary next step after indexing, while Compare remains the place to inspect differences between imports.
+                Choose an indexed version here, then continue to Browser or Compare. Browser is the primary next step after indexing, while Compare remains the place to inspect differences between imports.
               </p>
             </>
           ) : (
-            <p className="muted">No workspace selected yet. Use the Workspaces view first, then return here to choose a snapshot for browsing.</p>
+            <p className="muted">No workspace selected yet. Use Workspace context first, then return here to choose an indexed version for browsing.</p>
           )}
         </article>
       </section>
 
       <section className="card">
         <div className="section-heading">
-          <h2>Snapshot catalog</h2>
+          <h2>Indexed version catalog</h2>
           <span className="badge">{workspaceData.snapshots.length}</span>
         </div>
         {workspaceData.selectedWorkspace ? (
@@ -206,11 +206,11 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
               })}
               {!workspaceData.snapshots.length ? (
                 <div className="empty-state-card card card--nested">
-                  <h3>No snapshots imported yet</h3>
-                  <p className="muted">Run indexing from Repositories first, then come back here to pick a snapshot for Browser.</p>
+                  <h3>No indexed versions yet</h3>
+                  <p className="muted">Run indexing from Source trees first, then come back here to pick an indexed version for Browser.</p>
                   {onOpenRepositories ? (
                     <div className="actions">
-                      <button type="button" onClick={onOpenRepositories}>Open Repositories</button>
+                      <button type="button" onClick={onOpenRepositories}>Open Source trees</button>
                     </div>
                   ) : null}
                 </div>
@@ -222,15 +222,15 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                 <>
                   <article className="card card--nested">
                     <div className="section-heading">
-                      <h3>Selected snapshot</h3>
+                      <h3>Selected indexed version</h3>
                       <span className={completenessBadgeClass(selectedSnapshot.completenessStatus)}>{selectedSnapshot.completenessStatus}</span>
                     </div>
                     {browserPreparation.message ? (
                       <p className={browserPreparation.status === 'failed' ? 'error' : 'notice'}>{browserPreparation.message}</p>
                     ) : null}
                     <dl className="kv kv--compact">
-                      <div><dt>Repository</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</dd></div>
-                      <div><dt>Snapshot key</dt><dd>{selectedSnapshot.snapshotKey}</dd></div>
+                      <div><dt>Source tree</dt><dd>{selectedSnapshot.repositoryName ?? selectedSnapshot.repositoryKey ?? selectedSnapshot.repositoryRegistrationId}</dd></div>
+                      <div><dt>Indexed version key</dt><dd>{selectedSnapshot.snapshotKey}</dd></div>
                       <div><dt>Imported</dt><dd>{selectedSnapshot.importedAt ? formatDateTime(selectedSnapshot.importedAt) : '—'}</dd></div>
                       <div><dt>Branch</dt><dd>{selectedSnapshot.sourceBranch ?? '—'}</dd></div>
                       <div><dt>Revision</dt><dd>{selectedSnapshot.sourceRevision ?? '—'}</dd></div>
@@ -270,7 +270,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                       <span className="badge">Step 12</span>
                     </div>
                     <p className="muted">
-                      The selected snapshot is carried in shared app context. Browser uses it as the main exploration target, Compare uses it as the baseline snapshot, and the legacy route still shows the older stacked workflow.
+                      The selected indexed version is carried in shared app context. Browser uses it as the main exploration target, Compare uses it as the baseline indexed version, and the legacy route still shows the older stacked workflow.
                     </p>
                     <div className="actions actions--wrap">
                       <button

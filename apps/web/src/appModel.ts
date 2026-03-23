@@ -5,3 +5,5 @@ export * from './appModel.customization';
 export * from './appModel.operations';
 export * from './appModel.forms';
 export * from './appModel.utils';
+
+export * from './appModel.sourceTree';

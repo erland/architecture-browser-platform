@@ -1,7 +1,7 @@
 import type { FullSnapshotEntity } from '../appModel';
 import type { BrowserWorkspaceNodeModel, BrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
 import type { BrowserSessionState } from '../browserSessionStore';
-import { renderCompartmentSubtitle, scopeActionLabel } from './BrowserGraphWorkspace.actions';
+import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 
 type ToolbarProps = {
@@ -59,9 +59,9 @@ export function BrowserGraphWorkspaceToolbar({
 }: ToolbarProps) {
   return (
     <>
-      <header className="browser-canvas__header">
+      <header className="browser-canvas__header browser-canvas__header--compact">
         <div>
-          <p className="eyebrow">Canvas workspace</p>
+          <p className="eyebrow">Canvas</p>
           <h3>Local graph surface</h3>
         </div>
         <div className="browser-canvas__header-meta">
@@ -69,70 +69,82 @@ export function BrowserGraphWorkspaceToolbar({
           <span className="badge">{model.edges.length} edges</span>
           <span className="badge">{selectedEntityCount} selected</span>
           <span className="badge">{pinnedNodeCount} pinned</span>
-          <span className="badge">Zoom {Math.round(state.canvasViewport.zoom * 100)}%</span>
-          <span className="badge">Mode {activeModeLabel}</span>
+          <span className="badge">{activeModeLabel}</span>
         </div>
       </header>
 
-      <div className="browser-canvas__toolbar">
-        <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'primary') : undefined} disabled={!scopeActionScopeId || scopePrimaryEntityCount === 0}>Add primary entities</button>
-        <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'direct') : undefined} disabled={!scopeActionScopeId || scopeDirectEntityCount === 0}>Add direct entities</button>
-        <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'subtree') : undefined} disabled={!scopeActionScopeId || scopeSubtreeEntityCount === 0}>Add subtree entities</button>
-        <button type="button" className="button-secondary" onClick={onIsolateSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Isolate selection</button>
-        <button type="button" className="button-secondary" onClick={onRemoveSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Remove selection</button>
-        <button type="button" className="button-secondary" onClick={onArrangeAllCanvasNodes} disabled={model.nodes.length === 0}>Arrange all</button>
-        <button type="button" className="button-secondary" onClick={onArrangeCanvasAroundFocus} disabled={model.nodes.length === 0 || !focusedEntity}>Arrange around focus</button>
-        <button type="button" className="button-secondary" onClick={onFitView} disabled={model.nodes.length === 0}>Fit view</button>
-        <button type="button" className="button-secondary" onClick={onClearCanvas} disabled={model.nodes.length === 0}>Clear canvas</button>
-        <label className="browser-canvas__zoom">
-          <span className="muted">Zoom</span>
-          <input type="range" min="35" max="220" step="5" value={Math.round(state.canvasViewport.zoom * 100)} onChange={(event) => onSetCanvasViewport({ zoom: Number(event.target.value) / 100 })} />
-          <span className="badge">{Math.round(state.canvasViewport.zoom * 100)}%</span>
-        </label>
-      </div>
+      <div className="browser-canvas__toolbar browser-canvas__toolbar--compact">
+        <details className="browser-canvas__menu">
+          <summary className="button-secondary browser-canvas__menu-summary">Add</summary>
+          <div className="browser-canvas__menu-list card">
+            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'primary') : undefined} disabled={!scopeActionScopeId || scopePrimaryEntityCount === 0}>Primary entities</button>
+            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'direct') : undefined} disabled={!scopeActionScopeId || scopeDirectEntityCount === 0}>Direct entities</button>
+            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'subtree') : undefined} disabled={!scopeActionScopeId || scopeSubtreeEntityCount === 0}>Subtree entities</button>
+          </div>
+        </details>
 
-      <div className="browser-canvas__helper-row">
-        <p className="muted">Selected branch: {scopeActionLabel(state.index, scopeActionScopeId)}</p>
-        <div className="actions browser-canvas__selection-toolbar">
-          {focusedEntity ? (
-            entityActions.map((action) => {
-              if (action.key === 'pin') {
-                const isPinned = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntity.externalId)?.pinned;
+        <details className="browser-canvas__menu">
+          <summary className="button-secondary browser-canvas__menu-summary">Arrange</summary>
+          <div className="browser-canvas__menu-list card">
+            <button type="button" className="button-secondary" onClick={onArrangeAllCanvasNodes} disabled={model.nodes.length === 0}>Arrange all</button>
+            <button type="button" className="button-secondary" onClick={onArrangeCanvasAroundFocus} disabled={model.nodes.length === 0 || !focusedEntity}>Arrange around focus</button>
+          </div>
+        </details>
+
+        <details className="browser-canvas__menu">
+          <summary className="button-secondary browser-canvas__menu-summary">Selection</summary>
+          <div className="browser-canvas__menu-list card">
+            <button type="button" className="button-secondary" onClick={onIsolateSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Isolate</button>
+            <button type="button" className="button-secondary" onClick={onRemoveSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Remove</button>
+            {focusedEntity ? (
+              entityActions.map((action) => {
+                if (action.key === 'pin') {
+                  const isPinned = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntity.externalId)?.pinned;
+                  return (
+                    <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)}>
+                      {isPinned ? 'Unpin' : 'Pin'}
+                    </button>
+                  );
+                }
                 return (
-                  <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)}>
-                    {isPinned ? 'Unpin' : 'Pin'}
+                  <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)} disabled={action.disabled}>
+                    {action.label}
                   </button>
                 );
-              }
-              return (
-                <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)} disabled={action.disabled}>
-                  {action.label}
-                </button>
-              );
-            })
-          ) : focusedScopeId ? (
-            <>
-              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'children-primary')} disabled={scopeChildCount === 0}>Child primary{scopeChildCount > 0 ? ` (${Math.min(scopeChildCount, 24)})` : ''}</button>
-              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'direct')} disabled={scopeDirectEntityCount === 0}>Direct entities{scopeDirectEntityCount > 0 ? ` (${Math.min(scopeDirectEntityCount, 24)})` : ''}</button>
-              <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'subtree')} disabled={scopeSubtreeEntityCount === 0}>Subtree entities{scopeSubtreeEntityCount > 0 ? ` (${Math.min(scopeSubtreeEntityCount, 24)})` : ''}</button>
-              <details className="browser-canvas__advanced-scope">
-                <summary className="button-secondary">Advanced scope node</summary>
-                <div className="browser-canvas__advanced-scope-actions">
-                  <p className="muted">Entity actions are the default. Use scope nodes only when you explicitly want container/debug context on the canvas.</p>
-                  <div className="actions">
+              })
+            ) : focusedScopeId ? (
+              <>
+                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'children-primary')} disabled={scopeChildCount === 0}>Child primary</button>
+                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'direct')} disabled={scopeDirectEntityCount === 0}>Direct entities</button>
+                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'subtree')} disabled={scopeSubtreeEntityCount === 0}>Subtree entities</button>
+                <details className="browser-canvas__menu browser-canvas__menu--inline">
+                  <summary className="button-secondary browser-canvas__menu-summary">Advanced scope node</summary>
+                  <div className="browser-canvas__menu-list card">
                     <button type="button" className="button-secondary" onClick={() => onShowScopeContainer(focusedScopeId)}>Show selected scope as container</button>
                     <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
-                      {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin scope node' : 'Pin scope node'}
+                      {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin container' : 'Pin container'}
                     </button>
                   </div>
-                </div>
-              </details>
-            </>
-          ) : (
-            <span className="muted">Focus an entity to explore relationships, containment, and neighbors. Scope actions remain available as an advanced fallback.</span>
-          )}
+                </details>
+              </>
+            ) : (
+              <span className="muted browser-canvas__menu-empty">Focus an entity or scope for more actions.</span>
+            )}
+          </div>
+        </details>
+
+        <button type="button" className="button-secondary" onClick={onClearCanvas} disabled={model.nodes.length === 0}>Clear</button>
+
+        <div className="browser-canvas__viewport-tools">
+          <button type="button" className="button-secondary" onClick={onFitView} disabled={model.nodes.length === 0}>Fit view</button>
+          <label className="browser-canvas__zoom browser-canvas__zoom--compact" aria-label={`Zoom ${Math.round(state.canvasViewport.zoom * 100)}%`}>
+            <span className="sr-only">Zoom</span>
+            <input type="range" min="35" max="220" step="5" value={Math.round(state.canvasViewport.zoom * 100)} onChange={(event) => onSetCanvasViewport({ zoom: Number(event.target.value) / 100 })} />
+            <span className="sr-only">{Math.round(state.canvasViewport.zoom * 100)}%</span>
+          </label>
         </div>
       </div>
+
     </>
   );
 }

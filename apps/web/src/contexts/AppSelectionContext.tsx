@@ -6,8 +6,10 @@ import {
   parseAppSelectionSearch,
   type AppSelectionState,
 } from '../routing/appSelectionState';
+import { useBrowserSession } from './BrowserSessionContext';
 
 const STORAGE_KEY = 'architecture-browser-platform.app-selection.v1';
+const LAST_OPEN_BROWSER_SOURCE_KEY = 'architecture-browser-platform.browser-last-open-source-tree.v1';
 
 type AppSelectionContextValue = AppSelectionState & {
   setSelectedWorkspaceId: Dispatch<SetStateAction<string | null>>;
@@ -18,13 +20,13 @@ type AppSelectionContextValue = AppSelectionState & {
 
 const AppSelectionContext = createContext<AppSelectionContextValue | null>(null);
 
-function readPersistedSelection(): Partial<AppSelectionState> {
+function readPersistedRecord(key: string): Partial<AppSelectionState> {
   if (typeof window === 'undefined') {
     return emptyAppSelectionState;
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) {
       return emptyAppSelectionState;
     }
@@ -34,20 +36,41 @@ function readPersistedSelection(): Partial<AppSelectionState> {
   }
 }
 
+function readPersistedSelection(): Partial<AppSelectionState> {
+  return readPersistedRecord(STORAGE_KEY);
+}
+
+function readLastOpenedBrowserSource(): Partial<AppSelectionState> {
+  return readPersistedRecord(LAST_OPEN_BROWSER_SOURCE_KEY);
+}
+
+function resolveInitialSelection(args: {
+  persistedSelection?: Partial<AppSelectionState> | null;
+  lastOpenedBrowserSource?: Partial<AppSelectionState> | null;
+  locationSearch?: string;
+}): AppSelectionState {
+  return mergeAppSelectionState(
+    args.persistedSelection,
+    mergeAppSelectionState(
+      args.lastOpenedBrowserSource,
+      parseAppSelectionSearch(args.locationSearch ?? ''),
+    ),
+  );
+}
+
 function readInitialSelection(): AppSelectionState {
   if (typeof window === 'undefined') {
     return emptyAppSelectionState;
   }
 
-  return mergeAppSelectionState(
-    readPersistedSelection(),
-    parseAppSelectionSearch(window.location.search),
-  );
+  return resolveInitialSelection({
+    persistedSelection: readPersistedSelection(),
+    lastOpenedBrowserSource: readLastOpenedBrowserSource(),
+    locationSearch: window.location.search,
+  });
 }
 
-export function AppSelectionProvider({ children }: { children: ReactNode }) {
-  const [selection, setSelection] = useState<AppSelectionState>(() => readInitialSelection());
-
+function AppSelectionStorageSync({ selection }: { selection: AppSelectionState }) {
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -59,6 +82,45 @@ export function AppSelectionProvider({ children }: { children: ReactNode }) {
       window.history.replaceState({}, '', `${window.location.pathname}${nextSearch}${window.location.hash}`);
     }
   }, [selection]);
+
+  return null;
+}
+
+function buildLastOpenedBrowserSourceSelection(activeSnapshot: {
+  workspaceId: string;
+  repositoryId: string | null;
+  snapshotId: string;
+}): AppSelectionState {
+  return {
+    selectedWorkspaceId: activeSnapshot.workspaceId,
+    selectedRepositoryId: activeSnapshot.repositoryId,
+    selectedSnapshotId: activeSnapshot.snapshotId,
+  };
+}
+
+function BrowserLastOpenedSourceSync() {
+  const browserSession = useBrowserSession();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const activeSnapshot = browserSession.state.activeSnapshot;
+    if (!activeSnapshot) {
+      return;
+    }
+
+    const lastOpenedSelection = buildLastOpenedBrowserSourceSelection(activeSnapshot);
+
+    window.localStorage.setItem(LAST_OPEN_BROWSER_SOURCE_KEY, JSON.stringify(lastOpenedSelection));
+  }, [browserSession.state.activeSnapshot]);
+
+  return null;
+}
+
+export function AppSelectionProvider({ children }: { children: ReactNode }) {
+  const [selection, setSelection] = useState<AppSelectionState>(() => readInitialSelection());
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -120,7 +182,13 @@ export function AppSelectionProvider({ children }: { children: ReactNode }) {
     resetSelections,
   }), [resetSelections, selection]);
 
-  return <AppSelectionContext.Provider value={value}>{children}</AppSelectionContext.Provider>;
+  return (
+    <AppSelectionContext.Provider value={value}>
+      <AppSelectionStorageSync selection={selection} />
+      <BrowserLastOpenedSourceSync />
+      {children}
+    </AppSelectionContext.Provider>
+  );
 }
 
 export function useAppSelectionContext() {
@@ -130,3 +198,11 @@ export function useAppSelectionContext() {
   }
   return context;
 }
+
+export const __appSelectionContextTestExports = {
+  STORAGE_KEY,
+  LAST_OPEN_BROWSER_SOURCE_KEY,
+  readInitialSelection,
+  resolveInitialSelection,
+  buildLastOpenedBrowserSourceSelection,
+};

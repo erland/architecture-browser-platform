@@ -6,6 +6,7 @@ import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.Sn
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotOverviewResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
+import info.isaksson.erland.architecturebrowser.platform.domain.CompletenessStatus;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
 import info.isaksson.erland.architecturebrowser.platform.domain.ImportedFactEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegistrationEntity;
@@ -16,7 +17,9 @@ import info.isaksson.erland.architecturebrowser.platform.service.management.Repo
 import info.isaksson.erland.architecturebrowser.platform.service.management.WorkspaceManagementService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
+import java.time.Instant;
 import java.util.List;
 
 @ApplicationScoped
@@ -36,21 +39,47 @@ public class SnapshotCatalogService {
     @Inject
     SnapshotCatalogOverviewBuilder overviewBuilder;
 
+    @Inject
+    EntityManager entityManager;
+
     public List<SnapshotSummaryResponse> listByWorkspace(String workspaceId) {
         workspaceManagementService.requireWorkspace(workspaceId);
-        List<SnapshotEntity> snapshots = SnapshotEntity.list("workspaceId = ?1 order by importedAt desc", workspaceId);
-        return mapSummaries(snapshots);
+        List<SnapshotSummaryProjection> snapshots = entityManager.createQuery("""
+            select new info.isaksson.erland.architecturebrowser.platform.service.snapshots.SnapshotCatalogService$SnapshotSummaryProjection(
+                s.id, s.workspaceId, s.repositoryRegistrationId, r.repositoryKey, r.name, s.runId, s.snapshotKey,
+                s.status, s.completenessStatus, s.schemaVersion, s.indexerVersion, s.sourceRevision, s.sourceBranch,
+                s.importedAt, s.scopeCount, s.entityCount, s.relationshipCount, s.diagnosticCount,
+                s.indexedFileCount, s.totalFileCount, s.degradedFileCount
+            )
+            from SnapshotEntity s
+            left join RepositoryRegistrationEntity r on r.id = s.repositoryRegistrationId
+            where s.workspaceId = :workspaceId
+            order by s.importedAt desc
+            """, SnapshotSummaryProjection.class)
+            .setParameter("workspaceId", workspaceId)
+            .getResultList();
+        return snapshots.stream().map(this::toSummary).toList();
     }
 
     public List<SnapshotSummaryResponse> listByRepository(String workspaceId, String repositoryId) {
         workspaceManagementService.requireWorkspace(workspaceId);
         repositoryManagementService.requireRepository(workspaceId, repositoryId);
-        List<SnapshotEntity> snapshots = SnapshotEntity.list(
-            "workspaceId = ?1 and repositoryRegistrationId = ?2 order by importedAt desc",
-            workspaceId,
-            repositoryId
-        );
-        return mapSummaries(snapshots);
+        List<SnapshotSummaryProjection> snapshots = entityManager.createQuery("""
+            select new info.isaksson.erland.architecturebrowser.platform.service.snapshots.SnapshotCatalogService$SnapshotSummaryProjection(
+                s.id, s.workspaceId, s.repositoryRegistrationId, r.repositoryKey, r.name, s.runId, s.snapshotKey,
+                s.status, s.completenessStatus, s.schemaVersion, s.indexerVersion, s.sourceRevision, s.sourceBranch,
+                s.importedAt, s.scopeCount, s.entityCount, s.relationshipCount, s.diagnosticCount,
+                s.indexedFileCount, s.totalFileCount, s.degradedFileCount
+            )
+            from SnapshotEntity s
+            left join RepositoryRegistrationEntity r on r.id = s.repositoryRegistrationId
+            where s.workspaceId = :workspaceId and s.repositoryRegistrationId = :repositoryId
+            order by s.importedAt desc
+            """, SnapshotSummaryProjection.class)
+            .setParameter("workspaceId", workspaceId)
+            .setParameter("repositoryId", repositoryId)
+            .getResultList();
+        return snapshots.stream().map(this::toSummary).toList();
     }
 
     public SnapshotDetailResponse getDetail(String workspaceId, String snapshotId) {
@@ -102,10 +131,6 @@ public class SnapshotCatalogService {
         );
     }
 
-    private List<SnapshotSummaryResponse> mapSummaries(List<SnapshotEntity> snapshots) {
-        return snapshots.stream().map(this::toSummary).toList();
-    }
-
     public SnapshotSummaryResponse getSummary(String workspaceId, String snapshotId) {
         return toSummary(requireSnapshot(workspaceId, snapshotId));
     }
@@ -138,12 +163,96 @@ public class SnapshotCatalogService {
         );
     }
 
+    private SnapshotSummaryResponse toSummary(SnapshotSummaryProjection snapshot) {
+        return new SnapshotSummaryResponse(
+            snapshot.id,
+            snapshot.workspaceId,
+            snapshot.repositoryRegistrationId,
+            snapshot.repositoryKey,
+            snapshot.repositoryName,
+            snapshot.runId,
+            snapshot.snapshotKey,
+            snapshot.status,
+            snapshot.completenessStatus,
+            deriveRunOutcome(snapshot.completenessStatus),
+            snapshot.schemaVersion,
+            snapshot.indexerVersion,
+            snapshot.sourceRevision,
+            snapshot.sourceBranch,
+            snapshot.importedAt,
+            snapshot.scopeCount,
+            snapshot.entityCount,
+            snapshot.relationshipCount,
+            snapshot.diagnosticCount,
+            snapshot.indexedFileCount,
+            snapshot.totalFileCount,
+            snapshot.degradedFileCount
+        );
+    }
+
     private RunOutcome deriveRunOutcome(SnapshotEntity snapshot) {
-        return switch (snapshot.completenessStatus) {
+        return deriveRunOutcome(snapshot.completenessStatus);
+    }
+
+    private RunOutcome deriveRunOutcome(CompletenessStatus completenessStatus) {
+        return switch (completenessStatus) {
             case COMPLETE -> RunOutcome.SUCCESS;
             case PARTIAL -> RunOutcome.PARTIAL;
             case FAILED -> RunOutcome.FAILED;
         };
+    }
+
+
+    public static class SnapshotSummaryProjection {
+        public final String id;
+        public final String workspaceId;
+        public final String repositoryRegistrationId;
+        public final String repositoryKey;
+        public final String repositoryName;
+        public final String runId;
+        public final String snapshotKey;
+        public final info.isaksson.erland.architecturebrowser.platform.domain.SnapshotStatus status;
+        public final info.isaksson.erland.architecturebrowser.platform.domain.CompletenessStatus completenessStatus;
+        public final String schemaVersion;
+        public final String indexerVersion;
+        public final String sourceRevision;
+        public final String sourceBranch;
+        public final Instant importedAt;
+        public final int scopeCount;
+        public final int entityCount;
+        public final int relationshipCount;
+        public final int diagnosticCount;
+        public final int indexedFileCount;
+        public final int totalFileCount;
+        public final int degradedFileCount;
+
+        public SnapshotSummaryProjection(String id, String workspaceId, String repositoryRegistrationId, String repositoryKey, String repositoryName,
+                                         String runId, String snapshotKey, info.isaksson.erland.architecturebrowser.platform.domain.SnapshotStatus status,
+                                         info.isaksson.erland.architecturebrowser.platform.domain.CompletenessStatus completenessStatus, String schemaVersion,
+                                         String indexerVersion, String sourceRevision, String sourceBranch, Instant importedAt, int scopeCount, int entityCount,
+                                         int relationshipCount, int diagnosticCount, int indexedFileCount, int totalFileCount, int degradedFileCount) {
+            this.id = id;
+            this.workspaceId = workspaceId;
+            this.repositoryRegistrationId = repositoryRegistrationId;
+            this.repositoryKey = repositoryKey;
+            this.repositoryName = repositoryName;
+            this.runId = runId;
+            this.snapshotKey = snapshotKey;
+            this.status = status;
+            this.completenessStatus = completenessStatus;
+            this.schemaVersion = schemaVersion;
+            this.indexerVersion = indexerVersion;
+            this.sourceRevision = sourceRevision;
+            this.sourceBranch = sourceBranch;
+            this.importedAt = importedAt;
+            this.scopeCount = scopeCount;
+            this.entityCount = entityCount;
+            this.relationshipCount = relationshipCount;
+            this.diagnosticCount = diagnosticCount;
+            this.indexedFileCount = indexedFileCount;
+            this.totalFileCount = totalFileCount;
+            this.degradedFileCount = degradedFileCount;
+        }
     }
 
     private SnapshotEntity requireSnapshot(String workspaceId, String snapshotId) {

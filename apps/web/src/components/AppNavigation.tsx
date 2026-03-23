@@ -10,9 +10,9 @@ export function AppNavigation({ currentPath, onNavigate }: AppNavigationProps) {
     <nav className="app-nav card" aria-label="Primary">
       <div>
         <p className="eyebrow">Navigation</p>
-        <h2 className="app-nav__title">Platform views</h2>
+        <h2 className="app-nav__title">Browser-first navigation</h2>
         <p className="muted app-nav__lead">
-Steps 6–10 bring dedicated Browser, Compare, and Operations routes online so architecture exploration, snapshot delta analysis, and operational administration now have focused shells.
+Browser is now the primary shell. Use Manage sources when you need to add a new source tree, run indexing, or review indexed versions.
         </p>
       </div>
       <div className="app-nav__links">

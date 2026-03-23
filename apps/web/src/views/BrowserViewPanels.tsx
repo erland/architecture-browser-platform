@@ -1,13 +1,8 @@
 import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
-import { BrowserOverviewStrip } from '../components/BrowserOverviewStrip';
 import { BrowserViewpointControls } from '../components/BrowserViewpointControls';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
-import { formatTimestamp } from './browserView.shared';
 
-type SnapshotLike = {
-  importedAt?: string | null;
-};
 
 export type BrowserRailPanelProps = {
   browserSession: BrowserSessionContextValue;
@@ -16,9 +11,6 @@ export type BrowserRailPanelProps = {
   onCollapse: () => void;
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
   selectedScopeLabel: string | null;
-  workspaceName: string | null | undefined;
-  repositoryLabel: string;
-  snapshot: SnapshotLike | null;
 };
 
 export function BrowserRailPanel({
@@ -28,9 +20,6 @@ export function BrowserRailPanel({
   onCollapse,
   onAddScopeEntitiesToCanvas,
   selectedScopeLabel,
-  workspaceName,
-  repositoryLabel,
-  snapshot,
 }: BrowserRailPanelProps) {
   return (
     <aside className={`browser-workspace__rail ${isCollapsed ? 'browser-workspace__side-panel--collapsed' : ''}`}>
@@ -74,23 +63,6 @@ export function BrowserRailPanel({
             onApplyViewpoint={browserSession.applySelectedViewpoint}
           />
 
-          <section className="card browser-workspace__mini-context">
-            <p className="eyebrow">Current snapshot</p>
-            <div className="browser-mini-kv">
-              <div>
-                <span>Workspace</span>
-                <strong>{workspaceName ?? '—'}</strong>
-              </div>
-              <div>
-                <span>Repository</span>
-                <strong>{repositoryLabel}</strong>
-              </div>
-              <div>
-                <span>Captured</span>
-                <strong>{formatTimestamp(snapshot?.importedAt)}</strong>
-              </div>
-            </div>
-          </section>
         </div>
       )}
     </aside>
@@ -98,27 +70,16 @@ export function BrowserRailPanel({
 }
 
 export type BrowserInspectorPanelProps = {
-  activeTabLabel: string;
   browserSession: BrowserSessionContextValue;
-  browserSessionSummary: string | null;
   isCollapsed: boolean;
-  localSnapshotCounts: {
-    scopes: number;
-    entities: number;
-    relationships: number;
-    diagnostics: number;
-  } | null;
   onExpand: () => void;
   onCollapse: () => void;
   onSetActiveTab: (tab: 'layout' | 'search' | 'dependencies') => void;
 };
 
 export function BrowserInspectorPanel({
-  activeTabLabel,
   browserSession,
-  browserSessionSummary,
   isCollapsed,
-  localSnapshotCounts,
   onExpand,
   onCollapse,
   onSetActiveTab,
@@ -179,46 +140,6 @@ export function BrowserInspectorPanel({
             onRemoveSelection={browserSession.removeCanvasSelection}
             onClose={() => browserSession.openFactsPanel('hidden', 'right')}
           />
-
-          <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Local analysis focus</p>
-            <div className="browser-mini-kv">
-              <div>
-                <span>Mode</span>
-                <strong>{activeTabLabel}</strong>
-              </div>
-              <div>
-                <span>Focused element</span>
-                <strong>{browserSession.state.focusedElement ? `${browserSession.state.focusedElement.kind}:${browserSession.state.focusedElement.id}` : 'None'}</strong>
-              </div>
-              <div>
-                <span>Session</span>
-                <strong>{browserSession.state.activeSnapshot ? 'Open' : 'Not loaded'}</strong>
-              </div>
-            </div>
-            <div className="browser-workspace__mode-meta browser-workspace__mode-meta--compact">
-              {browserSessionSummary ? <span className="badge">{browserSessionSummary}</span> : null}
-              {browserSession.state.selectedScopeId ? <span className="badge">Scope {browserSession.state.selectedScopeId}</span> : null}
-              {browserSession.state.selectedEntityIds.length > 0 ? <span className="badge">{browserSession.state.selectedEntityIds.length} selected entities</span> : null}
-              <span className="badge badge--status">Local-only Browser</span>
-            </div>
-          </section>
-
-          <BrowserOverviewStrip state={browserSession.state} />
-
-          <section className="card browser-workspace__inspector-card">
-            <p className="eyebrow">Prepared model</p>
-            {localSnapshotCounts ? (
-              <div className="browser-count-grid">
-                <div><strong>{localSnapshotCounts.scopes}</strong><span>Scopes</span></div>
-                <div><strong>{localSnapshotCounts.entities}</strong><span>Entities</span></div>
-                <div><strong>{localSnapshotCounts.relationships}</strong><span>Relationships</span></div>
-                <div><strong>{localSnapshotCounts.diagnostics}</strong><span>Diagnostics</span></div>
-              </div>
-            ) : (
-              <p className="muted">Open a prepared snapshot to see local counts.</p>
-            )}
-          </section>
         </>
       )}
     </aside>

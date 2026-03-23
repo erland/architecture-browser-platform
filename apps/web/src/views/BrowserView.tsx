@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
+import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
 import { BrowserTopSearch } from '../components/BrowserTopSearch';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
@@ -11,9 +13,30 @@ import { type BrowserViewProps } from './browserView.shared';
 import { useBrowserViewActions } from './useBrowserViewActions';
 import { useBrowserViewLayout } from './useBrowserViewLayout';
 
-export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories, onOpenLegacy }: BrowserViewProps) {
-  const [busyMessage, setBusyMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+function formatFooterTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return 'Captured —';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return `Captured ${value}`;
+  }
+
+  return `Captured ${date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+}
+
+export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories }: BrowserViewProps) {
+  const [, setBusyMessage] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
+  const [isSourceTreeSwitcherOpen, setIsSourceTreeSwitcherOpen] = useState(false);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
@@ -28,17 +51,19 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   });
 
   const selectedSnapshot = useMemo(() => {
+    if (selection.selectedSnapshotId) {
+      return workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
+    }
+
     const sessionSnapshotId = browserSession.state.activeSnapshot?.snapshotId;
     if (sessionSnapshotId) {
       return workspaceData.snapshots.find((snapshot) => snapshot.id === sessionSnapshotId) ?? null;
     }
-    if (selection.selectedSnapshotId) {
-      return workspaceData.snapshots.find((snapshot) => snapshot.id === selection.selectedSnapshotId) ?? null;
-    }
-    return null;
-  }, [browserSession.state.activeSnapshot?.snapshotId, selection.selectedSnapshotId, workspaceData.snapshots]);
 
-  const browserSessionBootstrap = useBrowserSessionBootstrap({
+    return null;
+  }, [selection.selectedSnapshotId, browserSession.state.activeSnapshot?.snapshotId, workspaceData.snapshots]);
+
+  useBrowserSessionBootstrap({
     workspaceId: workspaceData.selectedWorkspaceId,
     repositoryId: selection.selectedRepositoryId,
     snapshot: selectedSnapshot,
@@ -55,25 +80,27 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     return workspaceData.repositories.find((repository) => repository.id === selectedSnapshot.repositoryRegistrationId) ?? null;
   }, [workspaceData.repositories, selection.selectedRepositoryId, selectedSnapshot]);
 
+  const sourceTreeLauncherItems = useMemo(() => buildSourceTreeLauncherItems({
+    workspace: workspaceData.selectedWorkspace,
+    repositories: workspaceData.repositories,
+    snapshots: workspaceData.snapshots,
+  }), [workspaceData.selectedWorkspace, workspaceData.repositories, workspaceData.snapshots]);
+
+  const handleSelectSourceTree = (item: SourceTreeLauncherItem) => {
+    selection.setSelectedWorkspaceId(item.workspaceId);
+    selection.setSelectedRepositoryId(item.repositoryId);
+    selection.setSelectedSnapshotId(item.latestSnapshotId);
+    setIsSourceTreeSwitcherOpen(false);
+  };
+
   const repositoryLabel = selectedRepository?.name
     ?? selectedSnapshot?.repositoryName
     ?? selectedSnapshot?.repositoryKey
     ?? selectedSnapshot?.repositoryRegistrationId
     ?? '—';
 
-  const browserSessionSummary = browserSession.state.activeSnapshot ? [
-    `${browserSession.state.canvasNodes.length} canvas nodes`,
-    `${browserSession.state.canvasEdges.length} canvas edges`,
-    `${browserSession.state.searchResults.length} local search hits`,
-  ].join(' · ') : null;
 
   const activeTabMeta = browserTabs.find((tab) => tab.key === browserLayout.activeTab) ?? browserTabs[0];
-  const localSnapshotCounts = browserSession.state.payload ? {
-    scopes: browserSession.state.payload.scopes.length,
-    entities: browserSession.state.payload.entities.length,
-    relationships: browserSession.state.payload.relationships.length,
-    diagnostics: browserSession.state.payload.diagnostics.length,
-  } : null;
 
   const selectedScopeLabel = useMemo(() => {
     if (!browserSession.state.index || !browserSession.state.selectedScopeId) {
@@ -98,53 +125,44 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   return (
     <div className="browser-workspace" aria-label="Browser analysis workspace">
       <header className="card browser-workspace__topbar">
-        <div className="browser-workspace__topbar-main">
-          <div>
+        <div className="browser-workspace__header-row browser-workspace__header-row--compact">
+          <div className="browser-workspace__title-block">
             <p className="eyebrow">Browser</p>
             <h2>Analysis workspace</h2>
           </div>
-          <div className="browser-workspace__context-strip" aria-label="Current browser context">
-            <span className="badge">Workspace {workspaceData.selectedWorkspace?.name ?? '—'}</span>
-            <span className="badge">Repository {repositoryLabel}</span>
-            <span className="badge">Snapshot {selectedSnapshotLabel}</span>
-            <span className="badge">Mode {activeTabMeta.label}</span>
-            {browserSession.state.activeSnapshot ? <span className="badge badge--status">Prepared locally</span> : null}
+
+          <div className="browser-workspace__search-slot">
+            <BrowserTopSearch
+              query={browserSession.state.searchQuery}
+              onQueryChange={(query) => browserSession.setSearch(query, browserActions.effectiveTopSearchScopeId)}
+              scopeMode={browserLayout.topSearchScopeMode}
+              onScopeModeChange={(mode) => {
+                browserLayout.setTopSearchScopeMode(mode);
+                const nextScopeId = mode === 'selected-scope' ? browserSession.state.selectedScopeId : null;
+                browserSession.setSearch(browserSession.state.searchQuery, nextScopeId);
+              }}
+              results={browserSession.state.searchResults}
+              onActivateResult={browserActions.handleTopSearchResult}
+              disabled={!browserSession.state.index}
+            />
           </div>
-        </div>
-        <BrowserTopSearch
-          query={browserSession.state.searchQuery}
-          onQueryChange={(query) => browserSession.setSearch(query, browserActions.effectiveTopSearchScopeId)}
-          scopeMode={browserLayout.topSearchScopeMode}
-          onScopeModeChange={(mode) => {
-            browserLayout.setTopSearchScopeMode(mode);
-            const nextScopeId = mode === 'selected-scope' ? browserSession.state.selectedScopeId : null;
-            browserSession.setSearch(browserSession.state.searchQuery, nextScopeId);
-          }}
-          selectedScopeLabel={selectedScopeLabel}
-          results={browserSession.state.searchResults}
-          onActivateResult={browserActions.handleTopSearchResult}
-          disabled={!browserSession.state.index}
-        />
-        <div className="browser-workspace__topbar-actions">
-          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Change snapshot</button>
-          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Repositories</button>
-          <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Workspaces</button>
-          <button type="button" onClick={onOpenLegacy}>Exit Browser</button>
+
+          <button type="button" className="browser-workspace__source-tree-button" onClick={() => setIsSourceTreeSwitcherOpen(true)}>Source tree</button>
         </div>
       </header>
 
-      <div className="browser-workspace__statusbar">
-        <div className="browser-health-bar browser-health-bar--compact">
-          <span className="badge">API {workspaceData.health.status}</span>
-          <span className="badge">{workspaceData.health.service}</span>
-          {browserSession.state.activeSnapshot ? <span className="badge">Session {browserSession.state.activeSnapshot.snapshotKey}</span> : null}
-          {busyMessage ? <span className="badge badge--warning">{busyMessage}</span> : null}
-          {error ? <span className="badge badge--danger">{error}</span> : null}
-        </div>
-        {browserSessionBootstrap.message ? (
-          <p className={browserSessionBootstrap.status === 'failed' ? 'error browser-workspace__status-message' : 'notice browser-workspace__status-message'}>{browserSessionBootstrap.message}</p>
-        ) : null}
-      </div>
+      <BrowserSourceTreeSwitcherDialog
+        isOpen={isSourceTreeSwitcherOpen}
+        workspaceName={workspaceData.selectedWorkspace?.name ?? null}
+        currentSourceTreeLabel={`Source tree ${repositoryLabel}`}
+        currentIndexedVersionLabel={`Indexed version ${selectedSnapshotLabel}`}
+        items={sourceTreeLauncherItems}
+        onSelectSourceTree={handleSelectSourceTree}
+        onOpenRepositories={onOpenRepositories}
+        onOpenSnapshots={onOpenSnapshots}
+        onOpenWorkspaces={onOpenWorkspaces}
+        onClose={() => setIsSourceTreeSwitcherOpen(false)}
+      />
 
       <div className="browser-workspace__layout" style={browserLayout.layoutStyle}>
         <BrowserRailPanel
@@ -154,9 +172,6 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           onCollapse={() => browserLayout.setIsRailCollapsed(true)}
           onAddScopeEntitiesToCanvas={browserActions.handleAddPrimaryScopeEntitiesToCanvas}
           selectedScopeLabel={selectedScopeLabel}
-          workspaceName={workspaceData.selectedWorkspace?.name}
-          repositoryLabel={repositoryLabel}
-          snapshot={selectedSnapshot}
         />
 
         <div
@@ -174,9 +189,12 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             hasSelectedWorkspace={Boolean(workspaceData.selectedWorkspace)}
             hasSelectedSnapshot={Boolean(selectedSnapshot)}
             hasPreparedSession={Boolean(browserSession.state.index && browserSession.state.payload)}
+            launcherWorkspaceName={workspaceData.selectedWorkspace?.name ?? null}
+            sourceTreeLauncherItems={sourceTreeLauncherItems}
+            onSelectSourceTree={handleSelectSourceTree}
             onOpenRepositories={onOpenRepositories}
             onOpenSnapshots={onOpenSnapshots}
-            onOpenLegacy={onOpenLegacy}
+            onOpenWorkspaces={onOpenWorkspaces}
             onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
             onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
             onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}
@@ -192,16 +210,34 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         />
 
         <BrowserInspectorPanel
-          activeTabLabel={activeTabMeta.label}
           browserSession={browserSession}
-          browserSessionSummary={browserSessionSummary}
           isCollapsed={browserLayout.isInspectorCollapsed}
-          localSnapshotCounts={localSnapshotCounts}
           onExpand={() => browserLayout.setIsInspectorCollapsed(false)}
           onCollapse={() => browserLayout.setIsInspectorCollapsed(true)}
           onSetActiveTab={browserLayout.setActiveTab}
         />
       </div>
+
+      <footer className="card browser-workspace__footer" aria-label="Current browser context">
+        <p
+          className="browser-workspace__lead muted"
+          title={workspaceData.selectedWorkspace?.name
+            ? `Workspace ${workspaceData.selectedWorkspace.name}`
+            : undefined}
+        >
+          {repositoryLabel} · {activeTabMeta.label}
+        </p>
+        <div className="browser-workspace__context-strip">
+          <span className="badge">Scope {selectedScopeLabel ?? 'Entire snapshot'}</span>
+          <span
+            className="badge"
+            title={selectedSnapshotLabel !== '—' ? `Snapshot ${selectedSnapshotLabel}` : undefined}
+          >
+            {formatFooterTimestamp(selectedSnapshot?.importedAt)}
+          </span>
+          {browserSession.state.activeSnapshot ? <span className="badge badge--status">Prepared locally</span> : null}
+        </div>
+      </footer>
     </div>
   );
 }

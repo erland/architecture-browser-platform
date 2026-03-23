@@ -35,15 +35,15 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOp
   return (
     <div className="content-stack">
       <section className="card section-intro">
-        <p className="eyebrow">Current workspace</p>
-        <h2>Snapshot and operations flow</h2>
+        <p className="eyebrow">Legacy view</p>
+        <h2>Older indexed-version and operations flow</h2>
         <p className="lead">
-          Workspace lifecycle management now lives in Workspaces, repository registration plus run requests now live in Repositories, and snapshot selection now lives in Snapshots. This temporary screen is reduced to detailed snapshot exploration only. Operations and audit now live in their own dedicated route.
+          Workspace lifecycle management now lives in Workspace context, source tree registration and indexing live in Manage sources, and indexed-version selection lives there as well. This temporary screen is reduced to detailed indexed-version exploration only. Operations and audit now live in their own dedicated route.
         </p>
         <div className="actions">
-          <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open Workspaces view</button>
-          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Repositories view</button>
-          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots view</button>
+          <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Open workspace context</button>
+          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Manage sources</button>
+          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open indexed versions</button>
           <button type="button" className="button-secondary" onClick={onOpenOperations}>Open Operations view</button>
         </div>
       </section>
@@ -73,12 +73,12 @@ export function LegacyWorkspaceView({ onOpenWorkspaces, onOpenRepositories, onOp
               <div><dt>Status</dt><dd>{workspaceData.selectedWorkspace.status}</dd></div>
             </dl>
           ) : (
-            <p className="muted">No workspace selected yet. Use the dedicated Workspaces view to create or select one before working with repositories and snapshots.</p>
+            <p className="muted">No workspace selected yet. Use Workspace context to create or select one before working with source trees and indexed versions.</p>
           )}
           <div className="actions">
             <button type="button" onClick={onOpenWorkspaces}>Manage workspaces</button>
-            <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage repositories and runs</button>
-            <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Choose snapshot</button>
+            <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage source trees and runs</button>
+            <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Choose indexed version</button>
             <button type="button" className="button-secondary" onClick={onOpenOperations}>Open operations</button>
           </div>
         </article>

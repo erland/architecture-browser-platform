@@ -121,8 +121,8 @@ export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSele
           <h2 className="app-nav__title">Scope explorer</h2>
         </div>
         <div className="browser-navigation-tree__actions">
-          <button type="button" className="button-secondary" onClick={expandAll}>Expand all</button>
-          <button type="button" className="button-secondary" onClick={collapseToSelection}>Focus selection</button>
+          <button type="button" className="button-secondary" onClick={expandAll}>Expand</button>
+          <button type="button" className="button-secondary" onClick={collapseToSelection}>Focus</button>
         </div>
       </div>
 
@@ -141,10 +141,6 @@ export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSele
             </button>
           ))}
       </div>
-
-      <p className="muted app-nav__lead">
-        {TREE_MODE_META[treeMode].description}. Default for this snapshot: <strong>{TREE_MODE_META[defaultTreeMode].label}</strong>.
-      </p>
 
       <div className="browser-navigation-tree__summary">
         <span className="badge">{index.payload.scopes.length} scopes</span>
@@ -194,6 +190,18 @@ export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSele
           );
         })}
       </ul>
+
+      <footer className="browser-navigation-tree__footer">
+        <div className="browser-navigation-tree__summary">
+          <span className="badge">{index.payload.scopes.length} scopes</span>
+          <span className="badge">{index.payload.entities.length} entities</span>
+          <span className="badge">{totalDescendants} nested</span>
+          <span className="badge">{totalDirectEntities} direct</span>
+        </div>
+        <p className="muted browser-navigation-tree__footer-note">
+          {TREE_MODE_META[treeMode].description}. Default: <strong>{TREE_MODE_META[defaultTreeMode].label}</strong>.
+        </p>
+      </footer>
     </section>
   );
 }

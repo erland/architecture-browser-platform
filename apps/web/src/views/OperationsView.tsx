@@ -33,10 +33,10 @@ export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSna
           Step 10 moves operational administration, retention review, failed run visibility, and audit inspection into a dedicated route so the temporary stacked workspace page no longer competes with operational workflows.
         </p>
         <div className="actions actions--wrap">
-          <button type="button" onClick={onOpenWorkspaces}>Choose workspace</button>
-          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Repositories</button>
-          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open Snapshots</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current workspace</button>
+          <button type="button" onClick={onOpenWorkspaces}>Choose workspace context</button>
+          <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Manage sources</button>
+          <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open indexed versions</button>
+          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open legacy view</button>
         </div>
       </section>
 
@@ -63,9 +63,9 @@ export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSna
               <dl className="kv kv--compact">
                 <div><dt>Workspace</dt><dd>{workspaceData.selectedWorkspace.name}</dd></div>
                 <div><dt>Workspace key</dt><dd>{workspaceData.selectedWorkspace.workspaceKey}</dd></div>
-                <div><dt>Repositories</dt><dd>{workspaceData.repositories.length}</dd></div>
+                <div><dt>Source trees</dt><dd>{workspaceData.repositories.length}</dd></div>
                 <div><dt>Recent runs</dt><dd>{workspaceData.recentRuns.length}</dd></div>
-                <div><dt>Snapshots</dt><dd>{workspaceData.snapshots.length}</dd></div>
+                <div><dt>Indexed versions</dt><dd>{workspaceData.snapshots.length}</dd></div>
                 <div><dt>Audit events</dt><dd>{workspaceData.auditEvents.length}</dd></div>
               </dl>
               <p className="muted">
@@ -73,7 +73,7 @@ export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSna
               </p>
             </>
           ) : (
-            <p className="muted">No workspace selected yet. Use Workspaces to choose one, then return here to review runs, retention, and audit activity.</p>
+            <p className="muted">No workspace selected yet. Use Workspace context to choose one, then return here to review runs, retention, and audit activity.</p>
           )}
         </article>
       </section>
@@ -95,7 +95,7 @@ export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSna
           <h2>No workspace selected</h2>
           <p className="muted">Select a workspace first, then return here to inspect operations, retention, failures, and audit history.</p>
           <div className="actions">
-            <button type="button" onClick={onOpenWorkspaces}>Open Workspaces</button>
+            <button type="button" onClick={onOpenWorkspaces}>Open workspace context</button>
           </div>
         </article>
       )}

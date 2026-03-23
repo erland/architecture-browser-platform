@@ -7,10 +7,10 @@ import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AppSelectionProvider>
-      <BrowserSessionProvider>
+    <BrowserSessionProvider>
+      <AppSelectionProvider>
         <App />
-      </BrowserSessionProvider>
-    </AppSelectionProvider>
+      </AppSelectionProvider>
+    </BrowserSessionProvider>
   </React.StrictMode>,
 );

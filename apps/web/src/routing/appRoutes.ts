@@ -1,22 +1,25 @@
 export const appRoutes = [
-  { path: '/legacy', label: 'Current workspace', description: 'Temporary stacked screen for detailed snapshot exploration and operations.' },
-  { path: '/workspaces', label: 'Workspaces', description: 'Dedicated workspace administration view.' },
-  { path: '/repositories', label: 'Repositories', description: 'Dedicated repository registration and run request view.' },
-  { path: '/snapshots', label: 'Snapshots', description: 'Dedicated snapshot catalog, selection, and handoff into Browser or Compare.' },
+  { path: '/legacy', label: 'Legacy view', description: 'Older stacked workflow kept temporarily for detailed indexed-version exploration and operations.' },
+  { path: '/workspaces', label: 'Workspace context', description: 'Administration view for workspace-level setup and lifecycle management.' },
+  { path: '/sources', label: 'Manage sources', description: 'Unified source management flow for source trees, indexing runs, and indexed versions.' },
   { path: '/browser', label: 'Browser', description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.' },
-  { path: '/compare', label: 'Compare', description: 'Dedicated snapshot comparison workflow for comparing the selected baseline snapshot with another imported snapshot.' },
+  { path: '/compare', label: 'Compare', description: 'Compare one indexed version with another to inspect changes in structure, dependencies, and entry points.' },
   { path: '/operations', label: 'Operations', description: 'Dedicated operational administration, retention, failure review, and audit view.' },
 ] as const;
 
 export type AppRoutePath = (typeof appRoutes)[number]['path'];
 
 const routePathSet = new Set<string>(appRoutes.map((route) => route.path));
+const legacySourceAliases = new Set<string>(['/repositories', '/snapshots']);
 
 export function normalizeRoutePath(pathname: string): AppRoutePath {
   if (routePathSet.has(pathname)) {
     return pathname as AppRoutePath;
   }
-  return '/legacy';
+  if (legacySourceAliases.has(pathname)) {
+    return '/sources';
+  }
+  return '/browser';
 }
 
 export function getRouteMeta(pathname: AppRoutePath) {
