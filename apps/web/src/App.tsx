@@ -5,7 +5,6 @@ import { useAppSelectionContext } from './contexts/AppSelectionContext';
 import { type AppRoutePath } from './routing/appRoutes';
 import { buildNavigationUrl, readRoutePath } from './routing/appRouteState';
 import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
-import { RoutePlaceholderView } from './views/RoutePlaceholderView';
 import { BrowserView } from './views/BrowserView';
 import { CompareView } from './views/CompareView';
 import { WorkspacesView } from './views/WorkspacesView';
@@ -70,7 +69,7 @@ export function App() {
     if (currentPath === '/operations') {
       return <OperationsView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/sources')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenLegacy={() => handleNavigate('/legacy')} />;
     }
-    return <RoutePlaceholderView path={currentPath} onOpenLegacy={() => handleNavigate('/legacy')} />;
+    return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenRepositories={() => handleNavigate('/sources')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} onOpenLegacy={() => handleNavigate('/legacy')} />;
   }, [currentPath, handleNavigate]);
 
   const isBrowserRoute = currentPath === '/browser';
