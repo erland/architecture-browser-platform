@@ -92,8 +92,6 @@ function TreeBranch({
 export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSelectScope, onAddScopeEntitiesToCanvas, onTreeModeChange }: BrowserNavigationTreeProps) {
   const {
     categoryGroups,
-    totalDescendants,
-    totalDirectEntities,
     defaultTreeMode,
     expandedSet,
     expandedCategorySet,
@@ -142,13 +140,6 @@ export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSele
           ))}
       </div>
 
-      <div className="browser-navigation-tree__summary">
-        <span className="badge">{index.payload.scopes.length} scopes</span>
-        <span className="badge">{index.payload.entities.length} entities</span>
-        <span className="badge">{totalDescendants} nested scopes</span>
-        <span className="badge">{totalDirectEntities} direct entities</span>
-      </div>
-
       <ul className="browser-tree" role="tree">
         {categoryGroups.map((group) => {
           const isExpanded = expandedCategorySet.has(group.kind);
@@ -192,12 +183,6 @@ export function BrowserNavigationTree({ index, selectedScopeId, treeMode, onSele
       </ul>
 
       <footer className="browser-navigation-tree__footer">
-        <div className="browser-navigation-tree__summary">
-          <span className="badge">{index.payload.scopes.length} scopes</span>
-          <span className="badge">{index.payload.entities.length} entities</span>
-          <span className="badge">{totalDescendants} nested</span>
-          <span className="badge">{totalDirectEntities} direct</span>
-        </div>
         <p className="muted browser-navigation-tree__footer-note">
           {TREE_MODE_META[treeMode].description}. Default: <strong>{TREE_MODE_META[defaultTreeMode].label}</strong>.
         </p>

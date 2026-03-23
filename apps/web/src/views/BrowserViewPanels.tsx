@@ -1,6 +1,6 @@
 import { BrowserFactsPanel } from '../components/BrowserFactsPanel';
 import { BrowserNavigationTree } from '../components/BrowserNavigationTree';
-import { BrowserViewpointControls } from '../components/BrowserViewpointControls';
+import { buildNavigationTreeSummary } from '../components/browserNavigationTree.model';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
 
 
@@ -10,7 +10,7 @@ export type BrowserRailPanelProps = {
   onExpand: () => void;
   onCollapse: () => void;
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
-  selectedScopeLabel: string | null;
+  onOpenViewpoints: () => void;
 };
 
 export function BrowserRailPanel({
@@ -19,8 +19,12 @@ export function BrowserRailPanel({
   onExpand,
   onCollapse,
   onAddScopeEntitiesToCanvas,
-  selectedScopeLabel,
+  onOpenViewpoints,
 }: BrowserRailPanelProps) {
+  const navigationSummary = browserSession.state.index
+    ? buildNavigationTreeSummary(browserSession.state.index, browserSession.state.treeMode)
+    : null;
+
   return (
     <aside className={`browser-workspace__rail ${isCollapsed ? 'browser-workspace__side-panel--collapsed' : ''}`}>
       {isCollapsed ? (
@@ -37,7 +41,10 @@ export function BrowserRailPanel({
         <div className="browser-workspace__rail-sticky">
           <div className="browser-workspace__panel-header">
             <p className="eyebrow">Navigation</p>
-            <button type="button" className="button-secondary browser-workspace__panel-toggle" onClick={onCollapse}>Hide</button>
+            <div className="browser-workspace__panel-header-actions">
+              <button type="button" className="button-secondary browser-workspace__panel-toggle" onClick={onOpenViewpoints}>Viewpoints</button>
+              <button type="button" className="button-secondary browser-workspace__panel-toggle" onClick={onCollapse}>Hide</button>
+            </div>
           </div>
 
           <BrowserNavigationTree
@@ -49,19 +56,17 @@ export function BrowserRailPanel({
             onTreeModeChange={browserSession.setTreeMode}
           />
 
-          <BrowserViewpointControls
-            index={browserSession.state.index}
-            selectedScopeLabel={selectedScopeLabel}
-            selection={browserSession.state.viewpointSelection}
-            appliedViewpoint={browserSession.state.appliedViewpoint}
-            presentationPreference={browserSession.state.viewpointPresentationPreference}
-            onSelectViewpoint={browserSession.setSelectedViewpoint}
-            onSelectScopeMode={browserSession.setViewpointScopeMode}
-            onSelectApplyMode={browserSession.setViewpointApplyMode}
-            onSelectVariant={browserSession.setViewpointVariant}
-            onSelectPresentationPreference={browserSession.setViewpointPresentationPreference}
-            onApplyViewpoint={browserSession.applySelectedViewpoint}
-          />
+
+          {navigationSummary ? (
+            <footer className="browser-workspace__rail-footer">
+              <div className="browser-navigation-tree__summary">
+                <span className="badge">{browserSession.state.index?.payload.scopes.length ?? 0} scopes</span>
+                <span className="badge">{navigationSummary.totalDescendants} nested</span>
+                <span className="badge">{browserSession.state.index?.payload.entities.length ?? 0} entities</span>
+                <span className="badge">{navigationSummary.totalDirectEntities} direct</span>
+              </div>
+            </footer>
+          ) : null}
 
         </div>
       )}

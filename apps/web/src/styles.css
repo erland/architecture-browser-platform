@@ -556,6 +556,12 @@ dd {
   border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
+.browser-workspace__rail-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
 .browser-navigation-tree__footer-note {
   margin: 0;
   font-size: 0.82rem;
@@ -1438,7 +1444,8 @@ dd {
 
 .browser-workspace__rail-sticky,
 .browser-workspace__inspector {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   min-height: 0;
   height: 100%;
@@ -2501,4 +2508,15 @@ dd {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+
+.browser-workspace__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-dialog__surface--viewpoints .browser-viewpoint-controls {
+  padding-top: 0;
 }

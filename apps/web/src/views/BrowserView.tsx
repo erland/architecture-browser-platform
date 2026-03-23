@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
 import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
 import { BrowserTopSearch } from '../components/BrowserTopSearch';
+import { BrowserViewpointDialog } from '../components/BrowserViewpointDialog';
 import { useAppSelectionContext } from '../contexts/AppSelectionContext';
 import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap';
@@ -37,6 +38,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
   const [, setBusyMessage] = useState<string | null>(null);
   const [, setError] = useState<string | null>(null);
   const [isSourceTreeSwitcherOpen, setIsSourceTreeSwitcherOpen] = useState(false);
+  const [isViewpointDialogOpen, setIsViewpointDialogOpen] = useState(false);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
@@ -115,6 +117,11 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     ?? browserSession.state.activeSnapshot?.snapshotKey
     ?? '—';
 
+
+  const activeViewpointLabel = browserSession.state.appliedViewpoint?.viewpoint.title
+    ?? browserSession.state.appliedViewpoint?.viewpoint.id
+    ?? (browserSession.state.viewpointSelection.viewpointId ? `Viewpoint ${browserSession.state.viewpointSelection.viewpointId}` : 'Manual canvas');
+
   const browserActions = useBrowserViewActions({
     browserSession,
     activeTab: browserLayout.activeTab,
@@ -147,9 +154,27 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             />
           </div>
 
-          <button type="button" className="browser-workspace__source-tree-button" onClick={() => setIsSourceTreeSwitcherOpen(true)}>Source tree</button>
+          <div className="browser-workspace__header-actions">
+            <button type="button" className="browser-workspace__source-tree-button" onClick={() => setIsSourceTreeSwitcherOpen(true)}>Source tree</button>
+          </div>
         </div>
       </header>
+
+      <BrowserViewpointDialog
+        isOpen={isViewpointDialogOpen}
+        index={browserSession.state.index}
+        selectedScopeLabel={selectedScopeLabel}
+        selection={browserSession.state.viewpointSelection}
+        appliedViewpoint={browserSession.state.appliedViewpoint}
+        presentationPreference={browserSession.state.viewpointPresentationPreference}
+        onSelectViewpoint={browserSession.setSelectedViewpoint}
+        onSelectScopeMode={browserSession.setViewpointScopeMode}
+        onSelectApplyMode={browserSession.setViewpointApplyMode}
+        onSelectVariant={browserSession.setViewpointVariant}
+        onSelectPresentationPreference={browserSession.setViewpointPresentationPreference}
+        onApplyViewpoint={browserSession.applySelectedViewpoint}
+        onClose={() => setIsViewpointDialogOpen(false)}
+      />
 
       <BrowserSourceTreeSwitcherDialog
         isOpen={isSourceTreeSwitcherOpen}
@@ -171,7 +196,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
           onExpand={() => browserLayout.setIsRailCollapsed(false)}
           onCollapse={() => browserLayout.setIsRailCollapsed(true)}
           onAddScopeEntitiesToCanvas={browserActions.handleAddPrimaryScopeEntitiesToCanvas}
-          selectedScopeLabel={selectedScopeLabel}
+          onOpenViewpoints={() => setIsViewpointDialogOpen(true)}
         />
 
         <div
@@ -229,6 +254,7 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
         </p>
         <div className="browser-workspace__context-strip">
           <span className="badge">Scope {selectedScopeLabel ?? 'Entire snapshot'}</span>
+          <span className="badge">{activeViewpointLabel}</span>
           <span
             className="badge"
             title={selectedSnapshotLabel !== '—' ? `Snapshot ${selectedSnapshotLabel}` : undefined}
