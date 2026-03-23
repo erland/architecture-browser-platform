@@ -7,3 +7,5 @@ export * from './appModel.forms';
 export * from './appModel.utils';
 
 export * from './appModel.sourceTree';
+
+export type { RepositoryUpdateRequest } from './platformApi';

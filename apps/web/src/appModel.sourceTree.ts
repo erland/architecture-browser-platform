@@ -13,6 +13,8 @@ export type SourceTreeLauncherItem = {
   latestSnapshotKey: string | null;
   latestImportedAt: string | null;
   status: 'ready' | 'empty';
+  latestRunStatusLabel: string;
+  latestIndexedAtLabel: string;
   searchText: string;
 };
 
@@ -71,6 +73,7 @@ export function buildSourceTreeLauncherItems(args: {
   }
 
   return [...repositories]
+    .filter((repository) => repository.status !== 'ARCHIVED')
     .map((repository) => {
       const latestSnapshot = latestSnapshotsByRepositoryId.get(repository.id) ?? null;
       const sourceTreeLabel = repository.name.trim() || repository.repositoryKey.trim() || repository.id;
@@ -79,6 +82,11 @@ export function buildSourceTreeLauncherItems(args: {
         repository.sourceType === 'LOCAL_PATH' ? repository.localPath : repository.remoteUrl,
         repository.defaultBranch,
       ].filter(Boolean).join(' · ') || 'Source path not configured';
+
+      const latestRunStatusLabel = latestSnapshot
+        ? (latestSnapshot.derivedRunOutcome === 'FAILED' ? 'Failure' : latestSnapshot.derivedRunOutcome === 'PARTIAL' ? 'Partial' : 'Success')
+        : 'Not indexed';
+      const latestIndexedAtLabel = latestSnapshot?.importedAt ?? null;
 
       return {
         id: buildSourceTreeId(workspace.id, repository.id),
@@ -95,6 +103,8 @@ export function buildSourceTreeLauncherItems(args: {
         latestSnapshotKey: latestSnapshot?.snapshotKey ?? null,
         latestImportedAt: latestSnapshot?.importedAt ?? null,
         status: latestSnapshot ? 'ready' : 'empty',
+        latestRunStatusLabel,
+        latestIndexedAtLabel: latestIndexedAtLabel ?? 'Never indexed',
         searchText: [
           workspace.name,
           sourceTreeLabel,

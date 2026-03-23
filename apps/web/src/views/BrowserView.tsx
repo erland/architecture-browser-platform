@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest } from '../appModel';
+import { platformApi } from '../platformApi';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
 import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
 import { BrowserTopSearch } from '../components/BrowserTopSearch';
@@ -34,11 +36,15 @@ function formatFooterTimestamp(value: string | null | undefined) {
   })}`;
 }
 
-export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositories }: BrowserViewProps) {
+export function BrowserView(_: BrowserViewProps) {
   const [, setBusyMessage] = useState<string | null>(null);
   const [, setError] = useState<string | null>(null);
   const [isSourceTreeSwitcherOpen, setIsSourceTreeSwitcherOpen] = useState(false);
   const [isViewpointDialogOpen, setIsViewpointDialogOpen] = useState(false);
+
+  const handleOpenRepositories = () => setIsSourceTreeSwitcherOpen(true);
+  const handleOpenSnapshots = () => setIsSourceTreeSwitcherOpen(true);
+  const handleOpenWorkspaces = () => setIsSourceTreeSwitcherOpen(true);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
@@ -93,6 +99,59 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
     selection.setSelectedRepositoryId(item.repositoryId);
     selection.setSelectedSnapshotId(item.latestSnapshotId);
     setIsSourceTreeSwitcherOpen(false);
+  };
+
+  const handleCreateRepositoryFromDialog = async (payload: typeof emptyRepositoryForm) => {
+    const workspaceId = workspaceData.selectedWorkspace?.id ?? selection.selectedWorkspaceId;
+    if (!workspaceId) {
+      return;
+    }
+    setBusyMessage(`Creating source tree ${payload.name || payload.repositoryKey}…`);
+    try {
+      const created = await platformApi.createRepository<Repository>(workspaceId, payload);
+      await workspaceData.loadWorkspaces();
+      await workspaceData.loadWorkspaceDetail(workspaceId);
+      selection.setSelectedWorkspaceId(workspaceId);
+      selection.setSelectedRepositoryId(created.id);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unknown error');
+      throw caught;
+    } finally {
+      setBusyMessage(null);
+    }
+  };
+
+  const handleRequestReindexFromDialog = async (repository: Repository) => {
+    const latestSnapshot = await workspaceData.handleRequestRun(repository, 'SUCCESS');
+    selection.setSelectedWorkspaceId(repository.workspaceId);
+    selection.setSelectedRepositoryId(repository.id);
+    selection.setSelectedSnapshotId(latestSnapshot?.id ?? null);
+  };
+
+  const handleArchiveRepositoryFromDialog = async (repository: Repository) => {
+    await workspaceData.handleArchiveRepository(repository.id);
+    if (selection.selectedRepositoryId === repository.id) {
+      selection.setSelectedRepositoryId(null);
+      selection.setSelectedSnapshotId(null);
+    }
+  };
+
+  const handleUpdateRepositoryFromDialog = async (repository: Repository, payload: RepositoryUpdateRequest) => {
+    setBusyMessage(`Updating source tree ${payload.name || repository.name}…`);
+    try {
+      await platformApi.updateRepository<Repository>(repository.workspaceId, repository.id, payload);
+      await workspaceData.loadWorkspaces();
+      await workspaceData.loadWorkspaceDetail(repository.workspaceId);
+      selection.setSelectedWorkspaceId(repository.workspaceId);
+      selection.setSelectedRepositoryId(repository.id);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unknown error');
+      throw caught;
+    } finally {
+      setBusyMessage(null);
+    }
   };
 
   const repositoryLabel = selectedRepository?.name
@@ -178,14 +237,13 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
 
       <BrowserSourceTreeSwitcherDialog
         isOpen={isSourceTreeSwitcherOpen}
-        workspaceName={workspaceData.selectedWorkspace?.name ?? null}
-        currentSourceTreeLabel={`Source tree ${repositoryLabel}`}
-        currentIndexedVersionLabel={`Indexed version ${selectedSnapshotLabel}`}
         items={sourceTreeLauncherItems}
+        repositories={workspaceData.repositories}
         onSelectSourceTree={handleSelectSourceTree}
-        onOpenRepositories={onOpenRepositories}
-        onOpenSnapshots={onOpenSnapshots}
-        onOpenWorkspaces={onOpenWorkspaces}
+        onCreateRepository={handleCreateRepositoryFromDialog}
+        onRequestReindex={handleRequestReindexFromDialog}
+        onArchiveRepository={handleArchiveRepositoryFromDialog}
+        onUpdateRepository={handleUpdateRepositoryFromDialog}
         onClose={() => setIsSourceTreeSwitcherOpen(false)}
       />
 
@@ -217,9 +275,9 @@ export function BrowserView({ onOpenWorkspaces, onOpenSnapshots, onOpenRepositor
             launcherWorkspaceName={workspaceData.selectedWorkspace?.name ?? null}
             sourceTreeLauncherItems={sourceTreeLauncherItems}
             onSelectSourceTree={handleSelectSourceTree}
-            onOpenRepositories={onOpenRepositories}
-            onOpenSnapshots={onOpenSnapshots}
-            onOpenWorkspaces={onOpenWorkspaces}
+                        onOpenRepositories={handleOpenRepositories}
+            onOpenSnapshots={handleOpenSnapshots}
+            onOpenWorkspaces={handleOpenWorkspaces}
             onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
             onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
             onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}

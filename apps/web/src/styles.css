@@ -2520,3 +2520,63 @@ dd {
 .browser-dialog__surface--viewpoints .browser-viewpoint-controls {
   padding-top: 0;
 }
+
+.browser-dialog--nested {
+  z-index: 42;
+}
+
+.browser-dialog__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.browser-dialog__surface--nested {
+  width: min(720px, calc(100vw - 40px));
+}
+
+.browser-dialog__management {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.browser-dialog__source-list {
+  display: grid;
+  gap: 12px;
+}
+
+.browser-dialog__source-item {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.18);
+}
+
+.browser-dialog__source-main {
+  display: grid;
+  gap: 8px;
+}
+
+.browser-dialog__source-main h4 {
+  margin: 0;
+}
+
+.browser-dialog__source-main p {
+  margin: 0;
+}
+
+.browser-dialog__source-actions,
+.browser-dialog__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browser-dialog__form {
+  display: grid;
+  gap: 12px;
+}
