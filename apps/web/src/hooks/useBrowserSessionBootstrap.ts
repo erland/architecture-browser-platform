@@ -47,7 +47,7 @@ export async function bootstrapPreparedBrowserSession(options: {
   if (!cachedRecord || !cache.isSnapshotCurrent(snapshot, cachedRecord)) {
     return {
       status: 'failed',
-      message: `Snapshot ${snapshot.snapshotKey} is not prepared locally yet. Return to Snapshots and prepare Browser data first.`,
+      message: `Snapshot ${snapshot.snapshotKey} is not prepared locally yet. Open the source tree dialog and prepare Browser data first.`,
       opened: false,
     };
   }

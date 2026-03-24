@@ -21,6 +21,7 @@
     "verify:safety-net": "./scripts/verify-safety-net.sh",
     "clean:generated": "./scripts/clean-generated-artifacts.sh",
     "verify:refactor": "./scripts/verify-refactor.sh",
-    "verify:browser-only-baseline": "./scripts/verify-browser-only-baseline.sh"
+    "verify:browser-only-baseline": "./scripts/verify-browser-only-baseline.sh",
+    "verify:remaining-frontend-baseline": "./scripts/verify-remaining-frontend-baseline.sh"
   }
 }

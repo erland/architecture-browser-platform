@@ -31,32 +31,12 @@ export type RunRequest = {
   requestedResult: "SUCCESS" | "FAILURE";
 };
 
-export type OverlayCreateRequest = {
-  name: string;
-  kind: string;
-  targetEntityIds: string[];
-  targetScopeIds: string[];
-  note: string;
-  attributes: Record<string, unknown>;
-};
-
 export type SavedViewCreateRequest = {
   name: string;
   viewType: string;
   queryState: Record<string, string>;
   layoutState: Record<string, string>;
 };
-
-function withQuery(path: string, params: Record<string, string | number | undefined | null>) {
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && `${value}` !== "") {
-      search.set(key, `${value}`);
-    }
-  });
-  const query = search.toString();
-  return query ? `${path}?${query}` : path;
-}
 
 export function createPlatformApi(client = httpClient) {
   return {
@@ -65,41 +45,8 @@ export function createPlatformApi(client = httpClient) {
     getWorkspaceRepositories: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/repositories`, { method: "GET" }),
     getWorkspaceRuns: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/runs/recent`, { method: "GET" }),
     getWorkspaceSnapshots: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots`, { method: "GET" }),
-    getSnapshotOverview: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overview`, { method: "GET" }),
-    getFullSnapshotPayload: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: "GET" }),
-    getLayoutTree: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/tree`, { method: "GET" }),
-    getLayoutScopeDetail: <T>(workspaceId: string, snapshotId: string, scopeId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/scopes/${encodeURIComponent(scopeId)}`, { method: "GET" }),
-    getDependencyView: <T>(workspaceId: string, snapshotId: string, direction: string, scopeId?: string, focusEntityId?: string) =>
-      client.fetchJson<T>(
-        withQuery(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/dependencies`, {
-          scopeId,
-          focusEntityId,
-          direction,
-        }),
-        { method: "GET" },
-      ),
-    getEntryPointView: <T>(workspaceId: string, snapshotId: string, category: string, scopeId?: string, focusEntityId?: string) =>
-      client.fetchJson<T>(
-        withQuery(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entry-points`, {
-          scopeId,
-          focusEntityId,
-          category,
-        }),
-        { method: "GET" },
-      ),
-    searchSnapshot: <T>(workspaceId: string, snapshotId: string, queryText: string, scopeId?: string, limit = 25) =>
-      client.fetchJson<T>(
-        withQuery(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/search`, {
-          q: queryText.trim() || undefined,
-          scopeId,
-          limit,
-        }),
-        { method: "GET" },
-      ),
-    getEntityDetail: <T>(workspaceId: string, snapshotId: string, entityId: string) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entities/${encodeURIComponent(entityId)}`, { method: "GET" }),
-    getCustomizationOverview: <T>(workspaceId: string, snapshotId: string) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/customizations`, { method: "GET" }),
+    getFullSnapshotPayload: <T>(workspaceId: string, snapshotId: string) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: "GET" }),
     createWorkspace: <T>(payload: unknown) =>
       client.fetchJson<T>("/api/workspaces", {
         method: "POST",
@@ -134,15 +81,6 @@ export function createPlatformApi(client = httpClient) {
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/repositories/${repositoryId}/runs`, {
         method: "POST",
         body: JSON.stringify(payload),
-      }),
-    createOverlay: <T>(workspaceId: string, snapshotId: string, payload: OverlayCreateRequest) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overlays`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }),
-    deleteOverlay: (workspaceId: string, snapshotId: string, overlayId: string) =>
-      client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overlays/${overlayId}`, {
-        method: "DELETE",
       }),
     createSavedView: <T>(workspaceId: string, snapshotId: string, payload: SavedViewCreateRequest) =>
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-views`, {
