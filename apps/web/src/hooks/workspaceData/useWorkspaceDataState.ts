@@ -33,6 +33,8 @@ export function useWorkspaceDataState(selectedWorkspaceId: string | null): Works
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
   const [repositoryEditor, setRepositoryEditor] = useState(emptyRepositoryEditor);
   const [runRequestForm, setRunRequestForm] = useState(initialRunRequest);
+  const [workspacesLoaded, setWorkspacesLoaded] = useState(false);
+  const [workspaceDetailLoadedFor, setWorkspaceDetailLoadedFor] = useState<string | null>(null);
 
   const selectedWorkspace = useMemo(
     () => workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null,
@@ -80,5 +82,9 @@ export function useWorkspaceDataState(selectedWorkspaceId: string | null): Works
     setRunRequestForm,
     selectedWorkspace,
     latestRunByRepository,
+    workspacesLoaded,
+    setWorkspacesLoaded,
+    workspaceDetailLoadedFor,
+    setWorkspaceDetailLoadedFor,
   };
 }

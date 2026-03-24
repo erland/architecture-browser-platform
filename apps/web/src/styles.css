@@ -2580,3 +2580,17 @@ dd {
   display: grid;
   gap: 12px;
 }
+
+
+.browser-workspace__startup-gate {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+}
+
+.browser-workspace__startup-gate h3 {
+  margin: 0;
+}

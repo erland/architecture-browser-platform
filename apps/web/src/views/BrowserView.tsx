@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { emptyRepositoryForm, emptyWorkspaceForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import { platformApi } from '../platformApi';
+import { getBrowserSnapshotCache } from '../snapshotCache';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
 import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
 import { BrowserTopSearch } from '../components/BrowserTopSearch';
@@ -54,6 +55,7 @@ export function BrowserView(_: BrowserViewProps) {
     setSelectedWorkspaceId: selection.setSelectedWorkspaceId,
     selectedRepositoryId: selection.selectedRepositoryId,
     setSelectedRepositoryId: selection.setSelectedRepositoryId,
+    selectedSnapshotId: selection.selectedSnapshotId,
     setBusyMessage,
     setError,
   });
@@ -71,11 +73,73 @@ export function BrowserView(_: BrowserViewProps) {
     return null;
   }, [selection.selectedSnapshotId, browserSession.state.activeSnapshot?.snapshotId, workspaceData.snapshots]);
 
-  useBrowserSessionBootstrap({
+  const browserBootstrap = useBrowserSessionBootstrap({
     workspaceId: workspaceData.selectedWorkspaceId,
     repositoryId: selection.selectedRepositoryId,
     snapshot: selectedSnapshot,
   });
+
+  const startupTargetWorkspaceId = selection.selectedWorkspaceId
+    ?? workspaceData.selectedWorkspaceId
+    ?? workspaceData.workspaces[0]?.id
+    ?? null;
+
+  const shouldShowStartupGate = useMemo(() => {
+    if (!workspaceData.workspacesLoaded) {
+      return true;
+    }
+
+    if (workspaceData.workspaces.length === 0) {
+      return false;
+    }
+
+    if (!startupTargetWorkspaceId) {
+      return true;
+    }
+
+    if (workspaceData.workspaceDetailLoadedFor !== startupTargetWorkspaceId) {
+      return true;
+    }
+
+    if (selectedSnapshot && browserBootstrap.status === 'loading' && !browserSession.state.index) {
+      return true;
+    }
+
+    return false;
+  }, [
+    workspaceData.workspacesLoaded,
+    workspaceData.workspaces.length,
+    workspaceData.workspaceDetailLoadedFor,
+    startupTargetWorkspaceId,
+    selectedSnapshot,
+    browserBootstrap.status,
+    browserSession.state.index,
+  ]);
+
+  const startupGateMessage = useMemo(() => {
+    if (!workspaceData.workspacesLoaded) {
+      return 'Loading source trees…';
+    }
+    if (workspaceData.workspaces.length > 0 && !startupTargetWorkspaceId) {
+      return 'Opening source workspace…';
+    }
+    if (startupTargetWorkspaceId && workspaceData.workspaceDetailLoadedFor !== startupTargetWorkspaceId) {
+      return 'Loading indexed versions…';
+    }
+    if (selectedSnapshot && browserBootstrap.status === 'loading') {
+      return browserBootstrap.message ?? 'Preparing browser workspace…';
+    }
+    return 'Opening browser workspace…';
+  }, [
+    workspaceData.workspacesLoaded,
+    workspaceData.workspaces.length,
+    startupTargetWorkspaceId,
+    workspaceData.workspaceDetailLoadedFor,
+    selectedSnapshot,
+    browserBootstrap.status,
+    browserBootstrap.message,
+  ]);
+
 
   const selectedRepository = useMemo(() => {
     const bySelection = workspaceData.repositories.find((repository) => repository.id === selection.selectedRepositoryId);
@@ -101,10 +165,29 @@ export function BrowserView(_: BrowserViewProps) {
     snapshots: workspaceData.snapshots,
   }), [workspaceData.selectedWorkspace, workspaceData.repositories, workspaceData.snapshots]);
 
-  const handleSelectSourceTree = (item: SourceTreeLauncherItem) => {
+  const handleSelectSourceTree = async (item: SourceTreeLauncherItem) => {
+    const cache = getBrowserSnapshotCache();
     selection.setSelectedWorkspaceId(item.workspaceId);
+
+    const detail = workspaceData.selectedWorkspaceId === item.workspaceId
+      ? { snapshotPayload: workspaceData.snapshots }
+      : await workspaceData.loadWorkspaceDetail(item.workspaceId);
+
+    const repositorySnapshots = (detail?.snapshotPayload ?? workspaceData.snapshots)
+      .filter((snapshot) => snapshot.repositoryRegistrationId === item.repositoryId)
+      .sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt));
+
+    let preferredSnapshotId = item.latestSnapshotId;
+    for (const snapshot of repositorySnapshots) {
+      const record = await cache.getSnapshot(snapshot.id);
+      if (cache.isSnapshotCurrent(snapshot, record)) {
+        preferredSnapshotId = snapshot.id;
+        break;
+      }
+    }
+
     selection.setSelectedRepositoryId(item.repositoryId);
-    selection.setSelectedSnapshotId(item.latestSnapshotId);
+    selection.setSelectedSnapshotId(preferredSnapshotId);
     setIsSourceTreeSwitcherOpen(false);
   };
 
@@ -294,22 +377,32 @@ export function BrowserView(_: BrowserViewProps) {
         />
 
         <section className="browser-workspace__center">
-          <BrowserViewCenterContent
-            activeModeLabel={activeTabMeta.label}
-            browserSession={browserSession}
-            hasSelectedWorkspace={Boolean(workspaceData.selectedWorkspace)}
-            hasSelectedSnapshot={Boolean(selectedSnapshot)}
-            hasPreparedSession={Boolean(browserSession.state.index && browserSession.state.payload)}
-            launcherWorkspaceName={workspaceData.selectedWorkspace?.name ?? null}
-            sourceTreeLauncherItems={sourceTreeLauncherItems}
-            onSelectSourceTree={handleSelectSourceTree}
-                        onOpenRepositories={handleOpenRepositories}
-            onOpenSnapshots={handleOpenSnapshots}
-            onOpenWorkspaces={handleOpenWorkspaces}
-            onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
-            onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
-            onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}
-          />
+          {shouldShowStartupGate ? (
+            <div className="browser-workspace__stage">
+              <section className="card browser-workspace__startup-gate" aria-live="polite">
+                <p className="eyebrow">Opening Browser</p>
+                <h3>Preparing your analysis workspace</h3>
+                <p className="muted">{startupGateMessage}</p>
+              </section>
+            </div>
+          ) : (
+            <BrowserViewCenterContent
+              activeModeLabel={activeTabMeta.label}
+              browserSession={browserSession}
+              hasSelectedWorkspace={Boolean(workspaceData.selectedWorkspace)}
+              hasSelectedSnapshot={Boolean(selectedSnapshot)}
+              hasPreparedSession={Boolean(browserSession.state.index && browserSession.state.payload)}
+              launcherWorkspaceName={workspaceData.selectedWorkspace?.name ?? null}
+              sourceTreeLauncherItems={sourceTreeLauncherItems}
+              onSelectSourceTree={handleSelectSourceTree}
+              onOpenRepositories={handleOpenRepositories}
+              onOpenSnapshots={handleOpenSnapshots}
+              onOpenWorkspaces={handleOpenWorkspaces}
+              onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
+              onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
+              onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}
+            />
+          )}
         </section>
 
         <div

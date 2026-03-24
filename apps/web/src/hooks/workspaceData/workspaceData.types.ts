@@ -32,6 +32,7 @@ export type UseWorkspaceDataArgs = {
   setSelectedWorkspaceId: Dispatch<SetStateAction<string | null>>;
   selectedRepositoryId: string | null;
   setSelectedRepositoryId: Dispatch<SetStateAction<string | null>>;
+  selectedSnapshotId?: string | null;
   setBusyMessage: (value: string | null) => void;
   setError: (value: string | null) => void;
 };
@@ -75,6 +76,10 @@ export type WorkspaceDataState = {
   setRunRequestForm: Dispatch<SetStateAction<typeof initialRunRequest>>;
   selectedWorkspace: Workspace | null;
   latestRunByRepository: Map<string, RunRecord>;
+  workspacesLoaded: boolean;
+  setWorkspacesLoaded: Dispatch<SetStateAction<boolean>>;
+  workspaceDetailLoadedFor: string | null;
+  setWorkspaceDetailLoadedFor: Dispatch<SetStateAction<string | null>>;
 };
 
 export type WorkspaceDataLoaders = {

@@ -23,6 +23,8 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     setRetentionForm,
     setWorkspaceEditor,
     setRepositoryEditor,
+    setWorkspacesLoaded,
+    setWorkspaceDetailLoadedFor,
   } = state;
 
   const resetWorkspaceDetail = useCallback(() => {
@@ -35,6 +37,7 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     setRetentionForm(initialRetentionForm);
     setWorkspaceEditor(emptyWorkspaceEditor());
     setRepositoryEditor(emptyRepositoryEditor());
+    setWorkspaceDetailLoadedFor(null);
   }, [
     setAuditEvents,
     setOperationsOverview,
@@ -44,6 +47,7 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     setRetentionForm,
     setRetentionPreview,
     setSnapshots,
+    setWorkspaceDetailLoadedFor,
     setWorkspaceEditor,
   ]);
 
@@ -60,6 +64,7 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     try {
       const payload = await platformApi.listWorkspaces<Workspace[]>();
       setWorkspaces(payload);
+      setWorkspacesLoaded(true);
       setSelectedWorkspaceId((current) => {
         if (current && payload.some((item) => item.id === current)) {
           return current;
@@ -68,9 +73,10 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
       });
       setError(null);
     } catch (caught) {
+      setWorkspacesLoaded(true);
       setError(toErrorMessage(caught));
     }
-  }, [setError, setSelectedWorkspaceId, setWorkspaces]);
+  }, [setError, setSelectedWorkspaceId, setWorkspaces, setWorkspacesLoaded]);
 
   const loadWorkspaceDetail = useCallback(async (workspaceId: string) => {
     try {
@@ -90,6 +96,7 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
         keepSnapshotsPerRepository: `${operationsPayload.retentionDefaults.keepSnapshotsPerRepository}`,
         keepRunsPerRepository: `${operationsPayload.retentionDefaults.keepRunsPerRepository}`,
       });
+      setWorkspaceDetailLoadedFor(workspaceId);
       setSelectedRepositoryId((current) => current && repositoryPayload.some((item) => item.id === current) ? current : null);
       setError(null);
       return {
@@ -112,6 +119,7 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     setRetentionForm,
     setSelectedRepositoryId,
     setSnapshots,
+    setWorkspaceDetailLoadedFor,
   ]);
 
   return {

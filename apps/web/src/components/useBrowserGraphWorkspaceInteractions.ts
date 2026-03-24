@@ -33,15 +33,20 @@ export function useBrowserGraphWorkspaceInteractions({
   const dragDistanceRef = useRef(0);
   const panDistanceRef = useRef(0);
   const suppressClickRef = useRef(false);
+  const handledFitViewRequestRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!state.fitViewRequestedAt || modelSize.nodeCount === 0) {
+      return;
+    }
+    if (handledFitViewRequestRef.current === state.fitViewRequestedAt) {
       return;
     }
     const viewport = viewportRef.current;
     if (!viewport) {
       return;
     }
+    handledFitViewRequestRef.current = state.fitViewRequestedAt;
     onSetCanvasViewport(computeFitViewCanvasViewport({
       width: viewport.clientWidth,
       height: viewport.clientHeight,

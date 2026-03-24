@@ -10,10 +10,13 @@ export function useWorkspaceDataSelectionSync(
   const {
     selectedRepositoryId,
     setSelectedRepositoryId,
+    selectedSnapshotId,
   } = args;
   const {
     selectedWorkspace,
     repositories,
+    snapshots,
+    workspaceDetailLoadedFor,
     setWorkspaceEditor,
     repositoryEditor,
     setRepositoryEditor,
@@ -44,7 +47,12 @@ export function useWorkspaceDataSelectionSync(
   }, [loadWorkspaceDetail, resetWorkspaceDetail, selectedWorkspace, setWorkspaceEditor]);
 
   useEffect(() => {
+    const selectedWorkspaceId = selectedWorkspace?.id ?? null;
+    const isWorkspaceDetailLoading = selectedWorkspaceId !== null && workspaceDetailLoadedFor !== selectedWorkspaceId;
     if (!repositories.length) {
+      if (isWorkspaceDetailLoading) {
+        return;
+      }
       if (selectedRepositoryId !== null) {
         setSelectedRepositoryId(null);
       }
@@ -61,14 +69,29 @@ export function useWorkspaceDataSelectionSync(
       return;
     }
 
-    const fallbackRepositoryId = repositories[0]?.id ?? null;
+    const snapshotMatchedRepositoryId = selectedSnapshotId
+      ? snapshots.find((snapshot) => snapshot.id === selectedSnapshotId)?.repositoryRegistrationId ?? null
+      : null;
+    const fallbackRepositoryId = snapshotMatchedRepositoryId
+      ?? repositories.find((repository) => repository.status !== 'ARCHIVED')?.id
+      ?? repositories[0]?.id
+      ?? null;
     if (fallbackRepositoryId !== selectedRepositoryId) {
       setSelectedRepositoryId(fallbackRepositoryId);
+      return;
+    }
+
+    const fallbackRepository = repositories.find((repository) => repository.id === fallbackRepositoryId) ?? null;
+    if (fallbackRepository) {
+      setRepositoryEditor((current) => {
+        const next = toRepositoryEditor(fallbackRepository);
+        return sameRepositoryEditor(current, next) ? current : next;
+      });
       return;
     }
 
     if (!isEmptyRepositoryEditor(repositoryEditor)) {
       setRepositoryEditor(emptyRepositoryEditor());
     }
-  }, [repositories, repositoryEditor, selectedRepositoryId, setRepositoryEditor, setSelectedRepositoryId]);
+  }, [repositories, repositoryEditor, selectedRepositoryId, selectedSnapshotId, selectedWorkspace, setRepositoryEditor, setSelectedRepositoryId, snapshots, workspaceDetailLoadedFor]);
 }
