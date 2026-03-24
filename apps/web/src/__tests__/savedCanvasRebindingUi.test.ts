@@ -22,7 +22,7 @@ function createDocument(): SavedCanvasDocument {
       targetSnapshotId: 'snapshot-b',
       rebindingState: 'PARTIAL',
       exactMatchCount: 3,
-      remappedCount: 0,
+      remappedCount: 1,
       unresolvedCount: 2,
       reviewedAt: '2026-03-24T11:00:00Z',
     },
@@ -35,7 +35,7 @@ describe('savedCanvasRebindingUi', () => {
     const result: SavedCanvasRebindResult = {
       document,
       exactMatchCount: 3,
-      remappedCount: 0,
+      remappedCount: 1,
       unresolvedCount: 2,
       unresolvedNodeIds: ['entity:search'],
       unresolvedEdgeIds: ['rel:browser-search'],
@@ -44,6 +44,7 @@ describe('savedCanvasRebindingUi', () => {
     expect(toSavedCanvasRebindingUiSummary(result)).toEqual({
       rebindingState: 'PARTIAL',
       exactMatchCount: 3,
+      remappedCount: 1,
       unresolvedCount: 2,
       unresolvedNodeIds: ['entity:search'],
       unresolvedEdgeIds: ['rel:browser-search'],
@@ -57,6 +58,7 @@ describe('savedCanvasRebindingUi', () => {
       summary: {
         rebindingState: 'PARTIAL',
         exactMatchCount: 3,
+        remappedCount: 1,
         unresolvedCount: 2,
         unresolvedNodeIds: ['entity:search'],
         unresolvedEdgeIds: ['rel:browser-search'],
@@ -64,6 +66,7 @@ describe('savedCanvasRebindingUi', () => {
     });
 
     expect(message).toContain('Dependency focus');
+    expect(message).toContain('1 fallback remap(s)');
     expect(message).toContain('2 unresolved item(s)');
     expect(message).toContain('Review the unresolved items in the Canvases dialog');
   });

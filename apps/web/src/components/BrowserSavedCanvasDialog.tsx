@@ -162,6 +162,7 @@ export function BrowserSavedCanvasDialog({
               <div className="browser-saved-canvas-card__badges">
                 <span className="badge">{rebindingSummary.rebindingState}</span>
                 <span className="badge">{rebindingSummary.exactMatchCount} exact</span>
+                <span className="badge">{rebindingSummary.remappedCount} fallback</span>
                 <span className="badge">{rebindingSummary.unresolvedCount} unresolved</span>
               </div>
             </div>
@@ -206,7 +207,7 @@ export function BrowserSavedCanvasDialog({
                     {record.document.sync.conflict ? <p className="muted">Conflict: {record.document.sync.conflict.message}</p> : null}
                     {rebindingCanvasId === record.canvasId && rebindingSummary ? (
                       <div className="browser-saved-canvas-card__rebinding muted">
-                        Rebinding {rebindingSummary.rebindingState.toLowerCase()} · {rebindingSummary.exactMatchCount} exact · {rebindingSummary.unresolvedCount} unresolved
+                        Rebinding {rebindingSummary.rebindingState.toLowerCase()} · {rebindingSummary.exactMatchCount} exact · {rebindingSummary.remappedCount} fallback · {rebindingSummary.unresolvedCount} unresolved
                       </div>
                     ) : null}
                   </div>

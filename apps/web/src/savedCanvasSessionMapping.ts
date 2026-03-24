@@ -20,7 +20,7 @@ import {
   createSavedCanvasEntityReference,
   createSavedCanvasRelationshipReference,
   createSavedCanvasScopeReference,
-  resolveSavedCanvasReferenceIdByStableKey,
+  resolveSavedCanvasReferenceWithFallback,
 } from './savedCanvasStableReferences';
 
 export type CreateSavedCanvasFromBrowserSessionOptions = {
@@ -282,23 +282,7 @@ function resolveSavedCanvasReferenceId(
   reference: SavedCanvasItemReference,
   index: ReturnType<typeof getOrBuildBrowserSnapshotIndex>,
 ): string | null {
-  const directId = reference.originalSnapshotLocalId?.trim() || reference.stableKey.trim();
-  if (reference.targetType === 'SCOPE') {
-    if (directId && index.scopesById.has(directId)) {
-      return directId;
-    }
-    return resolveSavedCanvasReferenceIdByStableKey(index, reference);
-  }
-  if (reference.targetType === 'ENTITY') {
-    if (directId && index.entitiesById.has(directId)) {
-      return directId;
-    }
-    return resolveSavedCanvasReferenceIdByStableKey(index, reference);
-  }
-  if (directId && index.relationshipsById.has(directId)) {
-    return directId;
-  }
-  return resolveSavedCanvasReferenceIdByStableKey(index, reference);
+  return resolveSavedCanvasReferenceWithFallback(index, reference).resolvedId;
 }
 
 function normalizeCanvasLayoutMode(layoutMode: string | null | undefined): BrowserCanvasLayoutMode {

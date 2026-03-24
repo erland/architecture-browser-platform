@@ -13,6 +13,23 @@ export type SavedCanvasStableReferenceLookup = {
   relationshipIdByStableKey: Map<string, string>;
 };
 
+export type SavedCanvasReferenceResolutionStrategy =
+  | 'DIRECT_ID'
+  | 'EXACT_STABLE_KEY'
+  | 'FALLBACK_SCOPE_PATH'
+  | 'FALLBACK_SCOPE_NAME'
+  | 'FALLBACK_ENTITY_QUALIFIED_NAME'
+  | 'FALLBACK_ENTITY_PATH_AND_NAME'
+  | 'FALLBACK_ENTITY_NAME_IN_SCOPE'
+  | 'FALLBACK_ENTITY_FINGERPRINT'
+  | 'FALLBACK_RELATIONSHIP_ENDPOINTS'
+  | 'UNRESOLVED';
+
+export type SavedCanvasReferenceResolution = {
+  resolvedId: string | null;
+  strategy: SavedCanvasReferenceResolutionStrategy;
+};
+
 const stableReferenceLookupCache = new WeakMap<BrowserSnapshotIndex, SavedCanvasStableReferenceLookup>();
 
 export function createSavedCanvasScopeReference(index: BrowserSnapshotIndex, scopeId: string): SavedCanvasItemReference {
@@ -90,9 +107,48 @@ export function createSavedCanvasRelationshipReference(index: BrowserSnapshotInd
         stableReferenceVersion: 1,
         label: relationship.label,
         architecturalSemantics: relationship.metadata?.architecturalSemantics ?? null,
+        fromEntityFallback: fromEntity ? createSavedCanvasEntityReference(index, fromEntity.externalId).fallback : null,
+        toEntityFallback: toEntity ? createSavedCanvasEntityReference(index, toEntity.externalId).fallback : null,
       },
     },
   });
+}
+
+export function resolveSavedCanvasReference(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): SavedCanvasReferenceResolution {
+  const directId = reference.originalSnapshotLocalId?.trim() || reference.stableKey.trim();
+  if (reference.targetType === 'SCOPE') {
+    if (directId && index.scopesById.has(directId)) {
+      return { resolvedId: directId, strategy: 'DIRECT_ID' };
+    }
+  } else if (reference.targetType === 'ENTITY') {
+    if (directId && index.entitiesById.has(directId)) {
+      return { resolvedId: directId, strategy: 'DIRECT_ID' };
+    }
+  } else if (directId && index.relationshipsById.has(directId)) {
+    return { resolvedId: directId, strategy: 'DIRECT_ID' };
+  }
+
+  const stableId = resolveSavedCanvasReferenceIdByStableKey(index, reference);
+  if (stableId) {
+    return { resolvedId: stableId, strategy: 'EXACT_STABLE_KEY' };
+  }
+
+  return { resolvedId: null, strategy: 'UNRESOLVED' };
+}
+
+export function resolveSavedCanvasReferenceWithFallback(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): SavedCanvasReferenceResolution {
+  const exactResolution = resolveSavedCanvasReference(index, reference);
+  if (exactResolution.resolvedId) {
+    return exactResolution;
+  }
+
+  if (reference.targetType === 'SCOPE') {
+    return resolveSavedCanvasScopeFallback(index, reference);
+  }
+  if (reference.targetType === 'ENTITY') {
+    return resolveSavedCanvasEntityFallback(index, reference);
+  }
+  return resolveSavedCanvasRelationshipFallback(index, reference);
 }
 
 export function resolveSavedCanvasReferenceIdByStableKey(
@@ -208,45 +264,205 @@ export function classifyEntityCategory(kind: string | null | undefined): string 
 export function normalizeToken(value: string | null | undefined): string {
   return (value ?? '')
     .trim()
-    .toLocaleLowerCase()
     .replace(/\\/g, '/')
     .replace(/\s+/g, ' ')
-    .replace(/\s*\/\s*/g, '/')
-    .replace(/[^a-z0-9._:/#-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/:+/g, ':')
-    .replace(/^[:.-]+|[:.-]+$/g, '');
+    .toLowerCase();
 }
 
-function deriveScopePath(index: BrowserSnapshotIndex, scope: FullSnapshotScope): string {
-  const pathSegments: string[] = [];
-  const seen = new Set<string>();
-  let current: FullSnapshotScope | undefined | null = scope;
-  while (current && !seen.has(current.externalId)) {
-    seen.add(current.externalId);
-    pathSegments.unshift(current.name || current.displayName || current.externalId);
-    current = current.parentScopeId ? index.scopesById.get(current.parentScopeId) : null;
+function resolveSavedCanvasScopeFallback(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): SavedCanvasReferenceResolution {
+  const fallback = reference.fallback;
+  if (!fallback) {
+    return { resolvedId: null, strategy: 'UNRESOLVED' };
   }
-  return pathSegments.join('/');
+
+  const normalizedPath = normalizeToken(fallback.path);
+  if (normalizedPath) {
+    const matchingScopes = index.payload.scopes.filter((scope) => normalizeToken(index.scopePathById.get(scope.externalId) ?? deriveScopePath(index, scope)) === normalizedPath);
+    if (matchingScopes.length === 1) {
+      return { resolvedId: matchingScopes[0].externalId, strategy: 'FALLBACK_SCOPE_PATH' };
+    }
+  }
+
+  const normalizedName = normalizeToken(fallback.displayName ?? fallback.name);
+  const category = normalizeToken(fallback.stableCategory ?? fallback.kind);
+  if (normalizedName) {
+    const matchingScopes = index.payload.scopes.filter((scope) => {
+      const scopeName = normalizeToken(scope.displayName ?? scope.name);
+      const scopeCategory = classifyScopeCategory(scope.kind);
+      return scopeName === normalizedName && (!category || scopeCategory === category);
+    });
+    if (matchingScopes.length === 1) {
+      return { resolvedId: matchingScopes[0].externalId, strategy: 'FALLBACK_SCOPE_NAME' };
+    }
+  }
+
+  return { resolvedId: null, strategy: 'UNRESOLVED' };
 }
 
-function deriveEntityQualifiedName(index: BrowserSnapshotIndex, entity: FullSnapshotEntity): string {
-  const scopePath = entity.scopeId ? index.scopePathById.get(entity.scopeId) ?? '' : '';
-  return [scopePath, entity.displayName ?? entity.name].filter(Boolean).join('/');
+function resolveSavedCanvasEntityFallback(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): SavedCanvasReferenceResolution {
+  const fallback = reference.fallback;
+  if (!fallback) {
+    return { resolvedId: null, strategy: 'UNRESOLVED' };
+  }
+
+  const category = normalizeToken(fallback.stableCategory ?? fallback.kind);
+  const scopeStableKey = normalizeToken(fallback.scopeStableKey);
+  const qualifiedName = normalizeToken(fallback.qualifiedName);
+  const signature = normalizeToken(fallback.signature);
+  const primarySourcePath = normalizeToken(fallback.primarySourcePath);
+  const semanticFingerprint = normalizeToken(fallback.semanticFingerprint);
+  const semanticName = normalizeToken(fallback.displayName ?? fallback.name ?? fallback.qualifiedName);
+  const origin = normalizeToken(asString(fallback.metadata?.origin));
+
+  if (qualifiedName) {
+    const matchingEntities = index.payload.entities.filter((entity) => {
+      const entityQualifiedName = normalizeToken(readFirstStringMetadata(entity.metadata, ['qualifiedName', 'fullyQualifiedName', 'symbol', 'fqName']) ?? deriveEntityQualifiedName(index, entity));
+      return entityQualifiedName === qualifiedName && matchesEntityCategory(entity, category);
+    });
+    if (matchingEntities.length === 1) {
+      return { resolvedId: matchingEntities[0].externalId, strategy: 'FALLBACK_ENTITY_QUALIFIED_NAME' };
+    }
+  }
+
+  if (primarySourcePath && semanticName) {
+    const matchingEntities = index.payload.entities.filter((entity) => {
+      const entitySourcePath = normalizeToken(pickPrimarySourcePath(entity.sourceRefs));
+      const entityName = normalizeToken(entity.displayName ?? entity.name);
+      return entitySourcePath === primarySourcePath && entityName === semanticName && matchesEntityCategory(entity, category);
+    });
+    if (matchingEntities.length === 1) {
+      return { resolvedId: matchingEntities[0].externalId, strategy: 'FALLBACK_ENTITY_PATH_AND_NAME' };
+    }
+  }
+
+  if (semanticName && scopeStableKey) {
+    const matchingEntities = index.payload.entities.filter((entity) => {
+      const entityName = normalizeToken(entity.displayName ?? entity.name);
+      const entityScopeStableKey = entity.scopeId ? buildStableScopeKey(index, index.scopesById.get(entity.scopeId) ?? null) : 'scope:unscoped';
+      return entityName === semanticName
+        && normalizeToken(entityScopeStableKey) === scopeStableKey
+        && matchesEntityCategory(entity, category)
+        && (!origin || normalizeToken(entity.origin) === origin)
+        && (!signature || normalizeToken(deriveEntitySignature(entity)) === signature);
+    });
+    if (matchingEntities.length === 1) {
+      return { resolvedId: matchingEntities[0].externalId, strategy: 'FALLBACK_ENTITY_NAME_IN_SCOPE' };
+    }
+  }
+
+  if (semanticFingerprint) {
+    const matchingEntities = index.payload.entities.filter((entity) => {
+      const entityFingerprint = normalizeToken(buildFallbackEntityFingerprint(entity));
+      return entityFingerprint === semanticFingerprint && matchesEntityCategory(entity, category);
+    });
+    if (matchingEntities.length === 1) {
+      return { resolvedId: matchingEntities[0].externalId, strategy: 'FALLBACK_ENTITY_FINGERPRINT' };
+    }
+  }
+
+  return { resolvedId: null, strategy: 'UNRESOLVED' };
+}
+
+function resolveSavedCanvasRelationshipFallback(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): SavedCanvasReferenceResolution {
+  const fallback = reference.fallback;
+  if (!fallback) {
+    return { resolvedId: null, strategy: 'UNRESOLVED' };
+  }
+
+  const relationshipKind = normalizeToken(fallback.relationshipKind);
+  const relationshipLabel = normalizeToken(asString(fallback.metadata?.label));
+
+  const fromResolution = fallback.fromStableKey
+    ? resolveSavedCanvasReferenceWithFallback(index, {
+        targetType: 'ENTITY',
+        stableKey: fallback.fromStableKey,
+        originalSnapshotLocalId: null,
+        fallback: isRecord(fallback.metadata?.fromEntityFallback) ? fallback.metadata?.fromEntityFallback as SavedCanvasItemReference['fallback'] : null,
+      })
+    : { resolvedId: null, strategy: 'UNRESOLVED' as const };
+  const toResolution = fallback.toStableKey
+    ? resolveSavedCanvasReferenceWithFallback(index, {
+        targetType: 'ENTITY',
+        stableKey: fallback.toStableKey,
+        originalSnapshotLocalId: null,
+        fallback: isRecord(fallback.metadata?.toEntityFallback) ? fallback.metadata?.toEntityFallback as SavedCanvasItemReference['fallback'] : null,
+      })
+    : { resolvedId: null, strategy: 'UNRESOLVED' as const };
+
+  if (fromResolution.resolvedId && toResolution.resolvedId) {
+    const matchingRelationships = index.payload.relationships.filter((relationship) => {
+      const candidateLabel = normalizeToken(relationship.label ?? readFirstStringMetadata(relationship.metadata, ['semantic', 'semanticLabel']) ?? '');
+      return relationship.fromEntityId === fromResolution.resolvedId
+        && relationship.toEntityId === toResolution.resolvedId
+        && (!relationshipKind || normalizeToken(relationship.kind) === relationshipKind)
+        && (!relationshipLabel || candidateLabel === relationshipLabel);
+    });
+
+    if (matchingRelationships.length === 1) {
+      return { resolvedId: matchingRelationships[0].externalId, strategy: 'FALLBACK_RELATIONSHIP_ENDPOINTS' };
+    }
+  }
+
+  const primarySourcePath = normalizeToken(fallback.primarySourcePath);
+  const byKindAndLabel = index.payload.relationships.filter((relationship) => {
+    const candidateLabel = normalizeToken(relationship.label ?? readFirstStringMetadata(relationship.metadata, ['semantic', 'semanticLabel']) ?? '');
+    const candidatePath = normalizeToken(pickPrimarySourcePath(relationship.sourceRefs));
+    return (!relationshipKind || normalizeToken(relationship.kind) === relationshipKind)
+      && (!relationshipLabel || candidateLabel === relationshipLabel)
+      && (!primarySourcePath || candidatePath === primarySourcePath);
+  });
+  if (byKindAndLabel.length === 1) {
+    return { resolvedId: byKindAndLabel[0].externalId, strategy: 'FALLBACK_RELATIONSHIP_ENDPOINTS' };
+  }
+
+  return { resolvedId: null, strategy: 'UNRESOLVED' };
+}
+
+function matchesEntityCategory(entity: FullSnapshotEntity, category: string): boolean {
+  return !category || classifyEntityCategory(entity.kind) === category;
+}
+
+function buildFallbackEntityFingerprint(entity: FullSnapshotEntity): string {
+  return [
+    classifyEntityCategory(entity.kind),
+    normalizeToken(entity.displayName ?? entity.name),
+    normalizeToken(pickPrimarySourcePath(entity.sourceRefs)),
+    normalizeToken(entity.origin),
+  ].filter(Boolean).join('|');
+}
+
+function deriveScopePath(index: BrowserSnapshotIndex, scope: FullSnapshotScope | null): string | null {
+  if (!scope) {
+    return null;
+  }
+  const parentScope = scope.parentScopeId ? index.scopesById.get(scope.parentScopeId) ?? null : null;
+  const scopeName = scope.name || scope.displayName || scope.externalId;
+  if (!parentScope) {
+    return scopeName;
+  }
+  const parentPath = index.scopePathById.get(parentScope.externalId) ?? deriveScopePath(index, parentScope);
+  return parentPath ? `${parentPath}/${scopeName}` : scopeName;
+}
+
+function deriveEntityQualifiedName(index: BrowserSnapshotIndex, entity: FullSnapshotEntity): string | null {
+  const scopePath = entity.scopeId ? index.scopePathById.get(entity.scopeId) ?? null : null;
+  const name = entity.displayName ?? entity.name ?? entity.externalId;
+  return scopePath ? `${scopePath}/${name}` : name;
 }
 
 function deriveEntitySignature(entity: FullSnapshotEntity): string | null {
-  return readFirstStringMetadata(entity.metadata, [
-    'signature',
-    'callSignature',
-    'methodSignature',
-    'httpSignature',
-    'routeSignature',
-    'arity',
-  ]) ?? null;
+  return readFirstStringMetadata(entity.metadata, ['signature', 'methodSignature', 'callableSignature', 'descriptor']);
 }
 
-function readFirstStringMetadata(metadata: Record<string, unknown> | undefined, keys: string[]): string | null {
+function pickPrimarySourcePath(sourceRefs: SnapshotSourceRef[] | null | undefined): string | null {
+  if (!sourceRefs || sourceRefs.length === 0) {
+    return null;
+  }
+  const firstWithPath = sourceRefs.find((sourceRef) => sourceRef.path?.trim());
+  return firstWithPath?.path ?? null;
+}
+
+function readFirstStringMetadata(metadata: Record<string, unknown> | null | undefined, keys: string[]): string | null {
   if (!metadata) {
     return null;
   }
@@ -259,11 +475,10 @@ function readFirstStringMetadata(metadata: Record<string, unknown> | undefined, 
   return null;
 }
 
-function pickPrimarySourcePath(sourceRefs: SnapshotSourceRef[] | null | undefined): string | null {
-  for (const sourceRef of sourceRefs ?? []) {
-    if (sourceRef.path?.trim()) {
-      return sourceRef.path;
-    }
-  }
-  return null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
 }

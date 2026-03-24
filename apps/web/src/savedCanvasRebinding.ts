@@ -1,6 +1,8 @@
 import type { FullSnapshotPayload, SnapshotSummary } from './appModel';
+import { getOrBuildBrowserSnapshotIndex } from './browserSnapshotIndex';
 import { restoreSavedCanvasToBrowserSession } from './savedCanvasSessionMapping';
 import { toSavedCanvasSnapshotRef, type SavedCanvasDocument } from './savedCanvasModel';
+import { resolveSavedCanvasReferenceWithFallback } from './savedCanvasStableReferences';
 
 export type SavedCanvasRebindResult = {
   document: SavedCanvasDocument;
@@ -25,24 +27,45 @@ export function rebindSavedCanvasToTargetSnapshot(
     },
   };
 
+  const index = getOrBuildBrowserSnapshotIndex(payload);
+  let exactMatchCount = 0;
+  let remappedCount = 0;
+  const unresolvedNodeIds: string[] = [];
+  const unresolvedEdgeIds: string[] = [];
+
+  for (const node of document.content.nodes) {
+    const resolution = resolveSavedCanvasReferenceWithFallback(index, node.reference);
+    if (!resolution.resolvedId) {
+      unresolvedNodeIds.push(node.reference.originalSnapshotLocalId ?? node.canvasNodeId);
+    } else if (resolution.strategy === 'DIRECT_ID' || resolution.strategy === 'EXACT_STABLE_KEY') {
+      exactMatchCount += 1;
+    } else {
+      remappedCount += 1;
+    }
+  }
+
+  for (const edge of document.content.edges) {
+    const resolution = resolveSavedCanvasReferenceWithFallback(index, edge.reference);
+    if (!resolution.resolvedId) {
+      unresolvedEdgeIds.push(edge.reference.originalSnapshotLocalId ?? edge.canvasEdgeId);
+    } else if (resolution.strategy === 'DIRECT_ID' || resolution.strategy === 'EXACT_STABLE_KEY') {
+      exactMatchCount += 1;
+    } else {
+      remappedCount += 1;
+    }
+  }
+
+  const unresolvedCount = unresolvedNodeIds.length + unresolvedEdgeIds.length;
+  const rebindingState = unresolvedCount === 0
+    ? (remappedCount > 0 ? 'PARTIAL' : 'EXACT')
+    : (exactMatchCount > 0 || remappedCount > 0)
+      ? 'PARTIAL'
+      : 'UNRESOLVED';
+
   const restored = restoreSavedCanvasToBrowserSession({
     document: reboundDocument,
     payload,
     preparedAt: reviewedAt,
-  });
-
-  const totalItems = document.content.nodes.length + document.content.edges.length;
-  const unresolvedCount = restored.unresolvedNodeIds.length + restored.unresolvedEdgeIds.length;
-  const exactMatchCount = Math.max(0, totalItems - unresolvedCount);
-  const rebindingState = unresolvedCount === 0
-    ? 'EXACT'
-    : exactMatchCount > 0
-      ? 'PARTIAL'
-      : 'UNRESOLVED';
-
-  const unresolvedNodeIds = restored.unresolvedNodeIds.map((canvasNodeId) => {
-    const unresolvedNode = document.content.nodes.find((node) => node.canvasNodeId === canvasNodeId);
-    return unresolvedNode?.reference.originalSnapshotLocalId ?? canvasNodeId;
   });
 
   return {
@@ -55,16 +78,19 @@ export function rebindSavedCanvasToTargetSnapshot(
           targetSnapshotId: targetSnapshot.id,
           rebindingState,
           exactMatchCount,
-          remappedCount: 0,
+          remappedCount,
           unresolvedCount,
           reviewedAt,
         },
       },
     },
     exactMatchCount,
-    remappedCount: 0,
+    remappedCount,
     unresolvedCount,
-    unresolvedNodeIds,
-    unresolvedEdgeIds: restored.unresolvedEdgeIds,
+    unresolvedNodeIds: unresolvedNodeIds.length > 0 ? unresolvedNodeIds : restored.unresolvedNodeIds.map((canvasNodeId) => {
+      const unresolvedNode = document.content.nodes.find((node) => node.canvasNodeId === canvasNodeId);
+      return unresolvedNode?.reference.originalSnapshotLocalId ?? canvasNodeId;
+    }),
+    unresolvedEdgeIds: unresolvedEdgeIds.length > 0 ? unresolvedEdgeIds : restored.unresolvedEdgeIds,
   };
 }

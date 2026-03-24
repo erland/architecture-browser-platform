@@ -52,8 +52,26 @@ function createOriginPayload(): FullSnapshotPayload {
       { externalId: 'scope:web', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: null, sourceRefs: [], metadata: {} },
     ],
     entities: [
-      { externalId: 'entity:browser', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
-      { externalId: 'entity:search', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      {
+        externalId: 'entity:browser',
+        kind: 'COMPONENT',
+        origin: 'react',
+        name: 'BrowserView',
+        displayName: 'BrowserView',
+        scopeId: 'scope:web',
+        sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }],
+        metadata: {},
+      },
+      {
+        externalId: 'entity:search',
+        kind: 'COMPONENT',
+        origin: 'react',
+        name: 'SearchTab',
+        displayName: 'SearchTab',
+        scopeId: 'scope:web',
+        sourceRefs: [{ path: 'apps/web/src/components/SearchTab.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }],
+        metadata: {},
+      },
     ],
     relationships: [
       { externalId: 'rel:browser-search', kind: 'USES', fromEntityId: 'entity:browser', toEntityId: 'entity:search', label: 'uses', sourceRefs: [], metadata: {} },
@@ -71,11 +89,11 @@ function createTargetPayload(removeSearch = false): FullSnapshotPayload {
     snapshot: targetSnapshot,
     entities: removeSearch
       ? [
-          { externalId: 'entity:browser:v2', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web:v2', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:browser:v2', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web:v2', sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }], metadata: {} },
         ]
       : [
-          { externalId: 'entity:browser:v2', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web:v2', sourceRefs: [], metadata: {} },
-          { externalId: 'entity:search:v2', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web:v2', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:browser:v2', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web:v2', sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }], metadata: {} },
+          { externalId: 'entity:search:v2', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web:v2', sourceRefs: [{ path: 'apps/web/src/components/SearchTab.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }], metadata: {} },
         ],
     scopes: [
       { externalId: 'scope:web:v2', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: null, sourceRefs: [], metadata: {} },
@@ -85,6 +103,41 @@ function createTargetPayload(removeSearch = false): FullSnapshotPayload {
       : [
           { externalId: 'rel:browser-search:v2', kind: 'USES', fromEntityId: 'entity:browser:v2', toEntityId: 'entity:search:v2', label: 'uses', sourceRefs: [], metadata: {} },
         ],
+  };
+}
+
+function createMovedTargetPayload(): FullSnapshotPayload {
+  return {
+    ...createOriginPayload(),
+    snapshot: targetSnapshot,
+    scopes: [
+      { externalId: 'scope:ui', kind: 'MODULE', name: 'ui', displayName: 'UI', parentScopeId: null, sourceRefs: [], metadata: {} },
+    ],
+    entities: [
+      {
+        externalId: 'entity:browser:moved',
+        kind: 'COMPONENT',
+        origin: 'react',
+        name: 'BrowserView',
+        displayName: 'BrowserView',
+        scopeId: 'scope:ui',
+        sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }],
+        metadata: {},
+      },
+      {
+        externalId: 'entity:search:moved',
+        kind: 'COMPONENT',
+        origin: 'react',
+        name: 'SearchTab',
+        displayName: 'SearchTab',
+        scopeId: 'scope:ui',
+        sourceRefs: [{ path: 'apps/web/src/components/SearchTab.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }],
+        metadata: {},
+      },
+    ],
+    relationships: [
+      { externalId: 'rel:browser-search:moved', kind: 'USES', fromEntityId: 'entity:browser:moved', toEntityId: 'entity:search:moved', label: 'uses', sourceRefs: [], metadata: {} },
+    ],
   };
 }
 
@@ -114,9 +167,39 @@ describe('savedCanvasRebinding', () => {
     expect(rebound.document.bindings.currentTargetSnapshot?.snapshotId).toBe('snap-b');
     expect(rebound.document.bindings.rebinding?.rebindingState).toBe('EXACT');
     expect(rebound.exactMatchCount).toBe(3);
+    expect(rebound.remappedCount).toBe(0);
     expect(rebound.unresolvedCount).toBe(0);
     expect(restored.state.activeSnapshot?.snapshotId).toBe('snap-b');
     expect(restored.state.canvasNodes.map((node) => node.id)).toEqual(expect.arrayContaining(['entity:browser:v2', 'entity:search:v2']));
+  });
+
+  test('uses conservative fallback remapping when exact rebinding fails after modest code movement', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createOriginPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+
+    const document = createSavedCanvasDocumentFromBrowserSession({
+      state,
+      canvasId: 'canvas-moved',
+      name: 'Moved flow',
+    });
+
+    const rebound = rebindSavedCanvasToTargetSnapshot(document, targetSnapshot, createMovedTargetPayload(), '2026-03-25T12:02:00Z');
+    const restored = restoreSavedCanvasToBrowserSession({
+      document: rebound.document,
+      payload: createMovedTargetPayload(),
+      preparedAt: '2026-03-25T12:02:00Z',
+    });
+
+    expect(rebound.document.bindings.rebinding?.rebindingState).toBe('PARTIAL');
+    expect(rebound.exactMatchCount).toBe(0);
+    expect(rebound.remappedCount).toBe(3);
+    expect(rebound.unresolvedCount).toBe(0);
+    expect(restored.state.canvasNodes.map((node) => node.id)).toEqual(expect.arrayContaining(['entity:browser:moved', 'entity:search:moved']));
   });
 
   test('reports unresolved items when exact rebinding cannot match everything in the selected target snapshot', () => {
@@ -138,6 +221,7 @@ describe('savedCanvasRebinding', () => {
 
     expect(rebound.document.bindings.rebinding?.rebindingState).toBe('PARTIAL');
     expect(rebound.exactMatchCount).toBe(1);
+    expect(rebound.remappedCount).toBe(0);
     expect(rebound.unresolvedCount).toBe(2);
     expect(rebound.unresolvedNodeIds).toContain('entity:search');
     expect(rebound.unresolvedEdgeIds).toContain('rel:browser-search');
