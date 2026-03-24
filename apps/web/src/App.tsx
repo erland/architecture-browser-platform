@@ -4,7 +4,6 @@ import { buildSelectedSourceTreeSummary } from './appModel.sourceTree';
 import { useAppSelectionContext } from './contexts/AppSelectionContext';
 import { type AppRoutePath } from './routing/appRoutes';
 import { buildNavigationUrl, readRoutePath } from './routing/appRouteState';
-import { LegacyWorkspaceView } from './views/LegacyWorkspaceView';
 import { BrowserView } from './views/BrowserView';
 import { CompareView } from './views/CompareView';
 import { WorkspacesView } from './views/WorkspacesView';
@@ -51,25 +50,22 @@ export function App() {
   }, [currentPath]);
 
   const routeContent = useMemo(() => {
-    if (currentPath === '/legacy') {
-      return <LegacyWorkspaceView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/sources')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenOperations={() => handleNavigate('/operations')} />;
-    }
     if (currentPath === '/workspaces') {
       return <WorkspacesView />;
     }
     if (currentPath === '/sources') {
-      return <ManageSourcesView onOpenBrowser={() => handleNavigate('/browser')} onOpenCompare={() => handleNavigate('/compare')} onOpenLegacy={() => handleNavigate('/legacy')} onOpenWorkspaces={() => handleNavigate('/workspaces')} />;
+      return <ManageSourcesView onOpenBrowser={() => handleNavigate('/browser')} onOpenCompare={() => handleNavigate('/compare')} onOpenWorkspaces={() => handleNavigate('/workspaces')} />;
     }
     if (currentPath === '/browser') {
-      return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenRepositories={() => handleNavigate('/sources')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+      return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenRepositories={() => handleNavigate('/sources')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} />;
     }
     if (currentPath === '/compare') {
-      return <CompareView onOpenSnapshots={() => handleNavigate('/sources')} onOpenBrowser={() => handleNavigate('/browser')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+      return <CompareView onOpenSnapshots={() => handleNavigate('/sources')} onOpenBrowser={() => handleNavigate('/browser')} />;
     }
     if (currentPath === '/operations') {
-      return <OperationsView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/sources')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+      return <OperationsView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenRepositories={() => handleNavigate('/sources')} onOpenSnapshots={() => handleNavigate('/sources')} />;
     }
-    return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenRepositories={() => handleNavigate('/sources')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} onOpenLegacy={() => handleNavigate('/legacy')} />;
+    return <BrowserView onOpenWorkspaces={() => handleNavigate('/workspaces')} onOpenSnapshots={() => handleNavigate('/sources')} onOpenRepositories={() => handleNavigate('/sources')} onOpenCompare={() => handleNavigate('/compare')} onOpenOperations={() => handleNavigate('/operations')} />;
   }, [currentPath, handleNavigate]);
 
   const isBrowserRoute = currentPath === '/browser';

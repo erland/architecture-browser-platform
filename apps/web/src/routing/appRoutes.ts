@@ -1,5 +1,4 @@
 export const appRoutes = [
-  { path: '/legacy', label: 'Legacy view', description: 'Older stacked workflow kept temporarily for detailed indexed-version exploration and operations.' },
   { path: '/workspaces', label: 'Workspace context', description: 'Administration view for workspace-level setup and lifecycle management.' },
   { path: '/sources', label: 'Manage sources', description: 'Unified source management flow for source trees, indexing runs, and indexed versions.' },
   { path: '/browser', label: 'Browser', description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.' },
@@ -23,5 +22,5 @@ export function normalizeRoutePath(pathname: string): AppRoutePath {
 }
 
 export function getRouteMeta(pathname: AppRoutePath) {
-  return appRoutes.find((route) => route.path === pathname) ?? appRoutes[0];
+  return appRoutes.find((route) => route.path === pathname) ?? appRoutes.find((route) => route.path === '/browser') ?? appRoutes[0];
 }

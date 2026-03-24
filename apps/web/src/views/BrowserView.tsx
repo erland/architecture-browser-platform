@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest } from '../appModel';
+import { useEffect, useMemo, useState } from 'react';
+import { emptyRepositoryForm, emptyWorkspaceForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import { platformApi } from '../platformApi';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
 import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
@@ -88,6 +88,13 @@ export function BrowserView(_: BrowserViewProps) {
     return workspaceData.repositories.find((repository) => repository.id === selectedSnapshot.repositoryRegistrationId) ?? null;
   }, [workspaceData.repositories, selection.selectedRepositoryId, selectedSnapshot]);
 
+
+  useEffect(() => {
+    if (!selection.selectedWorkspaceId && workspaceData.workspaces.length > 0) {
+      selection.setSelectedWorkspaceId(workspaceData.workspaces[0].id);
+    }
+  }, [selection.selectedWorkspaceId, selection.setSelectedWorkspaceId, workspaceData.workspaces]);
+
   const sourceTreeLauncherItems = useMemo(() => buildSourceTreeLauncherItems({
     workspace: workspaceData.selectedWorkspace,
     repositories: workspaceData.repositories,
@@ -99,6 +106,25 @@ export function BrowserView(_: BrowserViewProps) {
     selection.setSelectedRepositoryId(item.repositoryId);
     selection.setSelectedSnapshotId(item.latestSnapshotId);
     setIsSourceTreeSwitcherOpen(false);
+  };
+
+
+  const handleCreateWorkspaceFromDialog = async (payload: typeof emptyWorkspaceForm) => {
+    setBusyMessage(`Creating workspace ${payload.name || payload.workspaceKey}…`);
+    try {
+      const created = await platformApi.createWorkspace<Workspace>(payload);
+      await workspaceData.loadWorkspaces();
+      await workspaceData.loadWorkspaceDetail(created.id);
+      selection.setSelectedWorkspaceId(created.id);
+      selection.setSelectedRepositoryId(null);
+      selection.setSelectedSnapshotId(null);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unknown error');
+      throw caught;
+    } finally {
+      setBusyMessage(null);
+    }
   };
 
   const handleCreateRepositoryFromDialog = async (payload: typeof emptyRepositoryForm) => {
@@ -239,6 +265,8 @@ export function BrowserView(_: BrowserViewProps) {
         isOpen={isSourceTreeSwitcherOpen}
         items={sourceTreeLauncherItems}
         repositories={workspaceData.repositories}
+        selectedWorkspace={workspaceData.selectedWorkspace}
+        onCreateWorkspace={handleCreateWorkspaceFromDialog}
         onSelectSourceTree={handleSelectSourceTree}
         onCreateRepository={handleCreateRepositoryFromDialog}
         onRequestReindex={handleRequestReindexFromDialog}

@@ -7,10 +7,9 @@ import { useWorkspaceData } from '../hooks/useWorkspaceData';
   onOpenWorkspaces: () => void;
   onOpenRepositories: () => void;
   onOpenSnapshots: () => void;
-  onOpenLegacy: () => void;
 };
 
-export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSnapshots, onOpenLegacy }: OperationsViewProps) {
+export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSnapshots }: OperationsViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -36,7 +35,6 @@ export function OperationsView({ onOpenWorkspaces, onOpenRepositories, onOpenSna
           <button type="button" onClick={onOpenWorkspaces}>Choose workspace context</button>
           <button type="button" className="button-secondary" onClick={onOpenRepositories}>Open Manage sources</button>
           <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Open indexed versions</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open legacy view</button>
         </div>
       </section>
 

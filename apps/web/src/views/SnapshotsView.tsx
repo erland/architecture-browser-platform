@@ -9,7 +9,6 @@ import { getBrowserSnapshotCache } from '../snapshotCache';
 type SnapshotsViewProps = {
   onOpenBrowser: () => void;
   onOpenCompare: () => void;
-  onOpenLegacy: () => void;
   onOpenRepositories?: () => void;
 };
 
@@ -23,7 +22,7 @@ function completenessBadgeClass(completenessStatus: string) {
   return 'badge badge--danger';
 }
 
-export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOpenRepositories }: SnapshotsViewProps) {
+export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenRepositories }: SnapshotsViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openingBrowser, setOpeningBrowser] = useState(false);
@@ -124,7 +123,6 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
               {browserOpenLabel}
             </button>
             <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare this snapshot</button>
-            <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
           </div>
         </section>
       ) : latestSnapshot ? (
@@ -270,7 +268,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
                       <span className="badge">Step 12</span>
                     </div>
                     <p className="muted">
-                      The selected indexed version is carried in shared app context. Browser uses it as the main exploration target, Compare uses it as the baseline indexed version, and the legacy route still shows the older stacked workflow.
+                      The selected indexed version is carried in shared app context. Browser uses it as the main exploration target, and Compare uses it as the baseline indexed version.
                     </p>
                     <div className="actions actions--wrap">
                       <button
@@ -281,8 +279,7 @@ export function SnapshotsView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOp
               {browserOpenLabel}
             </button>
                       <button type="button" className="button-secondary" onClick={onOpenCompare}>Compare selected snapshot</button>
-                      <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open current stacked browser</button>
-                    </div>
+                              </div>
                   </article>
                 </>
               ) : (

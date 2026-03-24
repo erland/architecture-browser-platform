@@ -22,10 +22,9 @@ function completenessBadgeClass(completenessStatus: string | null | undefined) {
 type CompareViewProps = {
   onOpenSnapshots: () => void;
   onOpenBrowser: () => void;
-  onOpenLegacy: () => void;
 };
 
-export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: CompareViewProps) {
+export function CompareView({ onOpenSnapshots, onOpenBrowser }: CompareViewProps) {
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selection = useAppSelectionContext();
@@ -75,7 +74,6 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
         <div className="actions actions--wrap">
           <button type="button" onClick={onOpenSnapshots}>Choose indexed versions</button>
           <button type="button" className="button-secondary" onClick={onOpenBrowser}>Open Browser view</button>
-          <button type="button" className="button-secondary" onClick={onOpenLegacy}>Open legacy view</button>
         </div>
       </section>
 
@@ -152,7 +150,7 @@ export function CompareView({ onOpenSnapshots, onOpenBrowser, onOpenLegacy }: Co
                 <span className="badge">Focused workflow</span>
               </div>
               <p className="muted compare-guidance">
-                Pick a target indexed version from the same workspace to compare model deltas, changed dependencies, and entry-point changes without the rest of the stacked legacy page competing for screen space.
+                Pick a target indexed version from the same workspace to compare model deltas, changed dependencies, and entry-point changes without leaving the focused browser-first workflow.
               </p>
               {compareExplorer.snapshotComparison ? (
                 <p>

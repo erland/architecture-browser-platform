@@ -1,13 +1,15 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { emptyRepositoryForm, type Repository, type RepositorySourceType, type RepositoryUpdateRequest } from '../appModel';
+import { emptyRepositoryForm, emptyWorkspaceForm, type Repository, type RepositorySourceType, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import type { SourceTreeLauncherItem } from '../appModel.sourceTree';
 
 export type BrowserSourceTreeSwitcherDialogProps = {
   isOpen: boolean;
   items: SourceTreeLauncherItem[];
   repositories: Repository[];
+  selectedWorkspace: Workspace | null;
   onSelectSourceTree: (item: SourceTreeLauncherItem) => void;
   onCreateRepository: (payload: typeof emptyRepositoryForm) => Promise<void>;
+  onCreateWorkspace: (payload: typeof emptyWorkspaceForm) => Promise<void>;
   onRequestReindex: (repository: Repository) => Promise<void>;
   onArchiveRepository: (repository: Repository) => Promise<void>;
   onUpdateRepository: (repository: Repository, payload: RepositoryUpdateRequest) => Promise<void>;
@@ -18,7 +20,9 @@ function buildInitialRepositoryForm() {
   return { ...emptyRepositoryForm };
 }
 
-
+function buildInitialWorkspaceForm() {
+  return { ...emptyWorkspaceForm };
+}
 
 function isGitSource(sourceType: RepositorySourceType) {
   return sourceType === 'GIT';
@@ -49,15 +53,19 @@ export function BrowserSourceTreeSwitcherDialog({
   isOpen,
   items,
   repositories,
+  selectedWorkspace,
   onSelectSourceTree,
   onCreateRepository,
+  onCreateWorkspace,
   onRequestReindex,
   onArchiveRepository,
   onUpdateRepository,
   onClose,
 }: BrowserSourceTreeSwitcherDialogProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCreateWorkspaceDialogOpen, setIsCreateWorkspaceDialogOpen] = useState(false);
   const [repositoryForm, setRepositoryForm] = useState(buildInitialRepositoryForm);
+  const [workspaceForm, setWorkspaceForm] = useState(buildInitialWorkspaceForm);
   const [actionRepositoryId, setActionRepositoryId] = useState<string | null>(null);
   const [editRepositoryId, setEditRepositoryId] = useState<string | null>(null);
   const [editRepositoryForm, setEditRepositoryForm] = useState<RepositoryUpdateRequest>({
@@ -83,13 +91,17 @@ export function BrowserSourceTreeSwitcherDialog({
           setIsAddDialogOpen(false);
           return;
         }
+        if (isCreateWorkspaceDialogOpen) {
+          setIsCreateWorkspaceDialogOpen(false);
+          return;
+        }
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isAddDialogOpen, editRepositoryId, onClose]);
+  }, [isOpen, isAddDialogOpen, isCreateWorkspaceDialogOpen, editRepositoryId, onClose]);
 
   const repositoriesById = useMemo(() => {
     const result = new Map<string, Repository>();
@@ -114,6 +126,11 @@ export function BrowserSourceTreeSwitcherDialog({
   const handleOpenAddDialog = () => {
     setRepositoryForm(buildInitialRepositoryForm());
     setIsAddDialogOpen(true);
+  };
+
+  const handleOpenCreateWorkspaceDialog = () => {
+    setWorkspaceForm(buildInitialWorkspaceForm());
+    setIsCreateWorkspaceDialogOpen(true);
   };
 
   const handleOpenEditDialog = (repository: Repository) => {
@@ -150,6 +167,13 @@ export function BrowserSourceTreeSwitcherDialog({
     await onCreateRepository(repositoryForm);
     setRepositoryForm(buildInitialRepositoryForm());
     setIsAddDialogOpen(false);
+  };
+
+  const handleCreateWorkspace = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await onCreateWorkspace(workspaceForm);
+    setWorkspaceForm(buildInitialWorkspaceForm());
+    setIsCreateWorkspaceDialogOpen(false);
   };
 
   const handleReindex = async (item: SourceTreeLauncherItem) => {
@@ -205,10 +229,20 @@ export function BrowserSourceTreeSwitcherDialog({
               <h2 id="browser-source-tree-switcher-title">Source trees</h2>
             </div>
             <div className="browser-dialog__header-actions">
-              <button type="button" onClick={handleOpenAddDialog}>Add source tree</button>
+              <button type="button" onClick={handleOpenAddDialog} disabled={!selectedWorkspace}>Add source tree</button>
               <button type="button" className="button-secondary" onClick={onClose}>Close</button>
             </div>
           </div>
+          {!selectedWorkspace ? (
+            <section className="browser-dialog__empty-state">
+              <h4>No workspace selected</h4>
+              <p className="muted">Create a workspace to start registering and indexing source trees.</p>
+              <div className="browser-dialog__empty-actions">
+                <button type="button" onClick={handleOpenCreateWorkspaceDialog}>Create workspace</button>
+              </div>
+            </section>
+          ) : null}
+
           <div className="browser-dialog__source-list" role="list" aria-label="Source tree management list">
             {items.map((item) => {
               const busy = actionRepositoryId === item.repositoryId;
@@ -235,7 +269,7 @@ export function BrowserSourceTreeSwitcherDialog({
                 </section>
               );
             })}
-            {!items.length ? <p className="muted">No source trees are available yet. Add one to start indexing.</p> : null}
+            {!items.length && selectedWorkspace ? <p className="muted">No source trees are available yet. Add one to start indexing.</p> : null}
           </div>
         </section>
 
@@ -318,6 +352,61 @@ export function BrowserSourceTreeSwitcherDialog({
                 <div className="browser-dialog__footer-actions">
                   <button type="submit">Save changes</button>
                   <button type="button" className="button-secondary" onClick={() => setEditRepositoryId(null)}>Cancel</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        ) : null}
+
+        {isCreateWorkspaceDialogOpen ? (
+          <div className="browser-dialog browser-dialog--nested" role="presentation">
+            <button
+              type="button"
+              className="browser-dialog__backdrop"
+              aria-label="Close create workspace dialog"
+              onClick={() => setIsCreateWorkspaceDialogOpen(false)}
+            />
+            <section className="card browser-dialog__surface browser-dialog__surface--nested" role="dialog" aria-modal="true" aria-labelledby="browser-create-workspace-title">
+              <div className="browser-dialog__header">
+                <div>
+                  <p className="eyebrow">Create workspace</p>
+                  <h2 id="browser-create-workspace-title">Create a workspace</h2>
+                  <p className="muted browser-dialog__lead">A workspace is the container used to organize source trees and indexed versions.</p>
+                </div>
+                <button type="button" className="button-secondary" onClick={() => setIsCreateWorkspaceDialogOpen(false)}>Close</button>
+              </div>
+
+              <form className="form browser-dialog__form" onSubmit={(event) => void handleCreateWorkspace(event)}>
+                <label>
+                  <span>Workspace key</span>
+                  <input
+                    value={workspaceForm.workspaceKey}
+                    onChange={(event) => setWorkspaceForm((current) => ({ ...current, workspaceKey: event.target.value }))}
+                    placeholder="default-workspace"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Name</span>
+                  <input
+                    value={workspaceForm.name}
+                    onChange={(event) => setWorkspaceForm((current) => ({ ...current, name: event.target.value }))}
+                    placeholder="Default workspace"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Description</span>
+                  <textarea
+                    value={workspaceForm.description}
+                    onChange={(event) => setWorkspaceForm((current) => ({ ...current, description: event.target.value }))}
+                    rows={3}
+                    placeholder="Optional description"
+                  />
+                </label>
+                <div className="actions actions--inline browser-dialog__form-actions">
+                  <button type="submit">Create workspace</button>
+                  <button type="button" className="button-secondary" onClick={() => setIsCreateWorkspaceDialogOpen(false)}>Cancel</button>
                 </div>
               </form>
             </section>

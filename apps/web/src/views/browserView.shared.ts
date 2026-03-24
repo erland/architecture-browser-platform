@@ -7,7 +7,6 @@ export type BrowserViewProps = {
   onOpenRepositories: () => void;
   onOpenCompare: () => void;
   onOpenOperations: () => void;
-  onOpenLegacy: () => void;
 };
 
 export function readBrowserTabFromLocation(): BrowserTabKey {

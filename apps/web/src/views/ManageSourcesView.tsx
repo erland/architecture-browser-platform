@@ -5,13 +5,12 @@ import { SnapshotsView } from './SnapshotsView';
 type ManageSourcesViewProps = {
   onOpenBrowser: () => void;
   onOpenCompare: () => void;
-  onOpenLegacy: () => void;
   onOpenWorkspaces: () => void;
 };
 
 type ManageSourcesTab = 'source-trees' | 'indexed-versions';
 
-export function ManageSourcesView({ onOpenBrowser, onOpenCompare, onOpenLegacy, onOpenWorkspaces }: ManageSourcesViewProps) {
+export function ManageSourcesView({ onOpenBrowser, onOpenCompare, onOpenWorkspaces }: ManageSourcesViewProps) {
   const [activeTab, setActiveTab] = useState<ManageSourcesTab>('source-trees');
 
   return (
@@ -42,7 +41,7 @@ export function ManageSourcesView({ onOpenBrowser, onOpenCompare, onOpenLegacy, 
       {activeTab === 'source-trees' ? (
         <RepositoriesView onOpenBrowser={onOpenBrowser} onOpenSnapshots={() => setActiveTab('indexed-versions')} />
       ) : (
-        <SnapshotsView onOpenBrowser={onOpenBrowser} onOpenCompare={onOpenCompare} onOpenLegacy={onOpenLegacy} onOpenRepositories={() => setActiveTab('source-trees')} />
+        <SnapshotsView onOpenBrowser={onOpenBrowser} onOpenCompare={onOpenCompare} onOpenRepositories={() => setActiveTab('source-trees')} />
       )}
     </div>
   );
