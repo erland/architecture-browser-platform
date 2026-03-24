@@ -25,7 +25,7 @@ export function buildSavedCanvasDocumentForSave(options: {
     throw new Error('Saved canvas name is required.');
   }
   const now = options.now ?? new Date().toISOString();
-  return createSavedCanvasDocumentFromBrowserSession({
+  const document = createSavedCanvasDocumentFromBrowserSession({
     state: options.state,
     canvasId: options.existing?.canvasId ?? createSavedCanvasId(),
     name: trimmedName,
@@ -38,4 +38,22 @@ export function buildSavedCanvasDocumentForSave(options: {
     lastSyncedAt: options.existing?.sync.lastSyncedAt ?? null,
     lastSyncError: options.existing?.sync.lastSyncError ?? null,
   });
+
+  if (!options.existing) {
+    return document;
+  }
+
+  return {
+    ...document,
+    bindings: {
+      ...document.bindings,
+      originSnapshot: options.existing.bindings.originSnapshot,
+      currentTargetSnapshot: options.existing.bindings.currentTargetSnapshot ?? document.bindings.currentTargetSnapshot,
+      rebinding: options.existing.bindings.rebinding ?? null,
+    },
+    sync: {
+      ...document.sync,
+      conflict: options.existing.sync.conflict ?? null,
+    },
+  };
 }

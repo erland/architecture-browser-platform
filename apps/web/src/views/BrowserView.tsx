@@ -18,9 +18,11 @@ import { createSavedCanvasSyncService } from '../savedCanvasSync';
 import { restoreSavedCanvasToBrowserSession } from '../savedCanvasSessionMapping';
 import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../savedCanvasOpen';
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
+import { hasSavedCanvasTrackedContentEdits, hasSavedCanvasTrackedNameEdit } from '../savedCanvasEditTracking';
 import { rebindSavedCanvasToTargetSnapshot } from '../savedCanvasRebinding';
 import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary, type SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
 import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability, type SavedCanvasOfflineAvailabilitySummary } from '../savedCanvasSnapshotAvailability';
+import type { SavedCanvasDocument } from '../savedCanvasModel';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { type BrowserViewProps } from './browserView.shared';
@@ -61,6 +63,7 @@ export function BrowserView(_: BrowserViewProps) {
   const [rebindingCanvasId, setRebindingCanvasId] = useState<string | null>(null);
   const [rebindingSummary, setRebindingSummary] = useState<SavedCanvasRebindingUiSummary | null>(null);
   const [savedCanvasAvailabilityById, setSavedCanvasAvailabilityById] = useState<Record<string, SavedCanvasOfflineAvailabilitySummary>>({});
+  const [currentSavedCanvasBaseline, setCurrentSavedCanvasBaseline] = useState<SavedCanvasDocument | null>(null);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine === false);
 
   const handleOpenSourceTreeDialog = () => setIsSourceTreeSwitcherOpen(true);
@@ -216,6 +219,19 @@ export function BrowserView(_: BrowserViewProps) {
       || record.syncState === 'LOCALLY_MODIFIED'
       || record.syncState === 'DELETED_LOCALLY_PENDING_SYNC'
   )).length, [savedCanvasRecords]);
+
+  const currentSavedCanvasHasLocalEdits = useMemo(() => {
+    if (!currentSavedCanvasId || !currentSavedCanvasBaseline) {
+      return false;
+    }
+    if (hasSavedCanvasTrackedNameEdit(savedCanvasDraftName, currentSavedCanvasBaseline)) {
+      return true;
+    }
+    return hasSavedCanvasTrackedContentEdits({
+      state: browserSession.state,
+      baseline: currentSavedCanvasBaseline,
+    });
+  }, [browserSession.state, currentSavedCanvasBaseline, currentSavedCanvasId, savedCanvasDraftName]);
 
   const runSavedCanvasSync = useCallback(async (options?: { silent?: boolean }) => {
     const workspaceId = workspaceData.selectedWorkspaceId ?? selection.selectedWorkspaceId ?? null;
@@ -421,6 +437,7 @@ export function BrowserView(_: BrowserViewProps) {
 
   useEffect(() => {
     if (!currentSavedCanvasId) {
+      setCurrentSavedCanvasBaseline(null);
       return;
     }
     const currentRecord = savedCanvasRecords.find((record) => record.canvasId === currentSavedCanvasId);
@@ -436,6 +453,7 @@ export function BrowserView(_: BrowserViewProps) {
     const activeSnapshotId = selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null;
     if (!activeSnapshotId) {
       setCurrentSavedCanvasId(null);
+      setCurrentSavedCanvasBaseline(null);
       return;
     }
     const currentRecord = savedCanvasRecords.find((record) => record.canvasId === currentSavedCanvasId);
@@ -444,6 +462,7 @@ export function BrowserView(_: BrowserViewProps) {
     }
     if (currentRecord.originSnapshotId !== activeSnapshotId && currentRecord.currentTargetSnapshotId !== activeSnapshotId) {
       setCurrentSavedCanvasId(null);
+      setCurrentSavedCanvasBaseline(null);
     }
   }, [browserSession.state.activeSnapshot?.snapshotId, currentSavedCanvasId, savedCanvasRecords, selectedSnapshot?.id]);
 
@@ -471,11 +490,12 @@ export function BrowserView(_: BrowserViewProps) {
       const document = buildSavedCanvasDocumentForSave({
         state: browserSession.state,
         name: savedCanvasDraftName,
-        existing: existingRecord?.document ?? null,
+        existing: currentSavedCanvasBaseline ?? existingRecord?.document ?? null,
       });
       const savedRecord = await savedCanvasStore.putCanvas(document);
       const pendingRecord = await savedCanvasSyncService.markCanvasPendingSync(savedRecord.document);
       setCurrentSavedCanvasId(pendingRecord.canvasId);
+      setCurrentSavedCanvasBaseline(pendingRecord.document);
       setSavedCanvasDraftName(pendingRecord.name);
       setRebindingCanvasId(null);
       setRebindingSummary(null);
@@ -527,6 +547,7 @@ export function BrowserView(_: BrowserViewProps) {
       selection.setSelectedRepositoryId(snapshotRef.repositoryRegistrationId);
       selection.setSelectedSnapshotId(snapshotRef.snapshotId);
       setCurrentSavedCanvasId(record.canvasId);
+      setCurrentSavedCanvasBaseline(documentForOpen);
       setSavedCanvasDraftName(record.name);
       setRebindingCanvasId(null);
       setRebindingSummary(null);
@@ -571,6 +592,7 @@ export function BrowserView(_: BrowserViewProps) {
       selection.setSelectedRepositoryId(selectedSnapshot.repositoryRegistrationId);
       selection.setSelectedSnapshotId(selectedSnapshot.id);
       setCurrentSavedCanvasId(record.canvasId);
+      setCurrentSavedCanvasBaseline(rebound.document);
       setSavedCanvasDraftName(record.name);
       const summary = toSavedCanvasRebindingUiSummary(rebound);
       setRebindingCanvasId(record.canvasId);
@@ -600,6 +622,7 @@ export function BrowserView(_: BrowserViewProps) {
       await savedCanvasSyncService.markCanvasDeletedPendingSync(existingRecord);
       if (currentSavedCanvasId === canvasId) {
         setCurrentSavedCanvasId(null);
+        setCurrentSavedCanvasBaseline(null);
         setSavedCanvasDraftName(defaultSavedCanvasName(selectedSnapshotLabel));
       }
       if (rebindingCanvasId === canvasId) {
@@ -679,6 +702,7 @@ export function BrowserView(_: BrowserViewProps) {
         selectedSnapshotId={selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null}
         selectedSnapshotLabel={selectedSnapshotLabel}
         pendingSyncCount={pendingSavedCanvasSyncCount}
+        currentCanvasHasLocalEdits={currentSavedCanvasHasLocalEdits}
         rebindingCanvasId={rebindingCanvasId}
         rebindingSummary={rebindingSummary}
         isOffline={isOffline}

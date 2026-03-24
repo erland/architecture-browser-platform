@@ -15,6 +15,7 @@ export type BrowserSavedCanvasDialogProps = {
   selectedSnapshotId: string | null;
   selectedSnapshotLabel: string | null;
   pendingSyncCount: number;
+  currentCanvasHasLocalEdits: boolean;
   rebindingCanvasId: string | null;
   rebindingSummary: SavedCanvasRebindingUiSummary | null;
   isOffline: boolean;
@@ -92,6 +93,7 @@ export function BrowserSavedCanvasDialog({
   selectedSnapshotId,
   selectedSnapshotLabel,
   pendingSyncCount,
+  currentCanvasHasLocalEdits,
   rebindingCanvasId,
   rebindingSummary,
   isOffline,
@@ -138,7 +140,7 @@ export function BrowserSavedCanvasDialog({
             />
           </label>
           <button type="button" onClick={onSaveCurrentCanvas} disabled={isBusy || !draftName.trim()}>
-            {currentCanvasId ? 'Save changes' : 'Save current canvas'}
+            {currentCanvasId ? (currentCanvasHasLocalEdits ? 'Save changes' : 'Save current canvas') : 'Save current canvas'}
           </button>
           <button type="button" className="button-secondary" onClick={onSyncNow} disabled={isBusy || pendingSyncCount === 0}>
             Sync pending{pendingSyncCount > 0 ? ` (${pendingSyncCount})` : ''}
@@ -147,6 +149,7 @@ export function BrowserSavedCanvasDialog({
         </div>
 
         {statusMessage ? <p className="browser-saved-canvas-dialog__status muted">{statusMessage}</p> : null}
+        {currentCanvasId && currentCanvasHasLocalEdits ? <p className="browser-saved-canvas-dialog__status muted">This opened saved canvas has local unsaved edits.</p> : null}
         {isOffline ? <p className="browser-saved-canvas-dialog__status muted">Offline mode: only snapshots already cached locally can be opened.</p> : null}
 
         {rebindingSummary ? (
@@ -193,6 +196,7 @@ export function BrowserSavedCanvasDialog({
                       <h4>{record.name}</h4>
                       <div className="browser-saved-canvas-card__badges">
                         {isCurrent ? <span className="badge">Open</span> : null}
+                        {isCurrent && currentCanvasHasLocalEdits ? <span className="badge">Unsaved edits</span> : null}
                         {isSelectedSnapshot ? <span className="badge">Current snapshot</span> : null}
                         <span className="badge">{record.syncState}</span>
                       </div>
