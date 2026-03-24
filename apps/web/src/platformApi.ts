@@ -32,13 +32,6 @@ export type RunRequest = {
   requestedResult: "SUCCESS" | "FAILURE";
 };
 
-export type SavedViewCreateRequest = {
-  name: string;
-  viewType: string;
-  queryState: Record<string, string>;
-  layoutState: Record<string, string>;
-};
-
 export type SavedCanvasUpsertRequest = {
   name: string;
   document: SavedCanvasDocument;
@@ -110,20 +103,6 @@ export function createPlatformApi(client = httpClient) {
       }),
     deleteSavedCanvas: (workspaceId: string, snapshotId: string, savedCanvasId: string, expectedBackendVersion?: string | null) =>
       client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}${expectedBackendVersion ? `?expectedBackendVersion=${encodeURIComponent(expectedBackendVersion)}` : ''}`, {
-        method: "DELETE",
-      }),
-    createSavedView: <T>(workspaceId: string, snapshotId: string, payload: SavedViewCreateRequest) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-views`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }),
-    duplicateSavedView: <T>(workspaceId: string, snapshotId: string, savedViewId: string) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-views/${savedViewId}/duplicate`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      }),
-    deleteSavedView: (workspaceId: string, snapshotId: string, savedViewId: string) =>
-      client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-views/${savedViewId}`, {
         method: "DELETE",
       }),
   };

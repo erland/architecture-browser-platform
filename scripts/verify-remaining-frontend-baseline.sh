@@ -44,8 +44,9 @@ check_exists "apps/web/src/components/BrowserFactsPanel.tsx"
 check_exists "apps/web/src/components/BrowserViewpointDialog.tsx"
 
 log ""
-log "Retain-for-now saved-view checks"
-check_exists "apps/web/src/savedViewModel.ts"
+log "Browser persistence foundation checks"
+check_exists "apps/web/src/savedCanvasModel.ts"
+check_exists "apps/web/src/savedCanvasLocalStore.ts"
 check_exists "apps/web/src/appModel.customization.ts"
 check_exists "docs/remaining_frontend_cleanup_step1_baseline.md"
 
