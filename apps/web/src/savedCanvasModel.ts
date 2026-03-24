@@ -13,7 +13,7 @@ export type SavedCanvasSyncState =
   | "UNRESOLVED"
   | "PARTIALLY_RESOLVED";
 
-export type SavedCanvasBindingTargetType = "ENTITY" | "RELATIONSHIP";
+export type SavedCanvasBindingTargetType = "SCOPE" | "ENTITY" | "RELATIONSHIP";
 
 export type SavedCanvasSnapshotRef = {
   snapshotId: string;
