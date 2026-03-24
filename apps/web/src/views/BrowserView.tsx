@@ -20,6 +20,7 @@ import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanva
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
 import { hasSavedCanvasTrackedContentEdits, hasSavedCanvasTrackedNameEdit } from '../savedCanvasEditTracking';
 import { rebindSavedCanvasToTargetSnapshot } from '../savedCanvasRebinding';
+import { buildAcceptedSavedCanvasRebindingDocument } from '../savedCanvasAcceptedRebinding';
 import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary, type SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
 import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability, type SavedCanvasOfflineAvailabilitySummary } from '../savedCanvasSnapshotAvailability';
 import type { SavedCanvasDocument } from '../savedCanvasModel';
@@ -582,8 +583,15 @@ export function BrowserView(_: BrowserViewProps) {
       const cache = getBrowserSnapshotCache();
       const openedSnapshot = await loadSelectedTargetSnapshotForSavedCanvasOpen(selectedSnapshot, cache);
       const rebound = rebindSavedCanvasToTargetSnapshot(record.document, selectedSnapshot, openedSnapshot.payload, openedSnapshot.preparedAt);
+      const acceptedRebindingDocument = buildAcceptedSavedCanvasRebindingDocument({
+        baseline: record.document,
+        rebound: rebound.document,
+        acceptedAt: openedSnapshot.preparedAt,
+      });
+      const persistedAcceptedRecord = await savedCanvasStore.putCanvas(acceptedRebindingDocument);
+      const pendingAcceptedRecord = await savedCanvasSyncService.markCanvasPendingSync(persistedAcceptedRecord.document, openedSnapshot.preparedAt);
       const restored = restoreSavedCanvasToBrowserSession({
-        document: rebound.document,
+        document: pendingAcceptedRecord.document,
         payload: openedSnapshot.payload,
         preparedAt: openedSnapshot.preparedAt,
       });
@@ -591,19 +599,21 @@ export function BrowserView(_: BrowserViewProps) {
       selection.setSelectedWorkspaceId(selectedSnapshot.workspaceId);
       selection.setSelectedRepositoryId(selectedSnapshot.repositoryRegistrationId);
       selection.setSelectedSnapshotId(selectedSnapshot.id);
-      setCurrentSavedCanvasId(record.canvasId);
-      setCurrentSavedCanvasBaseline(rebound.document);
-      setSavedCanvasDraftName(record.name);
+      setCurrentSavedCanvasId(pendingAcceptedRecord.canvasId);
+      setCurrentSavedCanvasBaseline(pendingAcceptedRecord.document);
+      setSavedCanvasDraftName(pendingAcceptedRecord.name);
+      await loadSavedCanvasRecords(pendingAcceptedRecord.workspaceId, pendingAcceptedRecord.repositoryRegistrationId);
+      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: true }), pendingAcceptedRecord.canvasId);
       const summary = toSavedCanvasRebindingUiSummary(rebound);
-      setRebindingCanvasId(record.canvasId);
+      setRebindingCanvasId(pendingAcceptedRecord.canvasId);
       setRebindingSummary(summary);
       const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
-      setSavedCanvasStatusMessage(buildSavedCanvasRebindingStatusMessage({
-        canvasName: record.name,
+      setSavedCanvasStatusMessage(`${buildSavedCanvasRebindingStatusMessage({
+        canvasName: pendingAcceptedRecord.name,
         targetSnapshotLabel: selectedSnapshot.snapshotKey,
         availabilityLabel,
         summary,
-      }));
+      })} Accepted remap metadata was saved for future opens.`);
       setIsSavedCanvasDialogOpen(summary.unresolvedCount > 0);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas on the selected snapshot.');
