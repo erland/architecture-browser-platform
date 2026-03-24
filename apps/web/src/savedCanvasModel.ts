@@ -36,6 +36,11 @@ export type SavedCanvasFallbackReference = {
   relationshipKind?: string | null;
   fromStableKey?: string | null;
   toStableKey?: string | null;
+  qualifiedName?: string | null;
+  signature?: string | null;
+  primarySourcePath?: string | null;
+  stableCategory?: string | null;
+  semanticFingerprint?: string | null;
   metadata?: Record<string, unknown>;
 };
 

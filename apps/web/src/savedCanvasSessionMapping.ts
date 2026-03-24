@@ -9,7 +9,6 @@ import type {
 } from './browserSessionStore';
 import {
   createSavedCanvasDocument,
-  createSavedCanvasItemReference,
   type CreateSavedCanvasDocumentInput,
   type SavedCanvasDocument,
   type SavedCanvasEdge,
@@ -17,6 +16,12 @@ import {
   type SavedCanvasNode,
   toSavedCanvasSnapshotRef,
 } from './savedCanvasModel';
+import {
+  createSavedCanvasEntityReference,
+  createSavedCanvasRelationshipReference,
+  createSavedCanvasScopeReference,
+  resolveSavedCanvasReferenceIdByStableKey,
+} from './savedCanvasStableReferences';
 
 export type CreateSavedCanvasFromBrowserSessionOptions = {
   state: BrowserSessionState;
@@ -173,29 +178,8 @@ function mapBrowserCanvasNodeToSavedCanvasNode(node: BrowserCanvasNode, state: B
   }
 
   const reference = node.kind === 'scope'
-    ? createSavedCanvasItemReference({
-        targetType: 'SCOPE',
-        stableKey: node.id,
-        originalSnapshotLocalId: node.id,
-        fallback: {
-          kind: state.index.scopesById.get(node.id)?.kind ?? null,
-          name: state.index.scopesById.get(node.id)?.name ?? null,
-          displayName: state.index.scopesById.get(node.id)?.displayName ?? null,
-          path: state.index.scopePathById.get(node.id) ?? null,
-        },
-      })
-    : createSavedCanvasItemReference({
-        targetType: 'ENTITY',
-        stableKey: node.id,
-        originalSnapshotLocalId: node.id,
-        fallback: {
-          kind: state.index.entitiesById.get(node.id)?.kind ?? null,
-          name: state.index.entitiesById.get(node.id)?.name ?? null,
-          displayName: state.index.entitiesById.get(node.id)?.displayName ?? null,
-          scopeStableKey: state.index.entitiesById.get(node.id)?.scopeId ?? null,
-          path: state.index.entitiesById.get(node.id)?.scopeId ? state.index.scopePathById.get(state.index.entitiesById.get(node.id)?.scopeId ?? '') ?? null : null,
-        },
-      });
+    ? createSavedCanvasScopeReference(state.index, node.id)
+    : createSavedCanvasEntityReference(state.index, node.id);
 
   return {
     canvasNodeId: `${node.kind}:${node.id}`,
@@ -226,7 +210,7 @@ function mapBrowserCanvasEdgeToSavedCanvasEdge(edge: BrowserCanvasEdge, state: B
   const relationship = state.index.relationshipsById.get(edge.relationshipId);
   return {
     canvasEdgeId: edge.relationshipId,
-    reference: mapRelationshipReference(relationship, edge.relationshipId),
+    reference: mapRelationshipReference(relationship, edge.relationshipId, state),
     sourceCanvasNodeId: `entity:${edge.fromEntityId}`,
     targetCanvasNodeId: `entity:${edge.toEntityId}`,
     presentation: {
@@ -242,18 +226,12 @@ function mapBrowserCanvasEdgeToSavedCanvasEdge(edge: BrowserCanvasEdge, state: B
 function mapRelationshipReference(
   relationship: FullSnapshotRelationship | undefined,
   fallbackRelationshipId: string,
+  state: BrowserSessionState,
 ): SavedCanvasItemReference {
-  return createSavedCanvasItemReference({
-    targetType: 'RELATIONSHIP',
-    stableKey: relationship?.externalId ?? fallbackRelationshipId,
-    originalSnapshotLocalId: relationship?.externalId ?? fallbackRelationshipId,
-    fallback: {
-      relationshipKind: relationship?.kind ?? null,
-      fromStableKey: relationship?.fromEntityId ?? null,
-      toStableKey: relationship?.toEntityId ?? null,
-      metadata: relationship?.metadata ?? {},
-    },
-  });
+  if (!relationship) {
+    return createSavedCanvasRelationshipReference(state.index!, fallbackRelationshipId);
+  }
+  return createSavedCanvasRelationshipReference(state.index!, relationship.externalId);
 }
 
 function restoreSavedCanvasNode(
@@ -309,18 +287,18 @@ function resolveSavedCanvasReferenceId(
     if (directId && index.scopesById.has(directId)) {
       return directId;
     }
-    return index.scopesById.has(reference.stableKey) ? reference.stableKey : null;
+    return resolveSavedCanvasReferenceIdByStableKey(index, reference);
   }
   if (reference.targetType === 'ENTITY') {
     if (directId && index.entitiesById.has(directId)) {
       return directId;
     }
-    return index.entitiesById.has(reference.stableKey) ? reference.stableKey : null;
+    return resolveSavedCanvasReferenceIdByStableKey(index, reference);
   }
   if (directId && index.relationshipsById.has(directId)) {
     return directId;
   }
-  return index.relationshipsById.has(reference.stableKey) ? reference.stableKey : null;
+  return resolveSavedCanvasReferenceIdByStableKey(index, reference);
 }
 
 function normalizeCanvasLayoutMode(layoutMode: string | null | undefined): BrowserCanvasLayoutMode {

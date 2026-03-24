@@ -39,6 +39,23 @@ const snapshotSummary: SnapshotSummary = {
   degradedFileCount: 0,
 };
 
+function createPayloadWithChangedLocalIds(): FullSnapshotPayload {
+  return {
+    ...createPayload(),
+    scopes: [
+      { externalId: 'scope:repo:v2', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+      { externalId: 'scope:web:v2', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: 'scope:repo:v2', sourceRefs: [], metadata: {} },
+    ],
+    entities: [
+      { externalId: 'entity:browser:v2', kind: 'COMPONENT', origin: 'react', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web:v2', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:search:v2', kind: 'COMPONENT', origin: 'react', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web:v2', sourceRefs: [], metadata: {} },
+    ],
+    relationships: [
+      { externalId: 'rel:browser-search:v2', kind: 'USES', fromEntityId: 'entity:browser:v2', toEntityId: 'entity:search:v2', label: 'uses', sourceRefs: [], metadata: {} },
+    ],
+  };
+}
+
 function createPayload(): FullSnapshotPayload {
   return {
     snapshot: snapshotSummary,
@@ -106,6 +123,8 @@ describe('savedCanvasSessionMapping', () => {
     expect(document.content.nodes.map((node) => node.reference.targetType)).toEqual(expect.arrayContaining(['SCOPE', 'ENTITY']));
     expect(document.content.edges).toHaveLength(1);
     expect(document.content.edges[0].reference.targetType).toBe('RELATIONSHIP');
+    expect(document.content.nodes.find((node) => node.reference.targetType === 'ENTITY')?.reference.stableKey).not.toBe('entity:browser');
+    expect(document.content.edges[0].reference.stableKey).not.toBe('rel:browser-search');
     expect(document.content.edges[0].reference.originalSnapshotLocalId).toBe('rel:browser-search');
   });
 
@@ -145,6 +164,39 @@ describe('savedCanvasSessionMapping', () => {
     ]);
     expect(restored.state.canvasViewport).toEqual({ zoom: 1.2, offsetX: 32, offsetY: 48 });
     expect(restored.state.viewpointSelection.viewpointId).toBe('ui-navigation');
+  });
+
+  test('restores against changed snapshot-local ids by using stable references', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addScopeToCanvas(state, 'scope:web');
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+
+    const document = createSavedCanvasDocumentFromBrowserSession({
+      state,
+      canvasId: 'canvas-rebind-1',
+      name: 'Stable remap canvas',
+    });
+
+    const restored = restoreSavedCanvasToBrowserSession({
+      document,
+      payload: createPayloadWithChangedLocalIds(),
+    });
+
+    expect(restored.unresolvedNodeIds).toEqual([]);
+    expect(restored.unresolvedEdgeIds).toEqual([]);
+    expect(restored.state.canvasNodes.map((node) => node.id)).toEqual(expect.arrayContaining(['scope:web:v2', 'entity:browser:v2', 'entity:search:v2']));
+    expect(restored.state.canvasEdges).toEqual([
+      {
+        relationshipId: 'rel:browser-search:v2',
+        fromEntityId: 'entity:browser:v2',
+        toEntityId: 'entity:search:v2',
+      },
+    ]);
   });
 
   test('reports unresolved items during restore when the target snapshot no longer contains them', () => {
