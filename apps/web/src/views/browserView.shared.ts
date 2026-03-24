@@ -1,13 +1,7 @@
 import type { BrowserTabKey } from '../routing/browserTabs';
 import { DEFAULT_BROWSER_TAB, readBrowserTabFromSearch } from '../routing/browserTabState';
 
-export type BrowserViewProps = {
-  onOpenWorkspaces: () => void;
-  onOpenSnapshots: () => void;
-  onOpenRepositories: () => void;
-  onOpenCompare: () => void;
-  onOpenOperations: () => void;
-};
+export type BrowserViewProps = Record<string, never>;
 
 export function readBrowserTabFromLocation(): BrowserTabKey {
   if (typeof window === 'undefined') {

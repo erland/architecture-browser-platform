@@ -38,21 +38,6 @@ describe("platformApi", () => {
     );
   });
 
-  test("previewRetention encodes retention counts into the preview endpoint", async () => {
-    const fetchJson = jest.fn(async () => ({ runsToDelete: 0 })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
-    const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });
-
-    await api.previewRetention("ws-1", {
-      keepSnapshotsPerRepository: 2,
-      keepRunsPerRepository: 5,
-    });
-
-    expect(fetchJson).toHaveBeenCalledWith(
-      "/api/workspaces/ws-1/operations/retention/preview?keepSnapshotsPerRepository=2&keepRunsPerRepository=5",
-      { method: "GET" },
-    );
-  });
-
   test("createWorkspace posts the workspace form to the expected endpoint", async () => {
     const fetchJson = jest.fn(async () => ({ id: "ws-1" })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
     const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });

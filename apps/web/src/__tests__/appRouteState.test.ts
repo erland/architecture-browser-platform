@@ -1,10 +1,13 @@
 import { buildNavigationUrl, readRoutePath } from '../routing/appRouteState';
 
 describe('appRouteState', () => {
-  it('reads known route paths directly', () => {
+  it('reads browser-managed route paths as the browser screen', () => {
     expect(readRoutePath('/browser')).toBe('/browser');
-    expect(readRoutePath('/sources')).toBe('/sources');
-    expect(readRoutePath('/snapshots')).toBe('/sources');
+    expect(readRoutePath('/sources')).toBe('/browser');
+    expect(readRoutePath('/snapshots')).toBe('/browser');
+    expect(readRoutePath('/workspaces')).toBe('/browser');
+    expect(readRoutePath('/compare')).toBe('/browser');
+    expect(readRoutePath('/operations')).toBe('/browser');
   });
 
   it('falls back unknown route paths to the browser screen', () => {
@@ -13,8 +16,8 @@ describe('appRouteState', () => {
   });
 
   it('builds navigation urls that preserve selection query params and hash fragments', () => {
-    expect(buildNavigationUrl('/compare', '?workspace=ws-1&snapshot=snap-9', '#details')).toBe(
-      '/compare?workspace=ws-1&snapshot=snap-9#details',
+    expect(buildNavigationUrl('/browser', '?workspace=ws-1&snapshot=snap-9', '#details')).toBe(
+      '/browser?workspace=ws-1&snapshot=snap-9#details',
     );
   });
 });

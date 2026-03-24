@@ -1,0 +1,26 @@
+Browser-only cleanup step 1 baseline check
+Repository: /mnt/data/platform_work
+Timestamp: 2026-03-24T08:30:10Z
+
+Frozen baseline inventory checks
+[present] apps/web/src/App.tsx
+[present] apps/web/src/views/BrowserView.tsx
+[present] apps/web/src/components/BrowserSourceTreeSwitcherDialog.tsx
+[present] apps/web/src/components/AppNavigation.tsx
+[present] apps/web/src/views/ManageSourcesView.tsx
+[present] apps/web/src/views/WorkspacesView.tsx
+[present] apps/web/src/views/CompareView.tsx
+[present] apps/web/src/views/OperationsView.tsx
+[present] docs/platform_browser_only_frontend_cleanup_step1.md
+
+Route inventory from apps/web/src/routing/appRoutes.ts
+[route] /browser present
+[route] /sources present in frozen baseline
+[route] /workspaces present in frozen baseline
+[route] /compare present in frozen baseline
+[route] /operations present in frozen baseline
+
+[web:typecheck] SKIPPED - install repository npm dependencies first
+[web:targeted-tests] SKIPPED - install repository npm dependencies first
+
+Reference document: docs/platform_browser_only_frontend_cleanup_step1.md

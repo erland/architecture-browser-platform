@@ -31,11 +31,6 @@ export type RunRequest = {
   requestedResult: "SUCCESS" | "FAILURE";
 };
 
-export type RetentionRequest = {
-  keepSnapshotsPerRepository: number;
-  keepRunsPerRepository: number;
-};
-
 export type OverlayCreateRequest = {
   name: string;
   kind: string;
@@ -68,10 +63,8 @@ export function createPlatformApi(client = httpClient) {
     getHealth: <T>() => client.fetchJson<T>("/api/health", { method: "GET" }),
     listWorkspaces: <T>() => client.fetchJson<T>("/api/workspaces", { method: "GET" }),
     getWorkspaceRepositories: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/repositories`, { method: "GET" }),
-    getWorkspaceAuditEvents: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/audit-events`, { method: "GET" }),
     getWorkspaceRuns: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/runs/recent`, { method: "GET" }),
     getWorkspaceSnapshots: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots`, { method: "GET" }),
-    getOperationsOverview: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/operations/overview`, { method: "GET" }),
     getSnapshotOverview: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/overview`, { method: "GET" }),
     getFullSnapshotPayload: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: "GET" }),
     getLayoutTree: <T>(workspaceId: string, snapshotId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/layout/tree`, { method: "GET" }),
@@ -107,18 +100,6 @@ export function createPlatformApi(client = httpClient) {
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/entities/${encodeURIComponent(entityId)}`, { method: "GET" }),
     getCustomizationOverview: <T>(workspaceId: string, snapshotId: string) =>
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/customizations`, { method: "GET" }),
-    getSnapshotComparison: <T>(workspaceId: string, snapshotId: string, otherSnapshotId: string) =>
-      client.fetchJson<T>(withQuery(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/compare`, { otherSnapshotId }), { method: "GET" }),
-    previewRetention: <T>(workspaceId: string, request: RetentionRequest) =>
-      client.fetchJson<T>(
-        withQuery(`/api/workspaces/${workspaceId}/operations/retention/preview`, request),
-        { method: "GET" },
-      ),
-    applyRetention: <T>(workspaceId: string, request: RetentionRequest) =>
-      client.fetchJson<T>(`/api/workspaces/${workspaceId}/operations/retention/apply`, {
-        method: "POST",
-        body: JSON.stringify({ ...request, dryRun: false }),
-      }),
     createWorkspace: <T>(payload: unknown) =>
       client.fetchJson<T>("/api/workspaces", {
         method: "POST",

@@ -43,8 +43,8 @@ export function buildSelectedSourceTreeSummary(selection: {
     : 'Indexed version: none selected';
 
   const workspaceContextLabel = selection.selectedWorkspaceId
-    ? `Workspace context: ${selection.selectedWorkspaceId}`
-    : 'Workspace context: none selected';
+    ? `Source tree catalog: ${selection.selectedWorkspaceId}`
+    : 'Source tree catalog: not initialized';
 
   return {
     sourceTreeId,

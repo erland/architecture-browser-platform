@@ -1,26 +1,21 @@
+export const browserRoutePath = '/browser' as const;
+
 export const appRoutes = [
-  { path: '/workspaces', label: 'Workspace context', description: 'Administration view for workspace-level setup and lifecycle management.' },
-  { path: '/sources', label: 'Manage sources', description: 'Unified source management flow for source trees, indexing runs, and indexed versions.' },
-  { path: '/browser', label: 'Browser', description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.' },
-  { path: '/compare', label: 'Compare', description: 'Compare one indexed version with another to inspect changes in structure, dependencies, and entry points.' },
-  { path: '/operations', label: 'Operations', description: 'Dedicated operational administration, retention, failure review, and audit view.' },
+  {
+    path: browserRoutePath,
+    label: 'Browser',
+    description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.',
+  },
 ] as const;
 
-export type AppRoutePath = (typeof appRoutes)[number]['path'];
+export type AppRoutePath = typeof browserRoutePath;
 
-const routePathSet = new Set<string>(appRoutes.map((route) => route.path));
-const legacySourceAliases = new Set<string>(['/repositories', '/snapshots']);
+const browserAliases = new Set<string>(['/compare', '/operations', '/repositories', '/snapshots', '/sources', '/workspaces']);
 
 export function normalizeRoutePath(pathname: string): AppRoutePath {
-  if (routePathSet.has(pathname)) {
-    return pathname as AppRoutePath;
-  }
-  if (legacySourceAliases.has(pathname)) {
-    return '/sources';
-  }
-  return '/browser';
+  return pathname === browserRoutePath || browserAliases.has(pathname) ? browserRoutePath : browserRoutePath;
 }
 
-export function getRouteMeta(pathname: AppRoutePath) {
-  return appRoutes.find((route) => route.path === pathname) ?? appRoutes.find((route) => route.path === '/browser') ?? appRoutes[0];
+export function getRouteMeta(_pathname: AppRoutePath) {
+  return appRoutes[0];
 }

@@ -131,7 +131,7 @@ describe('appModel.sourceTree', () => {
       sourceTreeId: 'ws-1::repo-7',
       sourceTreeLabel: 'Selected source tree: repo-7',
       indexedVersionLabel: 'Indexed version: snap-9',
-      workspaceContextLabel: 'Workspace context: ws-1',
+      workspaceContextLabel: 'Source tree catalog: ws-1',
     });
   });
 });

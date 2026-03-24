@@ -4,32 +4,23 @@ import { formatTimestamp } from '../views/browserView.shared';
 export type BrowserSourceTreeLauncherProps = {
   title: string;
   description: string;
-  workspaceName: string | null;
   items: SourceTreeLauncherItem[];
   onSelectSourceTree: (item: SourceTreeLauncherItem) => void;
-  onOpenRepositories: () => void;
-  onOpenSnapshots: () => void;
-  onOpenWorkspaces: () => void;
+  onOpenSourceTreeDialog: () => void;
 };
 
 export function BrowserSourceTreeLauncher({
   title,
   description,
-  workspaceName,
   items,
   onSelectSourceTree,
-  onOpenRepositories,
-  onOpenSnapshots,
-  onOpenWorkspaces,
+  onOpenSourceTreeDialog,
 }: BrowserSourceTreeLauncherProps) {
   return (
     <article className="card empty-state-card browser-empty-state" aria-label="Source tree launcher">
       <p className="eyebrow">Browser launcher</p>
       <h2>{title}</h2>
       <p className="muted">{description}</p>
-      {workspaceName ? (
-        <p className="browser-empty-state__workspace-hint">Workspace context: <strong>{workspaceName}</strong></p>
-      ) : null}
 
       {items.length ? (
         <div className="browser-source-tree-launcher">
@@ -52,9 +43,9 @@ export function BrowserSourceTreeLauncher({
                   <div className="browser-source-tree-launcher__item-actions">
                     <button type="button" onClick={() => onSelectSourceTree(item)}>{buttonLabel}</button>
                     {item.status === 'empty' ? (
-                      <button type="button" className="button-secondary" onClick={onOpenRepositories}>Manage sources</button>
+                      <button type="button" className="button-secondary" onClick={onOpenSourceTreeDialog}>Manage source tree</button>
                     ) : (
-                      <button type="button" className="button-secondary" onClick={onOpenSnapshots}>Indexed versions</button>
+                      <button type="button" className="button-secondary" onClick={onOpenSourceTreeDialog}>Choose indexed version</button>
                     )}
                   </div>
                 </section>
@@ -64,14 +55,12 @@ export function BrowserSourceTreeLauncher({
         </div>
       ) : (
         <div className="browser-source-tree-launcher browser-source-tree-launcher--empty">
-          <p className="muted">No source trees are available in the current workspace context yet.</p>
+          <p className="muted">No source trees are available yet. Open the Source tree dialog to register one.</p>
         </div>
       )}
 
       <div className="actions">
-        <button type="button" onClick={onOpenRepositories}>Manage sources</button>
-        <button type="button" className="button-secondary" onClick={onOpenSnapshots}>View indexed versions</button>
-        <button type="button" className="button-secondary" onClick={onOpenWorkspaces}>Manage workspace context</button>
+        <button type="button" onClick={onOpenSourceTreeDialog}>Open Source tree dialog</button>
       </div>
     </article>
   );

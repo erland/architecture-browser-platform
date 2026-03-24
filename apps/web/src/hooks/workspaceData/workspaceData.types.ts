@@ -6,10 +6,7 @@ import {
 } from "../../appModel";
 import type {
   ApiHealth,
-  AuditEvent,
-  OperationsOverview,
   Repository,
-  RetentionPreview,
   RunRecord,
   SnapshotSummary,
   StubRunResult,
@@ -25,7 +22,6 @@ export type RepositoryEditor = {
   defaultBranch: string;
   metadataJson: string;
 };
-export type RetentionForm = { keepSnapshotsPerRepository: string; keepRunsPerRepository: string };
 
 export type UseWorkspaceDataArgs = {
   selectedWorkspaceId: string | null;
@@ -39,10 +35,8 @@ export type UseWorkspaceDataArgs = {
 
 export type WorkspaceDetailPayload = {
   repositoryPayload: Repository[];
-  auditPayload: AuditEvent[];
   runPayload: RunRecord[];
   snapshotPayload: SnapshotSummary[];
-  operationsPayload: OperationsOverview;
 };
 
 export type WorkspaceDataState = {
@@ -52,18 +46,10 @@ export type WorkspaceDataState = {
   setWorkspaces: Dispatch<SetStateAction<Workspace[]>>;
   repositories: Repository[];
   setRepositories: Dispatch<SetStateAction<Repository[]>>;
-  auditEvents: AuditEvent[];
-  setAuditEvents: Dispatch<SetStateAction<AuditEvent[]>>;
   recentRuns: RunRecord[];
   setRecentRuns: Dispatch<SetStateAction<RunRecord[]>>;
   snapshots: SnapshotSummary[];
   setSnapshots: Dispatch<SetStateAction<SnapshotSummary[]>>;
-  operationsOverview: OperationsOverview | null;
-  setOperationsOverview: Dispatch<SetStateAction<OperationsOverview | null>>;
-  retentionPreview: RetentionPreview | null;
-  setRetentionPreview: Dispatch<SetStateAction<RetentionPreview | null>>;
-  retentionForm: RetentionForm;
-  setRetentionForm: Dispatch<SetStateAction<RetentionForm>>;
   workspaceForm: typeof emptyWorkspaceForm;
   setWorkspaceForm: Dispatch<SetStateAction<typeof emptyWorkspaceForm>>;
   workspaceEditor: WorkspaceEditor;
@@ -90,8 +76,6 @@ export type WorkspaceDataLoaders = {
 };
 
 export type WorkspaceDataActions = {
-  handlePreviewRetention: (event: FormEvent) => Promise<void>;
-  handleApplyRetention: () => Promise<void>;
   handleCreateWorkspace: (event: FormEvent) => Promise<void>;
   handleUpdateWorkspace: (event: FormEvent) => Promise<void>;
   handleArchiveWorkspace: () => Promise<void>;

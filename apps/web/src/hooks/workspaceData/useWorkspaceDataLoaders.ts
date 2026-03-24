@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { platformApi } from "../../platformApi";
-import { type ApiHealth, type AuditEvent, type OperationsOverview, type Repository, type RunRecord, type SnapshotSummary, type Workspace } from "../../appModel";
-import { emptyRepositoryEditor, emptyWorkspaceEditor, initialRetentionForm, toErrorMessage } from "./workspaceData.helpers";
+import { type ApiHealth, type Repository, type RunRecord, type SnapshotSummary, type Workspace } from "../../appModel";
+import { emptyRepositoryEditor, emptyWorkspaceEditor, toErrorMessage } from "./workspaceData.helpers";
 import type { UseWorkspaceDataArgs, WorkspaceDataLoaders, WorkspaceDataState } from "./workspaceData.types";
 
 export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: WorkspaceDataState): WorkspaceDataLoaders {
@@ -15,37 +15,25 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
     setHealth,
     setWorkspaces,
     setRepositories,
-    setAuditEvents,
     setRecentRuns,
     setSnapshots,
-    setOperationsOverview,
-    setRetentionPreview,
-    setRetentionForm,
-    setWorkspaceEditor,
     setRepositoryEditor,
     setWorkspacesLoaded,
     setWorkspaceDetailLoadedFor,
+    setWorkspaceEditor,
   } = state;
 
   const resetWorkspaceDetail = useCallback(() => {
     setRepositories([]);
-    setAuditEvents([]);
     setRecentRuns([]);
     setSnapshots([]);
-    setOperationsOverview(null);
-    setRetentionPreview(null);
-    setRetentionForm(initialRetentionForm);
     setWorkspaceEditor(emptyWorkspaceEditor());
     setRepositoryEditor(emptyRepositoryEditor());
     setWorkspaceDetailLoadedFor(null);
   }, [
-    setAuditEvents,
-    setOperationsOverview,
     setRecentRuns,
     setRepositories,
     setRepositoryEditor,
-    setRetentionForm,
-    setRetentionPreview,
     setSnapshots,
     setWorkspaceDetailLoadedFor,
     setWorkspaceEditor,
@@ -66,10 +54,12 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
       setWorkspaces(payload);
       setWorkspacesLoaded(true);
       setSelectedWorkspaceId((current) => {
-        if (current && payload.some((item) => item.id === current)) {
+        const activeWorkspaces = payload.filter((item) => item.status !== 'ARCHIVED');
+        const availableWorkspaces = activeWorkspaces.length ? activeWorkspaces : payload;
+        if (current && availableWorkspaces.some((item) => item.id === current)) {
           return current;
         }
-        return payload[0]?.id ?? null;
+        return availableWorkspaces[0]?.id ?? null;
       });
       setError(null);
     } catch (caught) {
@@ -80,43 +70,30 @@ export function useWorkspaceDataLoaders(args: UseWorkspaceDataArgs, state: Works
 
   const loadWorkspaceDetail = useCallback(async (workspaceId: string) => {
     try {
-      const [repositoryPayload, auditPayload, runPayload, snapshotPayload, operationsPayload] = await Promise.all([
+      const [repositoryPayload, runPayload, snapshotPayload] = await Promise.all([
         platformApi.getWorkspaceRepositories<Repository[]>(workspaceId),
-        platformApi.getWorkspaceAuditEvents<AuditEvent[]>(workspaceId),
         platformApi.getWorkspaceRuns<RunRecord[]>(workspaceId),
         platformApi.getWorkspaceSnapshots<SnapshotSummary[]>(workspaceId),
-        platformApi.getOperationsOverview<OperationsOverview>(workspaceId),
       ]);
       setRepositories(repositoryPayload);
-      setAuditEvents(auditPayload);
       setRecentRuns(runPayload);
       setSnapshots(snapshotPayload);
-      setOperationsOverview(operationsPayload);
-      setRetentionForm({
-        keepSnapshotsPerRepository: `${operationsPayload.retentionDefaults.keepSnapshotsPerRepository}`,
-        keepRunsPerRepository: `${operationsPayload.retentionDefaults.keepRunsPerRepository}`,
-      });
       setWorkspaceDetailLoadedFor(workspaceId);
       setSelectedRepositoryId((current) => current && repositoryPayload.some((item) => item.id === current) ? current : null);
       setError(null);
       return {
         repositoryPayload,
-        auditPayload,
         runPayload,
         snapshotPayload,
-        operationsPayload,
       };
     } catch (caught) {
       setError(toErrorMessage(caught));
       return null;
     }
   }, [
-    setAuditEvents,
     setError,
-    setOperationsOverview,
     setRecentRuns,
     setRepositories,
-    setRetentionForm,
     setSelectedRepositoryId,
     setSnapshots,
     setWorkspaceDetailLoadedFor,

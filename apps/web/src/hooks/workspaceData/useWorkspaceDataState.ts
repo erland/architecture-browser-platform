@@ -1,33 +1,24 @@
 import { useMemo, useState } from "react";
 import {
   type ApiHealth,
-  type AuditEvent,
-  type OperationsOverview,
   type Repository,
-  type RetentionPreview,
   type RunRecord,
   type SnapshotSummary,
   type Workspace,
   emptyRepositoryForm,
   emptyWorkspaceForm,
   initialHealth,
-  initialOperationsOverview,
-  initialRetentionPreview,
   initialRunRequest,
 } from "../../appModel";
-import { emptyRepositoryEditor, emptyWorkspaceEditor, initialRetentionForm } from "./workspaceData.helpers";
+import { emptyRepositoryEditor, emptyWorkspaceEditor } from "./workspaceData.helpers";
 import type { WorkspaceDataState } from "./workspaceData.types";
 
 export function useWorkspaceDataState(selectedWorkspaceId: string | null): WorkspaceDataState {
   const [health, setHealth] = useState<ApiHealth>(initialHealth);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [recentRuns, setRecentRuns] = useState<RunRecord[]>([]);
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
-  const [operationsOverview, setOperationsOverview] = useState<OperationsOverview | null>(initialOperationsOverview);
-  const [retentionPreview, setRetentionPreview] = useState<RetentionPreview | null>(initialRetentionPreview);
-  const [retentionForm, setRetentionForm] = useState(initialRetentionForm);
   const [workspaceForm, setWorkspaceForm] = useState(emptyWorkspaceForm);
   const [workspaceEditor, setWorkspaceEditor] = useState(emptyWorkspaceEditor);
   const [repositoryForm, setRepositoryForm] = useState(emptyRepositoryForm);
@@ -58,18 +49,10 @@ export function useWorkspaceDataState(selectedWorkspaceId: string | null): Works
     setWorkspaces,
     repositories,
     setRepositories,
-    auditEvents,
-    setAuditEvents,
     recentRuns,
     setRecentRuns,
     snapshots,
     setSnapshots,
-    operationsOverview,
-    setOperationsOverview,
-    retentionPreview,
-    setRetentionPreview,
-    retentionForm,
-    setRetentionForm,
     workspaceForm,
     setWorkspaceForm,
     workspaceEditor,

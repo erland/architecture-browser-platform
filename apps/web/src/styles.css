@@ -255,13 +255,6 @@ dd {
   color: #94a3b8;
 }
 
-.audit-item {
-  display: grid;
-  gap: 4px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-
 @media (max-width: 960px) {
   .workspace-layout {
     grid-template-columns: 1fr;
@@ -699,14 +692,6 @@ dd {
   .workspace-layout {
     grid-template-columns: 1fr;
   }
-}
-
-.compare-view .compare-summary-grid {
-  align-items: stretch;
-}
-
-.compare-guidance {
-  max-width: 56rem;
 }
 
 .page--browser {

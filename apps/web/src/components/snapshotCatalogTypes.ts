@@ -2,7 +2,6 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import type {
   CustomizationOverview,
   OverlayKind,
-  SnapshotComparison,
   SnapshotSummary,
 } from '../appModel';
 
@@ -11,12 +10,6 @@ export type SelectOption = {
   label: string;
 };
 
-export type ComparisonPanelProps = {
-  comparisonSnapshotId: string;
-  setComparisonSnapshotId: Dispatch<SetStateAction<string>>;
-  comparisonOptions: SelectOption[];
-  snapshotComparison: SnapshotComparison | null;
-};
 
 export type CustomizationPanelProps = {
   customizationOverview: CustomizationOverview | null;

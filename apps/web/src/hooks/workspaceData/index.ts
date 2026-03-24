@@ -4,7 +4,6 @@ export { useWorkspaceDataSelectionSync } from "./useWorkspaceDataSelectionSync";
 export { useWorkspaceDataState } from "./useWorkspaceDataState";
 export type {
   RepositoryEditor,
-  RetentionForm,
   UseWorkspaceDataArgs,
   WorkspaceDataActions,
   WorkspaceDataLoaders,

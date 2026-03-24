@@ -20,6 +20,7 @@
     "smoke:test": "./scripts/smoke-test.sh",
     "verify:safety-net": "./scripts/verify-safety-net.sh",
     "clean:generated": "./scripts/clean-generated-artifacts.sh",
-    "verify:refactor": "./scripts/verify-refactor.sh"
+    "verify:refactor": "./scripts/verify-refactor.sh",
+    "verify:browser-only-baseline": "./scripts/verify-browser-only-baseline.sh"
   }
 }

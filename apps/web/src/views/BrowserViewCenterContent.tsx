@@ -9,12 +9,9 @@ export type BrowserViewCenterContentProps = {
   hasSelectedWorkspace: boolean;
   hasSelectedSnapshot: boolean;
   hasPreparedSession: boolean;
-  launcherWorkspaceName: string | null;
   sourceTreeLauncherItems: SourceTreeLauncherItem[];
   onSelectSourceTree: (item: SourceTreeLauncherItem) => void;
-  onOpenRepositories: () => void;
-  onOpenSnapshots: () => void;
-  onOpenWorkspaces: () => void;
+  onOpenSourceTreeDialog: () => void;
   onAddScopeAnalysis: (scopeId: string, mode: 'primary' | 'direct' | 'subtree' | 'children-primary', kinds?: string[], childScopeKinds?: string[]) => void;
   onAddContainedEntities: (entityId: string, kinds?: string[]) => void;
   onAddPeerEntities: (entityId: string, containerKinds?: string[], peerKinds?: string[]) => void;
@@ -26,12 +23,9 @@ export function BrowserViewCenterContent({
   hasSelectedWorkspace,
   hasSelectedSnapshot,
   hasPreparedSession,
-  launcherWorkspaceName,
   sourceTreeLauncherItems,
   onSelectSourceTree,
-  onOpenRepositories,
-  onOpenSnapshots,
-  onOpenWorkspaces,
+  onOpenSourceTreeDialog,
   onAddScopeAnalysis,
   onAddContainedEntities,
   onAddPeerEntities,
@@ -44,21 +38,18 @@ export function BrowserViewCenterContent({
         : 'Finishing Browser session preparation';
 
     const description = !hasSelectedWorkspace
-      ? 'Choose a previously indexed source tree or add a new one, then Browser will become the main workspace for architecture analysis.'
+      ? 'Choose a previously indexed source tree or add a new one to start exploring the latest imported architecture snapshot in Browser.'
       : !hasSelectedSnapshot
-        ? 'Select a source tree below or open the indexed version catalog to pick which indexed version should be loaded into Browser.'
-        : 'Browser is waiting for the prepared local snapshot payload. You can select another indexed source tree or open the indexed version catalog.';
+        ? 'Select a source tree below or open the Source tree dialog to pick which indexed version should be loaded into Browser.'
+        : 'Browser is waiting for the prepared local snapshot payload. You can select another indexed source tree or open the Source tree dialog.';
 
     return (
       <BrowserSourceTreeLauncher
         title={title}
         description={description}
-        workspaceName={launcherWorkspaceName}
         items={sourceTreeLauncherItems}
         onSelectSourceTree={onSelectSourceTree}
-        onOpenRepositories={onOpenRepositories}
-        onOpenSnapshots={onOpenSnapshots}
-        onOpenWorkspaces={onOpenWorkspaces}
+        onOpenSourceTreeDialog={onOpenSourceTreeDialog}
       />
     );
   }

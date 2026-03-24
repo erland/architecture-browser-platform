@@ -1,7 +1,6 @@
 import type { FormEvent } from "react";
 import { platformApi } from "../../platformApi";
-import { type Repository, type RetentionPreview, type RunRecord, type SnapshotSummary, type StubRunResult, type Workspace, emptyRepositoryForm, emptyWorkspaceForm } from "../../appModel";
-import { normalizeRetentionForm } from "../../operationsViewModel";
+import { type Repository, type RunRecord, type SnapshotSummary, type StubRunResult, type Workspace, emptyRepositoryForm, emptyWorkspaceForm } from "../../appModel";
 import { toErrorMessage } from "./workspaceData.helpers";
 import type { UseWorkspaceDataArgs, WorkspaceDataActions, WorkspaceDataLoaders, WorkspaceDataState } from "./workspaceData.types";
 
@@ -19,9 +18,6 @@ export function useWorkspaceDataActions(
   } = args;
 
   const {
-    retentionForm,
-    setRetentionPreview,
-    operationsOverview,
     workspaceForm,
     setWorkspaceForm,
     workspaceEditor,
@@ -36,38 +32,6 @@ export function useWorkspaceDataActions(
     loadWorkspaces,
     loadWorkspaceDetail,
   } = loaders;
-
-  async function handlePreviewRetention(event: FormEvent) {
-    event.preventDefault();
-    if (!selectedWorkspaceId) return;
-    setBusyMessage("Previewing retention…");
-    try {
-      const normalized = normalizeRetentionForm(retentionForm, operationsOverview?.retentionDefaults ?? { keepSnapshotsPerRepository: 2, keepRunsPerRepository: 5 });
-      const payload = await platformApi.previewRetention<RetentionPreview>(selectedWorkspaceId, normalized);
-      setRetentionPreview(payload);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    } finally {
-      setBusyMessage(null);
-    }
-  }
-
-  async function handleApplyRetention() {
-    if (!selectedWorkspaceId) return;
-    setBusyMessage("Applying retention…");
-    try {
-      const normalized = normalizeRetentionForm(retentionForm, operationsOverview?.retentionDefaults ?? { keepSnapshotsPerRepository: 2, keepRunsPerRepository: 5 });
-      const payload = await platformApi.applyRetention<RetentionPreview>(selectedWorkspaceId, normalized);
-      setRetentionPreview(payload);
-      await loadWorkspaceDetail(selectedWorkspaceId);
-      setError(null);
-    } catch (caught) {
-      setError(toErrorMessage(caught));
-    } finally {
-      setBusyMessage(null);
-    }
-  }
 
   async function handleCreateWorkspace(event: FormEvent) {
     event.preventDefault();
@@ -201,8 +165,6 @@ export function useWorkspaceDataActions(
   }
 
   return {
-    handlePreviewRetention,
-    handleApplyRetention,
     handleCreateWorkspace,
     handleUpdateWorkspace,
     handleArchiveWorkspace,

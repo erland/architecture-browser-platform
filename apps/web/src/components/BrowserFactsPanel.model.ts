@@ -31,7 +31,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
 
   return {
     title: payload.snapshot.snapshotKey,
-    subtitle: 'Prepared local snapshot overview',
+    subtitle: 'Prepared snapshot overview',
     mode: 'overview',
     badges: [
       `${payload.scopes.length} scopes`,
@@ -40,7 +40,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
       `${payload.diagnostics.length} diagnostics`,
     ],
     summary: [
-      `Workspace ${payload.snapshot.workspaceId}`,
+      `Catalog ${payload.snapshot.workspaceId}`,
       `Repository ${payload.snapshot.repositoryName ?? payload.snapshot.repositoryKey ?? payload.snapshot.repositoryRegistrationId}`,
       `Imported ${payload.snapshot.importedAt}`,
     ],

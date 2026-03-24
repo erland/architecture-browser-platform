@@ -5,6 +5,13 @@ export type ApiHealth = {
   time: string;
 };
 
+export const initialHealth: ApiHealth = {
+  status: 'UNKNOWN',
+  service: '',
+  version: '',
+  time: '',
+};
+
 export type WorkspaceStatus = "ACTIVE" | "ARCHIVED";
 export type RepositoryStatus = "ACTIVE" | "ARCHIVED";
 export type RepositorySourceType = "LOCAL_PATH" | "GIT";

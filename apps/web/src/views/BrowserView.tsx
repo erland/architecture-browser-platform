@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { emptyRepositoryForm, emptyWorkspaceForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
+import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import { platformApi } from '../platformApi';
 import { getBrowserSnapshotCache } from '../snapshotCache';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
@@ -43,9 +43,7 @@ export function BrowserView(_: BrowserViewProps) {
   const [isSourceTreeSwitcherOpen, setIsSourceTreeSwitcherOpen] = useState(false);
   const [isViewpointDialogOpen, setIsViewpointDialogOpen] = useState(false);
 
-  const handleOpenRepositories = () => setIsSourceTreeSwitcherOpen(true);
-  const handleOpenSnapshots = () => setIsSourceTreeSwitcherOpen(true);
-  const handleOpenWorkspaces = () => setIsSourceTreeSwitcherOpen(true);
+  const handleOpenSourceTreeDialog = () => setIsSourceTreeSwitcherOpen(true);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
@@ -121,15 +119,15 @@ export function BrowserView(_: BrowserViewProps) {
       return 'Loading source trees…';
     }
     if (workspaceData.workspaces.length > 0 && !startupTargetWorkspaceId) {
-      return 'Opening source workspace…';
+      return 'Opening source tree catalog…';
     }
     if (startupTargetWorkspaceId && workspaceData.workspaceDetailLoadedFor !== startupTargetWorkspaceId) {
       return 'Loading indexed versions…';
     }
     if (selectedSnapshot && browserBootstrap.status === 'loading') {
-      return browserBootstrap.message ?? 'Preparing browser workspace…';
+      return browserBootstrap.message ?? 'Preparing Browser…';
     }
-    return 'Opening browser workspace…';
+    return 'Opening Browser…';
   }, [
     workspaceData.workspacesLoaded,
     workspaceData.workspaces.length,
@@ -155,7 +153,11 @@ export function BrowserView(_: BrowserViewProps) {
 
   useEffect(() => {
     if (!selection.selectedWorkspaceId && workspaceData.workspaces.length > 0) {
-      selection.setSelectedWorkspaceId(workspaceData.workspaces[0].id);
+      const activeWorkspaces = workspaceData.workspaces.filter((workspace) => workspace.status !== 'ARCHIVED');
+      const implicitWorkspace = activeWorkspaces[0] ?? workspaceData.workspaces[0] ?? null;
+      if (implicitWorkspace) {
+        selection.setSelectedWorkspaceId(implicitWorkspace.id);
+      }
     }
   }, [selection.selectedWorkspaceId, selection.setSelectedWorkspaceId, workspaceData.workspaces]);
 
@@ -192,10 +194,14 @@ export function BrowserView(_: BrowserViewProps) {
   };
 
 
-  const handleCreateWorkspaceFromDialog = async (payload: typeof emptyWorkspaceForm) => {
-    setBusyMessage(`Creating workspace ${payload.name || payload.workspaceKey}…`);
+  const handleInitializeImplicitWorkspace = async () => {
+    setBusyMessage('Initializing source tree catalog…');
     try {
-      const created = await platformApi.createWorkspace<Workspace>(payload);
+      const created = await platformApi.createWorkspace<Workspace>({
+        workspaceKey: 'default',
+        name: 'Default source trees',
+        description: 'Implicit Browser workspace for source tree registrations.',
+      });
       await workspaceData.loadWorkspaces();
       await workspaceData.loadWorkspaceDetail(created.id);
       selection.setSelectedWorkspaceId(created.id);
@@ -298,12 +304,12 @@ export function BrowserView(_: BrowserViewProps) {
   });
 
   return (
-    <div className="browser-workspace" aria-label="Browser analysis workspace">
+    <div className="browser-workspace" aria-label="Browser">
       <header className="card browser-workspace__topbar">
         <div className="browser-workspace__header-row browser-workspace__header-row--compact">
           <div className="browser-workspace__title-block">
             <p className="eyebrow">Browser</p>
-            <h2>Analysis workspace</h2>
+            <h2>Architecture Browser</h2>
           </div>
 
           <div className="browser-workspace__search-slot">
@@ -349,7 +355,7 @@ export function BrowserView(_: BrowserViewProps) {
         items={sourceTreeLauncherItems}
         repositories={workspaceData.repositories}
         selectedWorkspace={workspaceData.selectedWorkspace}
-        onCreateWorkspace={handleCreateWorkspaceFromDialog}
+        onInitializeWorkspace={handleInitializeImplicitWorkspace}
         onSelectSourceTree={handleSelectSourceTree}
         onCreateRepository={handleCreateRepositoryFromDialog}
         onRequestReindex={handleRequestReindexFromDialog}
@@ -381,7 +387,7 @@ export function BrowserView(_: BrowserViewProps) {
             <div className="browser-workspace__stage">
               <section className="card browser-workspace__startup-gate" aria-live="polite">
                 <p className="eyebrow">Opening Browser</p>
-                <h3>Preparing your analysis workspace</h3>
+                <h3>Preparing Browser</h3>
                 <p className="muted">{startupGateMessage}</p>
               </section>
             </div>
@@ -392,12 +398,9 @@ export function BrowserView(_: BrowserViewProps) {
               hasSelectedWorkspace={Boolean(workspaceData.selectedWorkspace)}
               hasSelectedSnapshot={Boolean(selectedSnapshot)}
               hasPreparedSession={Boolean(browserSession.state.index && browserSession.state.payload)}
-              launcherWorkspaceName={workspaceData.selectedWorkspace?.name ?? null}
               sourceTreeLauncherItems={sourceTreeLauncherItems}
               onSelectSourceTree={handleSelectSourceTree}
-              onOpenRepositories={handleOpenRepositories}
-              onOpenSnapshots={handleOpenSnapshots}
-              onOpenWorkspaces={handleOpenWorkspaces}
+              onOpenSourceTreeDialog={handleOpenSourceTreeDialog}
               onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
               onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
               onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}
@@ -425,9 +428,6 @@ export function BrowserView(_: BrowserViewProps) {
       <footer className="card browser-workspace__footer" aria-label="Current browser context">
         <p
           className="browser-workspace__lead muted"
-          title={workspaceData.selectedWorkspace?.name
-            ? `Workspace ${workspaceData.selectedWorkspace.name}`
-            : undefined}
         >
           {repositoryLabel} · {activeTabMeta.label}
         </p>
