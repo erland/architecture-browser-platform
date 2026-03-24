@@ -243,12 +243,20 @@ export function BrowserView(_: BrowserViewProps) {
     });
     await loadSavedCanvasRecords(workspaceId, repositoryRegistrationId);
     if (!options?.silent) {
+      const extras: string[] = [];
+      if (result.recoveredCount > 0) {
+        extras.push(`recovered ${result.recoveredCount}`);
+      }
+      if (result.retriedCount > 0) {
+        extras.push(`retried ${result.retriedCount}`);
+      }
+      const extrasSuffix = extras.length > 0 ? ` (${extras.join(', ')})` : '';
       if (result.conflictCount > 0) {
-        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and flagged ${result.conflictCount} conflict(s) for manual review.`);
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and flagged ${result.conflictCount} conflict(s) for manual review${extrasSuffix}.`);
       } else if (result.failedCount > 0) {
-        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and left ${result.failedCount} pending.`);
-      } else if (result.uploadedCount > 0 || result.deletedCount > 0) {
-        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount} and deleted ${result.deletedCount}.`);
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and left ${result.failedCount} pending${extrasSuffix}.`);
+      } else if (result.uploadedCount > 0 || result.deletedCount > 0 || result.recoveredCount > 0) {
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount} and deleted ${result.deletedCount}${extrasSuffix}.`);
       } else {
         setSavedCanvasStatusMessage('No pending saved canvas sync work.');
       }

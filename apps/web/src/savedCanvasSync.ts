@@ -15,9 +15,12 @@ export type SavedCanvasSyncResult = {
   skippedCount: number;
   failedCount: number;
   conflictCount: number;
+  retriedCount: number;
+  recoveredCount: number;
   syncedCanvasIds: string[];
   failedCanvasIds: string[];
   conflictedCanvasIds: string[];
+  recoveredCanvasIds: string[];
   replacedCanvasIds: Array<{ previousCanvasId: string; currentCanvasId: string }>;
 };
 
@@ -148,6 +151,41 @@ function isConflictError(error: unknown): error is HttpError {
   return error instanceof HttpError && error.status === 409;
 }
 
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof HttpError) {
+    return error.status === 429 || error.status >= 500;
+  }
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return message.includes('offline')
+    || message.includes('network')
+    || message.includes('timeout')
+    || message.includes('temporar')
+    || message.includes('fetch failed');
+}
+
+function isNotFoundError(error: unknown): error is HttpError {
+  return error instanceof HttpError && error.status === 404;
+}
+
+async function withSingleRetry<T>(operation: () => Promise<T>): Promise<{ value: T; retried: boolean }> {
+  try {
+    return { value: await operation(), retried: false };
+  } catch (error) {
+    if (!isRetryableError(error)) {
+      throw error;
+    }
+    return { value: await operation(), retried: true };
+  }
+}
+
+function toRecoveryMessage(record: SavedCanvasLocalRecord, error: unknown): string {
+  const suffix = error instanceof Error ? error.message : 'remote copy no longer exists.';
+  return `Saved canvas ${record.name} was recovered by creating a new backend copy because the previous remote record could not be updated (${suffix}).`;
+}
 function buildConflictMessage(record: SavedCanvasLocalRecord, remoteRecord: SavedCanvasRemoteRecord | null): string {
   const remoteVersion = remoteRecord?.backendVersion ?? null;
   const base = remoteVersion
@@ -179,9 +217,12 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
         skippedCount: 0,
         failedCount: 0,
         conflictCount: 0,
+        retriedCount: 0,
+        recoveredCount: 0,
         syncedCanvasIds: [],
         failedCanvasIds: [],
         conflictedCanvasIds: [],
+        recoveredCanvasIds: [],
         replacedCanvasIds: [],
       };
 
@@ -195,7 +236,18 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
           const location = getRemoteLocation(record);
           if (record.syncState === 'DELETED_LOCALLY_PENDING_SYNC') {
             if (record.document.sync.backendVersion) {
-              await remoteStore.deleteCanvas(location.workspaceId, location.snapshotId, record.canvasId, record.document.sync.backendVersion);
+              try {
+                const deleteResult = await withSingleRetry(() => remoteStore.deleteCanvas(location.workspaceId, location.snapshotId, record.canvasId, record.document.sync.backendVersion));
+                if (deleteResult.retried) {
+                  result.retriedCount += 1;
+                }
+              } catch (error) {
+                if (!isNotFoundError(error)) {
+                  throw error;
+                }
+                result.recoveredCount += 1;
+                result.recoveredCanvasIds.push(record.canvasId);
+              }
             }
             await localStore.deleteCanvas(record.canvasId);
             result.deletedCount += 1;
@@ -205,20 +257,57 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
 
           let synchronized = record.document;
           if (record.document.sync.backendVersion) {
-            const updated = await remoteStore.updateCanvas(location.workspaceId, location.snapshotId, {
-              ...record.document,
-              canvasId: record.canvasId,
-            }, record.document.sync.backendVersion);
-            synchronized = markSavedCanvasSynchronized({
-              ...record.document,
-              canvasId: record.canvasId,
-            }, {
-              canvasId: updated.canvasId,
-              name: updated.name,
-              backendVersion: updated.backendVersion,
-            });
+            try {
+              const updateResult = await withSingleRetry(() => remoteStore.updateCanvas(location.workspaceId, location.snapshotId, {
+                ...record.document,
+                canvasId: record.canvasId,
+              }, record.document.sync.backendVersion));
+              if (updateResult.retried) {
+                result.retriedCount += 1;
+              }
+              const updated = updateResult.value;
+              synchronized = markSavedCanvasSynchronized({
+                ...record.document,
+                canvasId: record.canvasId,
+              }, {
+                canvasId: updated.canvasId,
+                name: updated.name,
+                backendVersion: updated.backendVersion,
+              });
+            } catch (error) {
+              if (!isNotFoundError(error)) {
+                throw error;
+              }
+              const createResult = await withSingleRetry(() => remoteStore.createCanvas(location.workspaceId, location.snapshotId, {
+                ...record.document,
+                canvasId: record.canvasId,
+                sync: {
+                  ...record.document.sync,
+                  backendVersion: null,
+                  lastSyncError: toRecoveryMessage(record, error),
+                },
+              }));
+              if (createResult.retried) {
+                result.retriedCount += 1;
+              }
+              const created = createResult.value;
+              synchronized = markSavedCanvasSynchronized({
+                ...record.document,
+                canvasId: record.canvasId,
+              }, {
+                canvasId: created.canvasId,
+                name: created.name,
+                backendVersion: created.backendVersion,
+              });
+              result.recoveredCount += 1;
+              result.recoveredCanvasIds.push(created.canvasId);
+            }
           } else {
-            const created = await remoteStore.createCanvas(location.workspaceId, location.snapshotId, record.document);
+            const createResult = await withSingleRetry(() => remoteStore.createCanvas(location.workspaceId, location.snapshotId, record.document));
+            if (createResult.retried) {
+              result.retriedCount += 1;
+            }
+            const created = createResult.value;
             synchronized = markSavedCanvasSynchronized(record.document, {
               canvasId: created.canvasId,
               name: created.name,

@@ -222,4 +222,123 @@ describe('savedCanvasSync', () => {
     expect(conflicted?.backendVersion).toBe('7');
     expect(conflicted?.document.sync.conflict?.message).toContain('Backend version 7');
   });
+
+
+  test('retries transient create failures once before succeeding', async () => {
+    const localStore = createInMemoryLocalStore();
+    let attempts = 0;
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(async (_workspaceId: string, _snapshotId: string, document) => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new HttpError(503, 'Service unavailable');
+        }
+        return {
+          canvasId: 'remote-canvas-retry',
+          workspaceId: 'ws-1',
+          snapshotId: 'snap-1',
+          name: document.name,
+          document: { ...document, canvasId: 'remote-canvas-retry' },
+          documentVersion: 1,
+          backendVersion: '1',
+          createdAt: document.metadata.createdAt,
+          updatedAt: document.metadata.updatedAt,
+        };
+      }),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    await localStore.putCanvas(markSavedCanvasPendingSync(createDocument()));
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+
+    expect(result.uploadedCount).toBe(1);
+    expect(result.retriedCount).toBe(1);
+    expect(await localStore.getCanvas('remote-canvas-retry')).not.toBeNull();
+  });
+
+  test('recovers by recreating a missing remote canvas during update', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(async (_workspaceId: string, _snapshotId: string, document) => ({
+        canvasId: 'remote-canvas-recreated',
+        workspaceId: 'ws-1',
+        snapshotId: 'snap-1',
+        name: document.name,
+        document: { ...document, canvasId: 'remote-canvas-recreated' },
+        documentVersion: 1,
+        backendVersion: '1',
+        createdAt: document.metadata.createdAt,
+        updatedAt: document.metadata.updatedAt,
+      })),
+      updateCanvas: jest.fn(async () => {
+        throw new HttpError(404, 'Missing remote copy');
+      }),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    await localStore.putCanvas(markSavedCanvasPendingSync(createDocument({
+      canvasId: 'remote-canvas-lost',
+      sync: {
+        state: 'LOCALLY_MODIFIED',
+        localVersion: 4,
+        backendVersion: '6',
+        lastModifiedAt: '2026-03-24T12:30:00Z',
+        lastSyncedAt: '2026-03-24T12:00:00Z',
+        lastSyncError: null,
+        conflict: null,
+      },
+    })));
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+
+    expect(result.uploadedCount).toBe(1);
+    expect(result.recoveredCount).toBe(1);
+    expect(result.replacedCanvasIds).toEqual([{ previousCanvasId: 'remote-canvas-lost', currentCanvasId: 'remote-canvas-recreated' }]);
+    expect(await localStore.getCanvas('remote-canvas-recreated')).not.toBeNull();
+    expect(await localStore.getCanvas('remote-canvas-lost')).toBeNull();
+  });
+
+  test('treats deleting an already-missing remote canvas as recovered success', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(async () => {
+        throw new HttpError(404, 'Already deleted');
+      }),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    const record = await localStore.putCanvas(createDocument({
+      canvasId: 'remote-canvas-gone',
+      sync: {
+        state: 'SYNCHRONIZED',
+        localVersion: 2,
+        backendVersion: '2',
+        lastModifiedAt: '2026-03-24T11:00:00Z',
+        lastSyncedAt: '2026-03-24T11:00:00Z',
+        lastSyncError: null,
+        conflict: null,
+      },
+    }));
+    await syncService.markCanvasDeletedPendingSync(record);
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+
+    expect(result.deletedCount).toBe(1);
+    expect(result.recoveredCount).toBe(1);
+    expect(result.recoveredCanvasIds).toEqual(['remote-canvas-gone']);
+    expect(await localStore.getCanvas('remote-canvas-gone')).toBeNull();
+  });
+
 });
