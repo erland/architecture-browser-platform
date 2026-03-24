@@ -1,3 +1,4 @@
+import { HttpError } from '../httpClient';
 import { createSavedCanvasLocalStore } from '../savedCanvasLocalStore';
 import { createSavedCanvasDocument } from '../savedCanvasModel';
 import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../savedCanvasSync';
@@ -21,6 +22,7 @@ function createInMemoryLocalStore() {
         syncState: document.sync.state,
         localVersion: document.sync.localVersion,
         backendVersion: document.sync.backendVersion ?? null,
+        updatedAt: document.metadata.updatedAt,
         lastModifiedAt: document.sync.lastModifiedAt,
         lastSyncedAt: document.sync.lastSyncedAt ?? null,
         document,
@@ -161,6 +163,63 @@ describe('savedCanvasSync', () => {
     const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
     expect(result.deletedCount).toBe(1);
     expect(await localStore.getCanvas('remote-canvas-2')).toBeNull();
-    expect(remoteStore.deleteCanvas).toHaveBeenCalledWith('ws-1', 'snap-1', 'remote-canvas-2');
+    expect(remoteStore.deleteCanvas).toHaveBeenCalledWith('ws-1', 'snap-1', 'remote-canvas-2', '2');
+  });
+
+  test('marks the local canvas conflicted when backend version no longer matches', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(async () => ({
+        canvasId: 'remote-canvas-3',
+        workspaceId: 'ws-1',
+        snapshotId: 'snap-1',
+        name: 'Orders canvas',
+        document: createDocument({
+          canvasId: 'remote-canvas-3',
+          sync: {
+            state: 'SYNCHRONIZED',
+            localVersion: 3,
+            backendVersion: '7',
+            lastModifiedAt: '2026-03-24T12:00:00Z',
+            lastSyncedAt: '2026-03-24T12:00:00Z',
+            lastSyncError: null,
+            conflict: null,
+          },
+        }),
+        documentVersion: 7,
+        backendVersion: '7',
+        createdAt: '2026-03-24T10:00:00Z',
+        updatedAt: '2026-03-24T12:00:00Z',
+      })),
+      createCanvas: jest.fn(),
+      updateCanvas: jest.fn(async () => {
+        throw new HttpError(409, 'Saved canvas version conflict.');
+      }),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    const document = markSavedCanvasPendingSync(createDocument({
+      canvasId: 'remote-canvas-3',
+      sync: {
+        state: 'LOCALLY_MODIFIED',
+        localVersion: 4,
+        backendVersion: '6',
+        lastModifiedAt: '2026-03-24T12:30:00Z',
+        lastSyncedAt: '2026-03-24T12:00:00Z',
+        lastSyncError: null,
+        conflict: null,
+      },
+    }));
+    await localStore.putCanvas(document);
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+    const conflicted = await localStore.getCanvas('remote-canvas-3');
+
+    expect(result.conflictCount).toBe(1);
+    expect(conflicted?.syncState).toBe('CONFLICTED');
+    expect(conflicted?.backendVersion).toBe('7');
+    expect(conflicted?.document.sync.conflict?.message).toContain('Backend version 7');
   });
 });

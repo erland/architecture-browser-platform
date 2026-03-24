@@ -5,6 +5,18 @@ export type ApiErrorPayload = {
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+export class HttpError extends Error {
+  status: number;
+  details: string[];
+
+  constructor(status: number, message: string, details?: string[]) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
+    this.details = details ?? [];
+  }
+}
+
 function mergeHeaders(init?: RequestInit): HeadersInit {
   return {
     "Content-Type": "application/json",
@@ -12,11 +24,23 @@ function mergeHeaders(init?: RequestInit): HeadersInit {
   };
 }
 
+export async function readErrorPayload(response: Response): Promise<ApiErrorPayload | null> {
+  return (await response.json().catch(() => null)) as ApiErrorPayload | null;
+}
+
 export async function readErrorMessage(response: Response): Promise<string> {
-  const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
+  const payload = await readErrorPayload(response);
   const baseMessage = payload?.message ?? `Request failed with status ${response.status}`;
   const details = payload?.details?.length ? ` ${payload.details.join(" ")}` : "";
   return `${baseMessage}.${details}`.trim();
+}
+
+async function throwHttpError(response: Response): Promise<never> {
+  const payload = await readErrorPayload(response);
+  const baseMessage = payload?.message ?? `Request failed with status ${response.status}`;
+  const details = payload?.details ?? [];
+  const detailText = details.length ? ` ${details.join(' ')}` : '';
+  throw new HttpError(response.status, `${baseMessage}.${detailText}`.trim(), details);
 }
 
 export function createHttpClient(fetchImpl: FetchLike) {
@@ -27,7 +51,7 @@ export function createHttpClient(fetchImpl: FetchLike) {
     });
 
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response));
+      await throwHttpError(response);
     }
 
     return (await response.json()) as T;
@@ -40,7 +64,7 @@ export function createHttpClient(fetchImpl: FetchLike) {
     });
 
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response));
+      await throwHttpError(response);
     }
   }
 

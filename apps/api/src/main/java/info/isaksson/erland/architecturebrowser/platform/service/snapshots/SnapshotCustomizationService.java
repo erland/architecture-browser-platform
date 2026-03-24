@@ -11,6 +11,7 @@ import info.isaksson.erland.architecturebrowser.platform.domain.SavedViewEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.management.AuditService;
 import info.isaksson.erland.architecturebrowser.platform.service.management.NotFoundException;
+import info.isaksson.erland.architecturebrowser.platform.service.management.ConflictException;
 import info.isaksson.erland.architecturebrowser.platform.service.management.ValidationException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -120,6 +121,7 @@ public class SnapshotCustomizationService {
         requireSnapshotOwnership(workspaceId, snapshotId);
         validateSavedCanvas(request.name(), request.document());
         SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        requireSavedCanvasBackendVersion(savedCanvas, request.expectedBackendVersion());
         savedCanvas.name = request.name().trim();
         savedCanvas.documentJson = jsonOrNull(request.document());
         savedCanvas.documentVersion = savedCanvas.documentVersion + 1;
@@ -147,9 +149,10 @@ public class SnapshotCustomizationService {
     }
 
     @Transactional
-    public void deleteSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
+    public void deleteSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId, String expectedBackendVersion) {
         requireSnapshotOwnership(workspaceId, snapshotId);
         SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        requireSavedCanvasBackendVersion(savedCanvas, expectedBackendVersion);
         savedCanvas.delete();
         auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.deleted", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name)));
     }
@@ -228,6 +231,17 @@ public class SnapshotCustomizationService {
             throw new NotFoundException("Saved view not found: " + savedViewId);
         }
         return savedView;
+    }
+
+
+    private void requireSavedCanvasBackendVersion(SavedCanvasEntity savedCanvas, String expectedBackendVersion) {
+        if (expectedBackendVersion == null || expectedBackendVersion.isBlank()) {
+            return;
+        }
+        String actualBackendVersion = Long.toString(savedCanvas.documentVersion);
+        if (!expectedBackendVersion.trim().equals(actualBackendVersion)) {
+            throw new ConflictException("Saved canvas version conflict. Expected backend version " + expectedBackendVersion.trim() + " but found " + actualBackendVersion + ".");
+        }
     }
 
     private SavedCanvasEntity requireSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {

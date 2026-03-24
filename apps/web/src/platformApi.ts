@@ -42,6 +42,7 @@ export type SavedViewCreateRequest = {
 export type SavedCanvasUpsertRequest = {
   name: string;
   document: SavedCanvasDocument;
+  expectedBackendVersion?: string | null;
 };
 
 export function createPlatformApi(client = httpClient) {
@@ -107,8 +108,8 @@ export function createPlatformApi(client = httpClient) {
         method: "POST",
         body: JSON.stringify({}),
       }),
-    deleteSavedCanvas: (workspaceId: string, snapshotId: string, savedCanvasId: string) =>
-      client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}`, {
+    deleteSavedCanvas: (workspaceId: string, snapshotId: string, savedCanvasId: string, expectedBackendVersion?: string | null) =>
+      client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}${expectedBackendVersion ? `?expectedBackendVersion=${encodeURIComponent(expectedBackendVersion)}` : ''}`, {
         method: "DELETE",
       }),
     createSavedView: <T>(workspaceId: string, snapshotId: string, payload: SavedViewCreateRequest) =>

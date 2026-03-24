@@ -11,6 +11,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -102,8 +103,9 @@ public class SnapshotCustomizationResource {
     @Path("/saved-canvases/{savedCanvasId}")
     public Response deleteSavedCanvas(@PathParam("workspaceId") String workspaceId,
                                       @PathParam("snapshotId") String snapshotId,
-                                      @PathParam("savedCanvasId") String savedCanvasId) {
-        snapshotCustomizationService.deleteSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+                                      @PathParam("savedCanvasId") String savedCanvasId,
+                                      @QueryParam("expectedBackendVersion") String expectedBackendVersion) {
+        snapshotCustomizationService.deleteSavedCanvas(workspaceId, snapshotId, savedCanvasId, expectedBackendVersion);
         return Response.noContent().build();
     }
 

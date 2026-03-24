@@ -190,7 +190,9 @@ export function BrowserView(_: BrowserViewProps) {
     });
     await loadSavedCanvasRecords(workspaceId, repositoryRegistrationId);
     if (!options?.silent) {
-      if (result.failedCount > 0) {
+      if (result.conflictCount > 0) {
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and flagged ${result.conflictCount} conflict(s) for manual review.`);
+      } else if (result.failedCount > 0) {
         setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and left ${result.failedCount} pending.`);
       } else if (result.uploadedCount > 0 || result.deletedCount > 0) {
         setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount} and deleted ${result.deletedCount}.`);

@@ -99,9 +99,10 @@ describe("platformApi", () => {
     await api.updateSavedCanvas("ws-1", "snap-1", "canvas-1", {
       name: "Orders canvas",
       document: { canvasId: "canvas-1" } as never,
+      expectedBackendVersion: "3",
     });
     await api.duplicateSavedCanvas("ws-1", "snap-1", "canvas-1");
-    await api.deleteSavedCanvas("ws-1", "snap-1", "canvas-1");
+    await api.deleteSavedCanvas("ws-1", "snap-1", "canvas-1", "3");
 
     expect(fetchJson).toHaveBeenNthCalledWith(1,
       "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases",
@@ -117,14 +118,14 @@ describe("platformApi", () => {
     );
     expect(fetchJson).toHaveBeenNthCalledWith(4,
       "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1",
-      { method: "PUT", body: JSON.stringify({ name: "Orders canvas", document: { canvasId: "canvas-1" } }) },
+      { method: "PUT", body: JSON.stringify({ name: "Orders canvas", document: { canvasId: "canvas-1" }, expectedBackendVersion: "3" }) },
     );
     expect(fetchJson).toHaveBeenNthCalledWith(5,
       "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1/duplicate",
       { method: "POST", body: JSON.stringify({}) },
     );
     expect(fetchNoContent).toHaveBeenCalledWith(
-      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1",
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1?expectedBackendVersion=3",
       { method: "DELETE" },
     );
   });

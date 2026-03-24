@@ -65,7 +65,7 @@ export function BrowserSavedCanvasDialog({
         <header className="browser-saved-canvas-dialog__header">
           <div>
             <p className="eyebrow">Saved canvases</p>
-            <h3>Save, reopen, and delete local canvases</h3>
+            <h3>Save, reopen, delete, and review sync-safe canvases</h3>
           </div>
           <button type="button" className="button-secondary" onClick={onClose}>Close</button>
         </header>
@@ -111,7 +111,8 @@ export function BrowserSavedCanvasDialog({
                         <span className="badge">{record.syncState}</span>
                       </div>
                     </div>
-                    <p className="muted">{record.snapshotKey} · Modified {formatCanvasTimestamp(record.lastModifiedAt)}</p>
+                    <p className="muted">{record.snapshotKey} · Modified {formatCanvasTimestamp(record.lastModifiedAt)}{record.lastSyncedAt ? ` · Synced ${formatCanvasTimestamp(record.lastSyncedAt)}` : ''}</p>
+                    {record.document.sync.conflict ? <p className="muted">Conflict: {record.document.sync.conflict.message}</p> : null}
                   </div>
                   <div className="browser-saved-canvas-card__actions">
                     <button type="button" className="button-secondary" onClick={() => onOpenCanvas(record.canvasId)} disabled={isBusy}>Open</button>

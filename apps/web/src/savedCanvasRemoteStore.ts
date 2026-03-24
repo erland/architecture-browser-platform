@@ -29,9 +29,9 @@ export interface SavedCanvasRemoteStore {
   listCanvases(workspaceId: string, snapshotId: string): Promise<SavedCanvasRemoteRecord[]>;
   getCanvas(workspaceId: string, snapshotId: string, canvasId: string): Promise<SavedCanvasRemoteRecord>;
   createCanvas(workspaceId: string, snapshotId: string, document: SavedCanvasDocument): Promise<SavedCanvasRemoteRecord>;
-  updateCanvas(workspaceId: string, snapshotId: string, document: SavedCanvasDocument): Promise<SavedCanvasRemoteRecord>;
+  updateCanvas(workspaceId: string, snapshotId: string, document: SavedCanvasDocument, expectedBackendVersion?: string | null): Promise<SavedCanvasRemoteRecord>;
   duplicateCanvas(workspaceId: string, snapshotId: string, canvasId: string): Promise<SavedCanvasRemoteRecord>;
-  deleteCanvas(workspaceId: string, snapshotId: string, canvasId: string): Promise<void>;
+  deleteCanvas(workspaceId: string, snapshotId: string, canvasId: string, expectedBackendVersion?: string | null): Promise<void>;
 }
 
 function toSavedCanvasRemoteRecord(response: SavedCanvasBackendResponse): SavedCanvasRemoteRecord {
@@ -70,17 +70,18 @@ export function createSavedCanvasRemoteStore(api = platformApi): SavedCanvasRemo
         document,
       }));
     },
-    async updateCanvas(workspaceId, snapshotId, document) {
+    async updateCanvas(workspaceId, snapshotId, document, expectedBackendVersion) {
       return toSavedCanvasRemoteRecord(await api.updateSavedCanvas<SavedCanvasBackendResponse>(workspaceId, snapshotId, document.canvasId, {
         name: document.name,
         document,
+        expectedBackendVersion: expectedBackendVersion ?? document.sync.backendVersion ?? null,
       }));
     },
     async duplicateCanvas(workspaceId, snapshotId, canvasId) {
       return toSavedCanvasRemoteRecord(await api.duplicateSavedCanvas<SavedCanvasBackendResponse>(workspaceId, snapshotId, canvasId));
     },
-    async deleteCanvas(workspaceId, snapshotId, canvasId) {
-      await api.deleteSavedCanvas(workspaceId, snapshotId, canvasId);
+    async deleteCanvas(workspaceId, snapshotId, canvasId, expectedBackendVersion) {
+      await api.deleteSavedCanvas(workspaceId, snapshotId, canvasId, expectedBackendVersion ?? null);
     },
   };
 }

@@ -1,6 +1,7 @@
 import type { SavedCanvasLocalRecord, SavedCanvasLocalStore } from './savedCanvasLocalStore';
-import type { SavedCanvasRemoteStore } from './savedCanvasRemoteStore';
+import type { SavedCanvasRemoteRecord, SavedCanvasRemoteStore } from './savedCanvasRemoteStore';
 import type { SavedCanvasDocument, SavedCanvasSyncState } from './savedCanvasModel';
+import { HttpError } from './httpClient';
 
 export type SavedCanvasSyncFilter = {
   workspaceId?: string | null;
@@ -13,8 +14,10 @@ export type SavedCanvasSyncResult = {
   deletedCount: number;
   skippedCount: number;
   failedCount: number;
+  conflictCount: number;
   syncedCanvasIds: string[];
   failedCanvasIds: string[];
+  conflictedCanvasIds: string[];
   replacedCanvasIds: Array<{ previousCanvasId: string; currentCanvasId: string }>;
 };
 
@@ -103,6 +106,32 @@ export function markSavedCanvasSyncFailed(document: SavedCanvasDocument, message
   };
 }
 
+export function markSavedCanvasConflicted(document: SavedCanvasDocument, options: {
+  backendVersion: string | null;
+  message: string;
+  detectedAt?: string;
+}): SavedCanvasDocument {
+  const detectedAt = options.detectedAt ?? new Date().toISOString();
+  return {
+    ...document,
+    sync: {
+      ...document.sync,
+      state: 'CONFLICTED',
+      backendVersion: options.backendVersion,
+      lastSyncError: options.message,
+      conflict: {
+        detectedAt,
+        backendVersion: options.backendVersion,
+        message: options.message,
+      },
+    },
+    metadata: {
+      ...document.metadata,
+      updatedAt: detectedAt,
+    },
+  };
+}
+
 function shouldAttemptSync(record: SavedCanvasLocalRecord) {
   return PENDING_SYNC_STATES.includes(record.syncState);
 }
@@ -113,6 +142,21 @@ function getRemoteLocation(record: SavedCanvasLocalRecord) {
     workspaceId: snapshotRef.workspaceId,
     snapshotId: snapshotRef.snapshotId,
   };
+}
+
+function isConflictError(error: unknown): error is HttpError {
+  return error instanceof HttpError && error.status === 409;
+}
+
+function buildConflictMessage(record: SavedCanvasLocalRecord, remoteRecord: SavedCanvasRemoteRecord | null): string {
+  const remoteVersion = remoteRecord?.backendVersion ?? null;
+  const base = remoteVersion
+    ? `Saved canvas conflict detected. Backend version ${remoteVersion} differs from local expected version ${record.document.sync.backendVersion ?? 'none'}.`
+    : 'Saved canvas conflict detected because the backend copy changed.';
+  if (remoteRecord?.updatedAt) {
+    return `${base} Remote copy was updated at ${remoteRecord.updatedAt}.`;
+  }
+  return base;
 }
 
 export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, remoteStore: SavedCanvasRemoteStore): SavedCanvasSyncService {
@@ -134,8 +178,10 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
         deletedCount: 0,
         skippedCount: 0,
         failedCount: 0,
+        conflictCount: 0,
         syncedCanvasIds: [],
         failedCanvasIds: [],
+        conflictedCanvasIds: [],
         replacedCanvasIds: [],
       };
 
@@ -149,7 +195,7 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
           const location = getRemoteLocation(record);
           if (record.syncState === 'DELETED_LOCALLY_PENDING_SYNC') {
             if (record.document.sync.backendVersion) {
-              await remoteStore.deleteCanvas(location.workspaceId, location.snapshotId, record.canvasId);
+              await remoteStore.deleteCanvas(location.workspaceId, location.snapshotId, record.canvasId, record.document.sync.backendVersion);
             }
             await localStore.deleteCanvas(record.canvasId);
             result.deletedCount += 1;
@@ -162,7 +208,7 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
             const updated = await remoteStore.updateCanvas(location.workspaceId, location.snapshotId, {
               ...record.document,
               canvasId: record.canvasId,
-            });
+            }, record.document.sync.backendVersion);
             synchronized = markSavedCanvasSynchronized({
               ...record.document,
               canvasId: record.canvasId,
@@ -188,6 +234,24 @@ export function createSavedCanvasSyncService(localStore: SavedCanvasLocalStore, 
           result.uploadedCount += 1;
           result.syncedCanvasIds.push(synchronized.canvasId);
         } catch (error) {
+          if (isConflictError(error)) {
+            const location = getRemoteLocation(record);
+            let remoteRecord: SavedCanvasRemoteRecord | null = null;
+            try {
+              remoteRecord = await remoteStore.getCanvas(location.workspaceId, location.snapshotId, record.canvasId);
+            } catch {
+              remoteRecord = null;
+            }
+            const conflicted = markSavedCanvasConflicted(record.document, {
+              backendVersion: remoteRecord?.backendVersion ?? null,
+              message: buildConflictMessage(record, remoteRecord),
+            });
+            await localStore.putCanvas(conflicted);
+            result.conflictCount += 1;
+            result.conflictedCanvasIds.push(record.canvasId);
+            continue;
+          }
+
           const message = error instanceof Error ? error.message : 'Saved canvas sync failed.';
           await localStore.putCanvas(markSavedCanvasSyncFailed(record.document, message));
           result.failedCount += 1;

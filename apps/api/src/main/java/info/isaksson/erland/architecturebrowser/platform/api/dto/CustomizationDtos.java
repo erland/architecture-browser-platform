@@ -90,7 +90,8 @@ public final class CustomizationDtos {
 
     public record UpdateSavedCanvasRequest(
         String name,
-        Map<String, Object> document
+        Map<String, Object> document,
+        String expectedBackendVersion
     ) {
     }
 
