@@ -2635,6 +2635,36 @@ dd {
   width: 100%;
 }
 
+
+.browser-saved-canvas-dialog__rebinding {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.browser-saved-canvas-dialog__rebinding-header,
+.browser-saved-canvas-dialog__unresolved {
+  display: grid;
+  gap: 10px;
+}
+
+.browser-saved-canvas-dialog__unresolved-group {
+  display: grid;
+  gap: 6px;
+}
+
+.browser-saved-canvas-dialog__unresolved-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.browser-saved-canvas-card__rebinding {
+  margin-top: 6px;
+}
 .browser-saved-canvas-dialog__status {
   margin: 0;
 }

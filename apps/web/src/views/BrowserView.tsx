@@ -19,6 +19,7 @@ import { restoreSavedCanvasToBrowserSession } from '../savedCanvasSessionMapping
 import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../savedCanvasOpen';
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
 import { rebindSavedCanvasToTargetSnapshot } from '../savedCanvasRebinding';
+import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary, type SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { type BrowserViewProps } from './browserView.shared';
@@ -56,6 +57,8 @@ export function BrowserView(_: BrowserViewProps) {
   const [isSavedCanvasBusy, setIsSavedCanvasBusy] = useState(false);
   const [savedCanvasRecords, setSavedCanvasRecords] = useState<SavedCanvasLocalRecord[]>([]);
   const [currentSavedCanvasId, setCurrentSavedCanvasId] = useState<string | null>(null);
+  const [rebindingCanvasId, setRebindingCanvasId] = useState<string | null>(null);
+  const [rebindingSummary, setRebindingSummary] = useState<SavedCanvasRebindingUiSummary | null>(null);
 
   const handleOpenSourceTreeDialog = () => setIsSourceTreeSwitcherOpen(true);
   const selection = useAppSelectionContext();
@@ -443,6 +446,8 @@ export function BrowserView(_: BrowserViewProps) {
       const pendingRecord = await savedCanvasSyncService.markCanvasPendingSync(savedRecord.document);
       setCurrentSavedCanvasId(pendingRecord.canvasId);
       setSavedCanvasDraftName(pendingRecord.name);
+      setRebindingCanvasId(null);
+      setRebindingSummary(null);
       setSavedCanvasStatusMessage(`Saved ${pendingRecord.name} locally. Sync queued.`);
       await loadSavedCanvasRecords(pendingRecord.workspaceId, pendingRecord.repositoryRegistrationId);
       applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: false }), pendingRecord.canvasId);
@@ -483,6 +488,8 @@ export function BrowserView(_: BrowserViewProps) {
       selection.setSelectedSnapshotId(snapshotRef.snapshotId);
       setCurrentSavedCanvasId(record.canvasId);
       setSavedCanvasDraftName(record.name);
+      setRebindingCanvasId(null);
+      setRebindingSummary(null);
       const unresolvedCount = restored.unresolvedNodeIds.length + restored.unresolvedEdgeIds.length;
       const modeLabel = mode === 'original' ? 'original snapshot' : 'current target snapshot';
       const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
@@ -521,13 +528,17 @@ export function BrowserView(_: BrowserViewProps) {
       selection.setSelectedSnapshotId(selectedSnapshot.id);
       setCurrentSavedCanvasId(record.canvasId);
       setSavedCanvasDraftName(record.name);
+      const summary = toSavedCanvasRebindingUiSummary(rebound);
+      setRebindingCanvasId(record.canvasId);
+      setRebindingSummary(summary);
       const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
-      setSavedCanvasStatusMessage(
-        rebound.unresolvedCount > 0
-          ? `Opened ${record.name} on selected snapshot ${selectedSnapshot.snapshotKey}${availabilityLabel} with ${rebound.exactMatchCount} exact matches and ${rebound.unresolvedCount} unresolved item(s).`
-          : `Opened ${record.name} on selected snapshot ${selectedSnapshot.snapshotKey}${availabilityLabel} with ${rebound.exactMatchCount} exact matches.`
-      );
-      setIsSavedCanvasDialogOpen(false);
+      setSavedCanvasStatusMessage(buildSavedCanvasRebindingStatusMessage({
+        canvasName: record.name,
+        targetSnapshotLabel: selectedSnapshot.snapshotKey,
+        availabilityLabel,
+        summary,
+      }));
+      setIsSavedCanvasDialogOpen(summary.unresolvedCount > 0);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas on the selected snapshot.');
     } finally {
@@ -546,6 +557,10 @@ export function BrowserView(_: BrowserViewProps) {
       if (currentSavedCanvasId === canvasId) {
         setCurrentSavedCanvasId(null);
         setSavedCanvasDraftName(defaultSavedCanvasName(selectedSnapshotLabel));
+      }
+      if (rebindingCanvasId === canvasId) {
+        setRebindingCanvasId(null);
+        setRebindingSummary(null);
       }
       await loadSavedCanvasRecords();
       setSavedCanvasStatusMessage(existingRecord.syncState === 'SYNCHRONIZED' || existingRecord.document.sync.backendVersion
@@ -620,6 +635,8 @@ export function BrowserView(_: BrowserViewProps) {
         selectedSnapshotId={selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null}
         selectedSnapshotLabel={selectedSnapshotLabel}
         pendingSyncCount={pendingSavedCanvasSyncCount}
+        rebindingCanvasId={rebindingCanvasId}
+        rebindingSummary={rebindingSummary}
         onOpenOriginalCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'original')}
         onOpenCurrentCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'currentTarget')}
         onOpenSelectedCanvas={(canvasId) => void handleOpenSavedCanvasOnSelectedSnapshot(canvasId)}

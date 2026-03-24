@@ -1,4 +1,5 @@
 import type { SavedCanvasLocalRecord } from '../savedCanvasLocalStore';
+import type { SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
 
 export type BrowserSavedCanvasDialogProps = {
   isOpen: boolean;
@@ -13,6 +14,8 @@ export type BrowserSavedCanvasDialogProps = {
   selectedSnapshotId: string | null;
   selectedSnapshotLabel: string | null;
   pendingSyncCount: number;
+  rebindingCanvasId: string | null;
+  rebindingSummary: SavedCanvasRebindingUiSummary | null;
   onOpenOriginalCanvas: (canvasId: string) => void;
   onOpenCurrentCanvas: (canvasId: string) => void;
   onOpenSelectedCanvas: (canvasId: string) => void;
@@ -35,6 +38,20 @@ function formatCanvasTimestamp(value: string) {
   });
 }
 
+function renderUnresolvedList(title: string, values: string[]) {
+  if (values.length === 0) {
+    return null;
+  }
+  return (
+    <div className="browser-saved-canvas-dialog__unresolved-group">
+      <p className="muted">{title}</p>
+      <ul className="browser-saved-canvas-dialog__unresolved-list">
+        {values.map((value) => <li key={value}><code>{value}</code></li>)}
+      </ul>
+    </div>
+  );
+}
+
 export function BrowserSavedCanvasDialog({
   isOpen,
   draftName,
@@ -48,6 +65,8 @@ export function BrowserSavedCanvasDialog({
   selectedSnapshotId,
   selectedSnapshotLabel,
   pendingSyncCount,
+  rebindingCanvasId,
+  rebindingSummary,
   onOpenOriginalCanvas,
   onOpenCurrentCanvas,
   onOpenSelectedCanvas,
@@ -58,6 +77,8 @@ export function BrowserSavedCanvasDialog({
   if (!isOpen) {
     return null;
   }
+
+  const rebindingRecord = rebindingCanvasId ? records.find((record) => record.canvasId === rebindingCanvasId) ?? null : null;
 
   return (
     <div className="browser-saved-canvas-dialog__backdrop" role="presentation" onClick={onClose}>
@@ -98,6 +119,31 @@ export function BrowserSavedCanvasDialog({
 
         {statusMessage ? <p className="browser-saved-canvas-dialog__status muted">{statusMessage}</p> : null}
 
+        {rebindingSummary ? (
+          <section className="browser-saved-canvas-dialog__rebinding card" aria-label="Latest rebinding result">
+            <div className="browser-saved-canvas-dialog__rebinding-header">
+              <div>
+                <p className="eyebrow">Latest remap result</p>
+                <h4>{rebindingRecord?.name ?? (rebindingCanvasId ? `Canvas ${rebindingCanvasId}` : 'Selected saved canvas')}</h4>
+              </div>
+              <div className="browser-saved-canvas-card__badges">
+                <span className="badge">{rebindingSummary.rebindingState}</span>
+                <span className="badge">{rebindingSummary.exactMatchCount} exact</span>
+                <span className="badge">{rebindingSummary.unresolvedCount} unresolved</span>
+              </div>
+            </div>
+            {rebindingSummary.unresolvedCount > 0 ? (
+              <div className="browser-saved-canvas-dialog__unresolved">
+                <p className="muted">These items could not be rebound to the selected snapshot and were left out when the canvas was opened.</p>
+                {renderUnresolvedList('Unresolved nodes', rebindingSummary.unresolvedNodeIds)}
+                {renderUnresolvedList('Unresolved edges', rebindingSummary.unresolvedEdgeIds)}
+              </div>
+            ) : (
+              <p className="muted">All saved canvas items rebound cleanly to the selected snapshot.</p>
+            )}
+          </section>
+        ) : null}
+
         <div className="browser-saved-canvas-dialog__list" aria-label="Saved canvas list">
           {records.length === 0 ? (
             <p className="muted">No saved canvases yet for this source tree.</p>
@@ -119,6 +165,11 @@ export function BrowserSavedCanvasDialog({
                     </div>
                     <p className="muted">{record.snapshotKey} · Modified {formatCanvasTimestamp(record.lastModifiedAt)}{record.lastSyncedAt ? ` · Synced ${formatCanvasTimestamp(record.lastSyncedAt)}` : ''}</p>
                     {record.document.sync.conflict ? <p className="muted">Conflict: {record.document.sync.conflict.message}</p> : null}
+                    {rebindingCanvasId === record.canvasId && rebindingSummary ? (
+                      <div className="browser-saved-canvas-card__rebinding muted">
+                        Rebinding {rebindingSummary.rebindingState.toLowerCase()} · {rebindingSummary.exactMatchCount} exact · {rebindingSummary.unresolvedCount} unresolved
+                      </div>
+                    ) : null}
                   </div>
                   <div className="browser-saved-canvas-card__actions">
                     <button type="button" className="button-secondary" onClick={() => onOpenOriginalCanvas(record.canvasId)} disabled={isBusy}>Open original</button>
