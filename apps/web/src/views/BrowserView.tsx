@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import { platformApi } from '../platformApi';
 import { getBrowserSnapshotCache } from '../snapshotCache';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../appModel.sourceTree';
+import { BrowserSavedCanvasDialog } from '../components/BrowserSavedCanvasDialog';
 import { BrowserSourceTreeSwitcherDialog } from '../components/BrowserSourceTreeSwitcherDialog';
 import { BrowserTopSearch } from '../components/BrowserTopSearch';
 import { BrowserViewpointDialog } from '../components/BrowserViewpointDialog';
@@ -11,6 +12,9 @@ import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { browserTabs } from '../routing/browserTabs';
+import { getBrowserSavedCanvasLocalStore, type SavedCanvasLocalRecord } from '../savedCanvasLocalStore';
+import { restoreSavedCanvasToBrowserSession } from '../savedCanvasSessionMapping';
+import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { type BrowserViewProps } from './browserView.shared';
@@ -42,11 +46,18 @@ export function BrowserView(_: BrowserViewProps) {
   const [, setError] = useState<string | null>(null);
   const [isSourceTreeSwitcherOpen, setIsSourceTreeSwitcherOpen] = useState(false);
   const [isViewpointDialogOpen, setIsViewpointDialogOpen] = useState(false);
+  const [isSavedCanvasDialogOpen, setIsSavedCanvasDialogOpen] = useState(false);
+  const [savedCanvasDraftName, setSavedCanvasDraftName] = useState('');
+  const [savedCanvasStatusMessage, setSavedCanvasStatusMessage] = useState<string | null>(null);
+  const [isSavedCanvasBusy, setIsSavedCanvasBusy] = useState(false);
+  const [savedCanvasRecords, setSavedCanvasRecords] = useState<SavedCanvasLocalRecord[]>([]);
+  const [currentSavedCanvasId, setCurrentSavedCanvasId] = useState<string | null>(null);
 
   const handleOpenSourceTreeDialog = () => setIsSourceTreeSwitcherOpen(true);
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
+  const savedCanvasStore = useMemo(() => getBrowserSavedCanvasLocalStore(), []);
 
   const workspaceData = useWorkspaceData({
     selectedWorkspaceId: selection.selectedWorkspaceId,
@@ -149,6 +160,15 @@ export function BrowserView(_: BrowserViewProps) {
     }
     return workspaceData.repositories.find((repository) => repository.id === selectedSnapshot.repositoryRegistrationId) ?? null;
   }, [workspaceData.repositories, selection.selectedRepositoryId, selectedSnapshot]);
+
+  const loadSavedCanvasRecords = useCallback(async (workspaceId?: string | null, repositoryRegistrationId?: string | null) => {
+    const records = await savedCanvasStore.listCanvases({
+      workspaceId: workspaceId ?? workspaceData.selectedWorkspaceId ?? selection.selectedWorkspaceId ?? null,
+      repositoryRegistrationId: repositoryRegistrationId ?? selectedRepository?.id ?? selection.selectedRepositoryId ?? null,
+    });
+    setSavedCanvasRecords(records);
+    return records;
+  }, [savedCanvasStore, selection.selectedRepositoryId, selection.selectedWorkspaceId, selectedRepository?.id, workspaceData.selectedWorkspaceId]);
 
 
   useEffect(() => {
@@ -303,6 +323,127 @@ export function BrowserView(_: BrowserViewProps) {
     topSearchScopeMode: browserLayout.topSearchScopeMode,
   });
 
+  useEffect(() => {
+    void loadSavedCanvasRecords();
+  }, [loadSavedCanvasRecords]);
+
+  useEffect(() => {
+    if (!currentSavedCanvasId) {
+      return;
+    }
+    const currentRecord = savedCanvasRecords.find((record) => record.canvasId === currentSavedCanvasId);
+    if (currentRecord) {
+      setSavedCanvasDraftName(currentRecord.name);
+    }
+  }, [currentSavedCanvasId, savedCanvasRecords]);
+
+  useEffect(() => {
+    if (!currentSavedCanvasId) {
+      return;
+    }
+    const activeSnapshotId = selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null;
+    if (!activeSnapshotId) {
+      setCurrentSavedCanvasId(null);
+      return;
+    }
+    const currentRecord = savedCanvasRecords.find((record) => record.canvasId === currentSavedCanvasId);
+    if (!currentRecord) {
+      return;
+    }
+    if (currentRecord.originSnapshotId !== activeSnapshotId && currentRecord.currentTargetSnapshotId !== activeSnapshotId) {
+      setCurrentSavedCanvasId(null);
+    }
+  }, [browserSession.state.activeSnapshot?.snapshotId, currentSavedCanvasId, savedCanvasRecords, selectedSnapshot?.id]);
+
+  const handleOpenSavedCanvasDialog = async () => {
+    try {
+      const currentRecord = currentSavedCanvasId ? await savedCanvasStore.getCanvas(currentSavedCanvasId) : null;
+      setSavedCanvasDraftName(currentRecord?.name ?? defaultSavedCanvasName(selectedSnapshotLabel));
+      setSavedCanvasStatusMessage(null);
+      setIsSavedCanvasDialogOpen(true);
+      await loadSavedCanvasRecords();
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to load saved canvases.');
+    }
+  };
+
+  const handleSaveCurrentCanvas = async () => {
+    if (!browserSession.state.activeSnapshot || !browserSession.state.payload || !browserSession.state.index) {
+      setSavedCanvasStatusMessage('Open a prepared Browser snapshot before saving a canvas.');
+      return;
+    }
+    setIsSavedCanvasBusy(true);
+    try {
+      const existingRecord = currentSavedCanvasId ? await savedCanvasStore.getCanvas(currentSavedCanvasId) : null;
+      const document = buildSavedCanvasDocumentForSave({
+        state: browserSession.state,
+        name: savedCanvasDraftName,
+        existing: existingRecord?.document ?? null,
+      });
+      const savedRecord = await savedCanvasStore.putCanvas(document);
+      setCurrentSavedCanvasId(savedRecord.canvasId);
+      setSavedCanvasDraftName(savedRecord.name);
+      setSavedCanvasStatusMessage(`Saved ${savedRecord.name}.`);
+      await loadSavedCanvasRecords(savedRecord.workspaceId, savedRecord.repositoryRegistrationId);
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to save canvas.');
+    } finally {
+      setIsSavedCanvasBusy(false);
+    }
+  };
+
+  const handleOpenSavedCanvas = async (canvasId: string) => {
+    setIsSavedCanvasBusy(true);
+    try {
+      const record = await savedCanvasStore.getCanvas(canvasId);
+      if (!record) {
+        throw new Error('Saved canvas could not be found.');
+      }
+      const targetSnapshotId = record.currentTargetSnapshotId ?? record.originSnapshotId;
+      const cache = getBrowserSnapshotCache();
+      const snapshotRecord = await cache.getSnapshot(targetSnapshotId);
+      if (!snapshotRecord) {
+        throw new Error('The saved canvas snapshot is not available locally yet. Prepare that snapshot in Browser first.');
+      }
+      const restored = restoreSavedCanvasToBrowserSession({
+        document: record.document,
+        payload: snapshotRecord.payload,
+        preparedAt: snapshotRecord.cachedAt,
+      });
+      browserSession.replaceState(restored.state);
+      const snapshotRef = record.document.bindings.currentTargetSnapshot ?? record.document.bindings.originSnapshot;
+      selection.setSelectedWorkspaceId(snapshotRef.workspaceId);
+      selection.setSelectedRepositoryId(snapshotRef.repositoryRegistrationId);
+      selection.setSelectedSnapshotId(snapshotRef.snapshotId);
+      setCurrentSavedCanvasId(record.canvasId);
+      setSavedCanvasDraftName(record.name);
+      const unresolvedCount = restored.unresolvedNodeIds.length + restored.unresolvedEdgeIds.length;
+      setSavedCanvasStatusMessage(unresolvedCount > 0 ? `Opened ${record.name} with ${unresolvedCount} unresolved canvas item(s).` : `Opened ${record.name}.`);
+      setIsSavedCanvasDialogOpen(false);
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas.');
+    } finally {
+      setIsSavedCanvasBusy(false);
+    }
+  };
+
+  const handleDeleteSavedCanvas = async (canvasId: string) => {
+    setIsSavedCanvasBusy(true);
+    try {
+      await savedCanvasStore.deleteCanvas(canvasId);
+      if (currentSavedCanvasId === canvasId) {
+        setCurrentSavedCanvasId(null);
+        setSavedCanvasDraftName(defaultSavedCanvasName(selectedSnapshotLabel));
+      }
+      await loadSavedCanvasRecords();
+      setSavedCanvasStatusMessage('Saved canvas deleted.');
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to delete saved canvas.');
+    } finally {
+      setIsSavedCanvasBusy(false);
+    }
+  };
+
   return (
     <div className="browser-workspace" aria-label="Browser">
       <header className="card browser-workspace__topbar">
@@ -330,6 +471,7 @@ export function BrowserView(_: BrowserViewProps) {
 
           <div className="browser-workspace__header-actions">
             <button type="button" className="browser-workspace__source-tree-button" onClick={() => setIsSourceTreeSwitcherOpen(true)}>Source tree</button>
+            <button type="button" className="button-secondary browser-workspace__saved-canvas-button" onClick={() => void handleOpenSavedCanvasDialog()}>Canvases</button>
           </div>
         </div>
       </header>
@@ -348,6 +490,22 @@ export function BrowserView(_: BrowserViewProps) {
         onSelectPresentationPreference={browserSession.setViewpointPresentationPreference}
         onApplyViewpoint={browserSession.applySelectedViewpoint}
         onClose={() => setIsViewpointDialogOpen(false)}
+      />
+
+      <BrowserSavedCanvasDialog
+        isOpen={isSavedCanvasDialogOpen}
+        draftName={savedCanvasDraftName}
+        onDraftNameChange={setSavedCanvasDraftName}
+        onClose={() => setIsSavedCanvasDialogOpen(false)}
+        onSaveCurrentCanvas={() => void handleSaveCurrentCanvas()}
+        records={savedCanvasRecords}
+        currentCanvasId={currentSavedCanvasId}
+        isBusy={isSavedCanvasBusy}
+        statusMessage={savedCanvasStatusMessage}
+        selectedSnapshotId={selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null}
+        onOpenCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId)}
+        onDeleteCanvas={(canvasId) => void handleDeleteSavedCanvas(canvasId)}
+        onRefresh={() => void loadSavedCanvasRecords()}
       />
 
       <BrowserSourceTreeSwitcherDialog

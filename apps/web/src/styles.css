@@ -2579,3 +2579,98 @@ dd {
 .browser-workspace__startup-gate h3 {
   margin: 0;
 }
+
+.browser-saved-canvas-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.6);
+}
+
+.browser-saved-canvas-dialog {
+  width: min(760px, calc(100vw - 40px));
+  max-height: min(80vh, 720px);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  overflow: auto;
+}
+
+.browser-saved-canvas-dialog__header,
+.browser-saved-canvas-dialog__save-row,
+.browser-saved-canvas-card,
+.browser-saved-canvas-card__title-row,
+.browser-saved-canvas-card__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.browser-saved-canvas-dialog__header,
+.browser-saved-canvas-card,
+.browser-saved-canvas-card__title-row {
+  justify-content: space-between;
+}
+
+.browser-saved-canvas-dialog__header,
+.browser-saved-canvas-card {
+  align-items: flex-start;
+}
+
+.browser-saved-canvas-dialog__save-row {
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.browser-saved-canvas-dialog__field {
+  min-width: 280px;
+  flex: 1 1 320px;
+  display: grid;
+  gap: 6px;
+}
+
+.browser-saved-canvas-dialog__field input {
+  width: 100%;
+}
+
+.browser-saved-canvas-dialog__status {
+  margin: 0;
+}
+
+.browser-saved-canvas-dialog__list {
+  display: grid;
+  gap: 12px;
+}
+
+.browser-saved-canvas-card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.browser-saved-canvas-card--current {
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.browser-saved-canvas-card__content,
+.browser-saved-canvas-card__badges {
+  display: grid;
+  gap: 8px;
+}
+
+.browser-saved-canvas-card__content h4,
+.browser-saved-canvas-card__content p {
+  margin: 0;
+}
+
+.browser-saved-canvas-card__badges {
+  grid-auto-flow: column;
+  align-items: center;
+}
+
+.browser-saved-canvas-card__actions {
+  flex-wrap: wrap;
+}

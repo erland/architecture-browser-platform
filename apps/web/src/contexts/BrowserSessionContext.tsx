@@ -84,6 +84,7 @@ export type BrowserSessionContextValue = {
   clearCanvas: () => void;
   fitCanvasView: () => void;
   setTreeMode: (treeMode: BrowserTreeMode) => void;
+  replaceState: (state: BrowserSessionState) => void;
 };
 
 const BrowserSessionContext = createContext<BrowserSessionContextValue | null>(null);
@@ -127,6 +128,7 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     clearCanvas: () => setState((current) => clearCanvas(current)),
     fitCanvasView: () => setState((current) => requestFitCanvasView(current)),
     setTreeMode: (treeMode) => setState((current) => setBrowserTreeMode(current, treeMode)),
+    replaceState: (nextState) => setState(nextState),
   }), [state]);
 
   return <BrowserSessionContext.Provider value={value}>{children}</BrowserSessionContext.Provider>;
