@@ -81,4 +81,29 @@ public final class CustomizationDtos {
         Instant updatedAt
     ) {
     }
+
+    public record CreateSavedCanvasRequest(
+        String name,
+        Map<String, Object> document
+    ) {
+    }
+
+    public record UpdateSavedCanvasRequest(
+        String name,
+        Map<String, Object> document
+    ) {
+    }
+
+    public record SavedCanvasResponse(
+        String id,
+        String workspaceId,
+        String snapshotId,
+        String name,
+        String documentJson,
+        long documentVersion,
+        String backendVersion,
+        Instant createdAt,
+        Instant updatedAt
+    ) {
+    }
 }

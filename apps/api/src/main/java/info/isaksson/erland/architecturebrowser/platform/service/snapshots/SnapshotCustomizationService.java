@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.CustomizationDtos;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
 import info.isaksson.erland.architecturebrowser.platform.domain.OverlayEntity;
+import info.isaksson.erland.architecturebrowser.platform.domain.SavedCanvasEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SavedViewEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.management.AuditService;
@@ -81,6 +82,76 @@ public class SnapshotCustomizationService {
         OverlayEntity overlay = requireOverlay(workspaceId, snapshotId, overlayId);
         overlay.delete();
         auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "overlay.deleted", auditJson(Map.of("overlayId", overlay.id, "name", overlay.name)));
+    }
+
+
+    public List<CustomizationDtos.SavedCanvasResponse> listSavedCanvases(String workspaceId, String snapshotId) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        return SavedCanvasEntity.<SavedCanvasEntity>list("workspaceId = ?1 and snapshotId = ?2 order by updatedAt desc", workspaceId, snapshotId).stream()
+            .map(this::toSavedCanvasResponse)
+            .toList();
+    }
+
+    public CustomizationDtos.SavedCanvasResponse getSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        return toSavedCanvasResponse(requireSavedCanvas(workspaceId, snapshotId, savedCanvasId));
+    }
+
+    @Transactional
+    public CustomizationDtos.SavedCanvasResponse createSavedCanvas(String workspaceId, String snapshotId, CustomizationDtos.CreateSavedCanvasRequest request) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        validateSavedCanvas(request.name(), request.document());
+        SavedCanvasEntity savedCanvas = new SavedCanvasEntity();
+        savedCanvas.id = UUID.randomUUID().toString();
+        savedCanvas.workspaceId = workspaceId;
+        savedCanvas.snapshotId = snapshotId;
+        savedCanvas.name = request.name().trim();
+        savedCanvas.documentJson = jsonOrNull(request.document());
+        savedCanvas.documentVersion = 1L;
+        savedCanvas.createdAt = Instant.now();
+        savedCanvas.updatedAt = savedCanvas.createdAt;
+        savedCanvas.persist();
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.created", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
+        return toSavedCanvasResponse(savedCanvas);
+    }
+
+    @Transactional
+    public CustomizationDtos.SavedCanvasResponse updateSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId, CustomizationDtos.UpdateSavedCanvasRequest request) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        validateSavedCanvas(request.name(), request.document());
+        SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        savedCanvas.name = request.name().trim();
+        savedCanvas.documentJson = jsonOrNull(request.document());
+        savedCanvas.documentVersion = savedCanvas.documentVersion + 1;
+        savedCanvas.updatedAt = Instant.now();
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.updated", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
+        return toSavedCanvasResponse(savedCanvas);
+    }
+
+    @Transactional
+    public CustomizationDtos.SavedCanvasResponse duplicateSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        SavedCanvasEntity existing = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        SavedCanvasEntity duplicate = new SavedCanvasEntity();
+        duplicate.id = UUID.randomUUID().toString();
+        duplicate.workspaceId = existing.workspaceId;
+        duplicate.snapshotId = existing.snapshotId;
+        duplicate.name = existing.name + " copy";
+        duplicate.documentJson = existing.documentJson;
+        duplicate.documentVersion = 1L;
+        duplicate.createdAt = Instant.now();
+        duplicate.updatedAt = duplicate.createdAt;
+        duplicate.persist();
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.duplicated", auditJson(Map.of("savedCanvasId", duplicate.id, "sourceSavedCanvasId", existing.id, "name", duplicate.name, "documentVersion", duplicate.documentVersion)));
+        return toSavedCanvasResponse(duplicate);
+    }
+
+    @Transactional
+    public void deleteSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
+        requireSnapshotOwnership(workspaceId, snapshotId);
+        SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        savedCanvas.delete();
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.deleted", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name)));
     }
 
     @Transactional
@@ -159,6 +230,14 @@ public class SnapshotCustomizationService {
         return savedView;
     }
 
+    private SavedCanvasEntity requireSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
+        SavedCanvasEntity savedCanvas = SavedCanvasEntity.findById(savedCanvasId);
+        if (savedCanvas == null || !workspaceId.equals(savedCanvas.workspaceId) || !snapshotId.equals(savedCanvas.snapshotId)) {
+            throw new NotFoundException("Saved canvas not found: " + savedCanvasId);
+        }
+        return savedCanvas;
+    }
+
     private void requireSnapshotOwnership(String workspaceId, String snapshotId) {
         SnapshotEntity snapshot = SnapshotEntity.findById(snapshotId);
         if (snapshot == null || !workspaceId.equals(snapshot.workspaceId)) {
@@ -186,6 +265,15 @@ public class SnapshotCustomizationService {
         }
         if (viewType == null || viewType.isBlank()) {
             throw new ValidationException(List.of("saved view type is required"));
+        }
+    }
+
+    private void validateSavedCanvas(String name, Map<String, Object> document) {
+        if (name == null || name.isBlank()) {
+            throw new ValidationException(List.of("saved canvas name is required"));
+        }
+        if (document == null || document.isEmpty()) {
+            throw new ValidationException(List.of("saved canvas document is required"));
         }
     }
 
@@ -244,6 +332,20 @@ public class SnapshotCustomizationService {
             savedView.layoutJson,
             savedView.createdAt,
             savedView.updatedAt
+        );
+    }
+
+    private CustomizationDtos.SavedCanvasResponse toSavedCanvasResponse(SavedCanvasEntity savedCanvas) {
+        return new CustomizationDtos.SavedCanvasResponse(
+            savedCanvas.id,
+            savedCanvas.workspaceId,
+            savedCanvas.snapshotId,
+            savedCanvas.name,
+            savedCanvas.documentJson,
+            savedCanvas.documentVersion,
+            Long.toString(savedCanvas.documentVersion),
+            savedCanvas.createdAt,
+            savedCanvas.updatedAt
         );
     }
 

@@ -84,4 +84,49 @@ describe("platformApi", () => {
       }),
     });
   });
+
+  test("saved canvas endpoints use the expected backend routes", async () => {
+    const fetchJson = jest.fn(async () => ({ id: "canvas-1" })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
+    const fetchNoContent = jest.fn(async () => undefined);
+    const api = createPlatformApi({ fetchJson, fetchNoContent });
+
+    await api.listSavedCanvases("ws-1", "snap-1");
+    await api.getSavedCanvas("ws-1", "snap-1", "canvas-1");
+    await api.createSavedCanvas("ws-1", "snap-1", {
+      name: "Orders canvas",
+      document: { canvasId: "canvas-1" } as never,
+    });
+    await api.updateSavedCanvas("ws-1", "snap-1", "canvas-1", {
+      name: "Orders canvas",
+      document: { canvasId: "canvas-1" } as never,
+    });
+    await api.duplicateSavedCanvas("ws-1", "snap-1", "canvas-1");
+    await api.deleteSavedCanvas("ws-1", "snap-1", "canvas-1");
+
+    expect(fetchJson).toHaveBeenNthCalledWith(1,
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases",
+      { method: "GET" },
+    );
+    expect(fetchJson).toHaveBeenNthCalledWith(2,
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1",
+      { method: "GET" },
+    );
+    expect(fetchJson).toHaveBeenNthCalledWith(3,
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases",
+      { method: "POST", body: JSON.stringify({ name: "Orders canvas", document: { canvasId: "canvas-1" } }) },
+    );
+    expect(fetchJson).toHaveBeenNthCalledWith(4,
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1",
+      { method: "PUT", body: JSON.stringify({ name: "Orders canvas", document: { canvasId: "canvas-1" } }) },
+    );
+    expect(fetchJson).toHaveBeenNthCalledWith(5,
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1/duplicate",
+      { method: "POST", body: JSON.stringify({}) },
+    );
+    expect(fetchNoContent).toHaveBeenCalledWith(
+      "/api/workspaces/ws-1/snapshots/snap-1/saved-canvases/canvas-1",
+      { method: "DELETE" },
+    );
+  });
+
 });

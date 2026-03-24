@@ -1,3 +1,4 @@
+import type { SavedCanvasDocument } from "./savedCanvasModel";
 import { httpClient } from "./httpClient";
 
 export type WorkspaceEditorRequest = {
@@ -36,6 +37,11 @@ export type SavedViewCreateRequest = {
   viewType: string;
   queryState: Record<string, string>;
   layoutState: Record<string, string>;
+};
+
+export type SavedCanvasUpsertRequest = {
+  name: string;
+  document: SavedCanvasDocument;
 };
 
 export function createPlatformApi(client = httpClient) {
@@ -81,6 +87,29 @@ export function createPlatformApi(client = httpClient) {
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/repositories/${repositoryId}/runs`, {
         method: "POST",
         body: JSON.stringify(payload),
+      }),
+    listSavedCanvases: <T>(workspaceId: string, snapshotId: string) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases`, { method: "GET" }),
+    getSavedCanvas: <T>(workspaceId: string, snapshotId: string, savedCanvasId: string) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}`, { method: "GET" }),
+    createSavedCanvas: <T>(workspaceId: string, snapshotId: string, payload: SavedCanvasUpsertRequest) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    updateSavedCanvas: <T>(workspaceId: string, snapshotId: string, savedCanvasId: string, payload: SavedCanvasUpsertRequest) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    duplicateSavedCanvas: <T>(workspaceId: string, snapshotId: string, savedCanvasId: string) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}/duplicate`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    deleteSavedCanvas: (workspaceId: string, snapshotId: string, savedCanvasId: string) =>
+      client.fetchNoContent(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-canvases/${savedCanvasId}`, {
+        method: "DELETE",
       }),
     createSavedView: <T>(workspaceId: string, snapshotId: string, payload: SavedViewCreateRequest) =>
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/saved-views`, {

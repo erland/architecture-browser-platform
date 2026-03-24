@@ -55,6 +55,58 @@ public class SnapshotCustomizationResource {
         return Response.noContent().build();
     }
 
+
+    @GET
+    @Path("/saved-canvases")
+    public java.util.List<CustomizationDtos.SavedCanvasResponse> listSavedCanvases(@PathParam("workspaceId") String workspaceId,
+                                                                                    @PathParam("snapshotId") String snapshotId) {
+        return snapshotCustomizationService.listSavedCanvases(workspaceId, snapshotId);
+    }
+
+    @GET
+    @Path("/saved-canvases/{savedCanvasId}")
+    public CustomizationDtos.SavedCanvasResponse getSavedCanvas(@PathParam("workspaceId") String workspaceId,
+                                                                @PathParam("snapshotId") String snapshotId,
+                                                                @PathParam("savedCanvasId") String savedCanvasId) {
+        return snapshotCustomizationService.getSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+    }
+
+    @POST
+    @Path("/saved-canvases")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response createSavedCanvas(@PathParam("workspaceId") String workspaceId,
+                                      @PathParam("snapshotId") String snapshotId,
+                                      CustomizationDtos.CreateSavedCanvasRequest request) {
+        return Response.status(Response.Status.CREATED).entity(snapshotCustomizationService.createSavedCanvas(workspaceId, snapshotId, request)).build();
+    }
+
+    @PUT
+    @Path("/saved-canvases/{savedCanvasId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public CustomizationDtos.SavedCanvasResponse updateSavedCanvas(@PathParam("workspaceId") String workspaceId,
+                                                                   @PathParam("snapshotId") String snapshotId,
+                                                                   @PathParam("savedCanvasId") String savedCanvasId,
+                                                                   CustomizationDtos.UpdateSavedCanvasRequest request) {
+        return snapshotCustomizationService.updateSavedCanvas(workspaceId, snapshotId, savedCanvasId, request);
+    }
+
+    @POST
+    @Path("/saved-canvases/{savedCanvasId}/duplicate")
+    public Response duplicateSavedCanvas(@PathParam("workspaceId") String workspaceId,
+                                         @PathParam("snapshotId") String snapshotId,
+                                         @PathParam("savedCanvasId") String savedCanvasId) {
+        return Response.status(Response.Status.CREATED).entity(snapshotCustomizationService.duplicateSavedCanvas(workspaceId, snapshotId, savedCanvasId)).build();
+    }
+
+    @DELETE
+    @Path("/saved-canvases/{savedCanvasId}")
+    public Response deleteSavedCanvas(@PathParam("workspaceId") String workspaceId,
+                                      @PathParam("snapshotId") String snapshotId,
+                                      @PathParam("savedCanvasId") String savedCanvasId) {
+        snapshotCustomizationService.deleteSavedCanvas(workspaceId, snapshotId, savedCanvasId);
+        return Response.noContent().build();
+    }
+
     @POST
     @Path("/saved-views")
     @Consumes(MediaType.APPLICATION_JSON)
