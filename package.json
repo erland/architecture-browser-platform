@@ -18,10 +18,6 @@
     "test:stack": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml up -d",
     "test:stack:down": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml down",
     "smoke:test": "./scripts/smoke-test.sh",
-    "verify:safety-net": "./scripts/verify-safety-net.sh",
-    "clean:generated": "./scripts/clean-generated-artifacts.sh",
-    "verify:refactor": "./scripts/verify-refactor.sh",
-    "verify:browser-only-baseline": "./scripts/verify-browser-only-baseline.sh",
-    "verify:remaining-frontend-baseline": "./scripts/verify-remaining-frontend-baseline.sh"
+    "clean:generated": "./scripts/clean-generated-artifacts.sh"
   }
 }
