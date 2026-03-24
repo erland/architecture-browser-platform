@@ -20,6 +20,7 @@ import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanva
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
 import { rebindSavedCanvasToTargetSnapshot } from '../savedCanvasRebinding';
 import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary, type SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
+import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability, type SavedCanvasOfflineAvailabilitySummary } from '../savedCanvasSnapshotAvailability';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { type BrowserViewProps } from './browserView.shared';
@@ -59,6 +60,8 @@ export function BrowserView(_: BrowserViewProps) {
   const [currentSavedCanvasId, setCurrentSavedCanvasId] = useState<string | null>(null);
   const [rebindingCanvasId, setRebindingCanvasId] = useState<string | null>(null);
   const [rebindingSummary, setRebindingSummary] = useState<SavedCanvasRebindingUiSummary | null>(null);
+  const [savedCanvasAvailabilityById, setSavedCanvasAvailabilityById] = useState<Record<string, SavedCanvasOfflineAvailabilitySummary>>({});
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine === false);
 
   const handleOpenSourceTreeDialog = () => setIsSourceTreeSwitcherOpen(true);
   const selection = useAppSelectionContext();
@@ -178,6 +181,34 @@ export function BrowserView(_: BrowserViewProps) {
     setSavedCanvasRecords(records);
     return records;
   }, [savedCanvasStore, selection.selectedRepositoryId, selection.selectedWorkspaceId, selectedRepository?.id, workspaceData.selectedWorkspaceId]);
+
+
+  const loadSavedCanvasAvailability = useCallback(async (records: SavedCanvasLocalRecord[]) => {
+    const cache = getBrowserSnapshotCache();
+    const entries = await Promise.all(records.map(async (record) => [
+      record.canvasId,
+      await getSavedCanvasOfflineAvailability(record, cache, selectedSnapshot),
+    ] as const));
+    setSavedCanvasAvailabilityById(Object.fromEntries(entries));
+  }, [selectedSnapshot]);
+
+  useEffect(() => {
+    void loadSavedCanvasAvailability(savedCanvasRecords);
+  }, [loadSavedCanvasAvailability, savedCanvasRecords]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleOnlineStateChange = () => setIsOffline(typeof navigator !== 'undefined' && navigator.onLine === false);
+    handleOnlineStateChange();
+    window.addEventListener('online', handleOnlineStateChange);
+    window.addEventListener('offline', handleOnlineStateChange);
+    return () => {
+      window.removeEventListener('online', handleOnlineStateChange);
+      window.removeEventListener('offline', handleOnlineStateChange);
+    };
+  }, []);
 
   const pendingSavedCanvasSyncCount = useMemo(() => savedCanvasRecords.filter((record) => (
     record.syncState === 'PENDING_SYNC'
@@ -465,6 +496,15 @@ export function BrowserView(_: BrowserViewProps) {
       if (!record) {
         throw new Error('Saved canvas could not be found.');
       }
+      const availability = savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), selectedSnapshot);
+      if (isOffline) {
+        const requestedAvailable = mode === 'original'
+          ? availability.origin.availableOffline
+          : (availability.currentTarget?.availableOffline ?? false);
+        if (!requestedAvailable) {
+          throw new Error(buildSavedCanvasOfflineUnavailableMessage(availability, mode));
+        }
+      }
       const cache = getBrowserSnapshotCache();
       const openedSnapshot = await loadSavedCanvasSnapshotForOpen(record.document, cache, mode);
       const documentForOpen = mode === 'original'
@@ -513,6 +553,10 @@ export function BrowserView(_: BrowserViewProps) {
       const record = await savedCanvasStore.getCanvas(canvasId);
       if (!record) {
         throw new Error('Saved canvas could not be found.');
+      }
+      const availability = savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), selectedSnapshot);
+      if (isOffline && !availability.selected?.availableOffline) {
+        throw new Error(buildSavedCanvasOfflineUnavailableMessage(availability, 'selected'));
       }
       const cache = getBrowserSnapshotCache();
       const openedSnapshot = await loadSelectedTargetSnapshotForSavedCanvasOpen(selectedSnapshot, cache);
@@ -637,6 +681,8 @@ export function BrowserView(_: BrowserViewProps) {
         pendingSyncCount={pendingSavedCanvasSyncCount}
         rebindingCanvasId={rebindingCanvasId}
         rebindingSummary={rebindingSummary}
+        isOffline={isOffline}
+        availabilityByCanvasId={savedCanvasAvailabilityById}
         onOpenOriginalCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'original')}
         onOpenCurrentCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'currentTarget')}
         onOpenSelectedCanvas={(canvasId) => void handleOpenSavedCanvasOnSelectedSnapshot(canvasId)}

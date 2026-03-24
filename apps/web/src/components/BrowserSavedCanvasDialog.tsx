@@ -1,5 +1,6 @@
 import type { SavedCanvasLocalRecord } from '../savedCanvasLocalStore';
 import type { SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
+import type { SavedCanvasOfflineAvailabilitySummary } from '../savedCanvasSnapshotAvailability';
 
 export type BrowserSavedCanvasDialogProps = {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export type BrowserSavedCanvasDialogProps = {
   pendingSyncCount: number;
   rebindingCanvasId: string | null;
   rebindingSummary: SavedCanvasRebindingUiSummary | null;
+  isOffline: boolean;
+  availabilityByCanvasId: Record<string, SavedCanvasOfflineAvailabilitySummary | undefined>;
   onOpenOriginalCanvas: (canvasId: string) => void;
   onOpenCurrentCanvas: (canvasId: string) => void;
   onOpenSelectedCanvas: (canvasId: string) => void;
@@ -36,6 +39,30 @@ function formatCanvasTimestamp(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+
+function renderOfflineStatus(
+  availability: SavedCanvasOfflineAvailabilitySummary | undefined,
+  selectedSnapshotLabel: string | null,
+) {
+  if (!availability) {
+    return null;
+  }
+
+  const selectedLabel = selectedSnapshotLabel ?? availability.selected?.snapshotLabel ?? 'selected';
+
+  return (
+    <div className="browser-saved-canvas-card__availability muted">
+      <span>Original: {availability.origin.availableOffline ? 'offline ready' : 'not cached'}</span>
+      {availability.currentTarget && availability.currentTarget.snapshotId !== availability.origin.snapshotId ? (
+        <span> · Current: {availability.currentTarget.availableOffline ? 'offline ready' : 'not cached'}</span>
+      ) : null}
+      {availability.selected ? (
+        <span> · Selected ({selectedLabel}): {availability.selected.availableOffline ? 'offline ready' : 'not cached'}</span>
+      ) : null}
+    </div>
+  );
 }
 
 function renderUnresolvedList(title: string, values: string[]) {
@@ -67,6 +94,8 @@ export function BrowserSavedCanvasDialog({
   pendingSyncCount,
   rebindingCanvasId,
   rebindingSummary,
+  isOffline,
+  availabilityByCanvasId,
   onOpenOriginalCanvas,
   onOpenCurrentCanvas,
   onOpenSelectedCanvas,
@@ -118,6 +147,7 @@ export function BrowserSavedCanvasDialog({
         </div>
 
         {statusMessage ? <p className="browser-saved-canvas-dialog__status muted">{statusMessage}</p> : null}
+        {isOffline ? <p className="browser-saved-canvas-dialog__status muted">Offline mode: only snapshots already cached locally can be opened.</p> : null}
 
         {rebindingSummary ? (
           <section className="browser-saved-canvas-dialog__rebinding card" aria-label="Latest rebinding result">
@@ -152,6 +182,10 @@ export function BrowserSavedCanvasDialog({
               const isCurrent = currentCanvasId === record.canvasId;
               const isSelectedSnapshot = selectedSnapshotId !== null
                 && (record.currentTargetSnapshotId === selectedSnapshotId || record.originSnapshotId === selectedSnapshotId);
+              const availability = availabilityByCanvasId[record.canvasId];
+              const openOriginalDisabled = isBusy || (isOffline && !(availability?.origin.availableOffline));
+              const openCurrentDisabled = isBusy || (isOffline && record.currentTargetSnapshotId !== null && !(availability?.currentTarget?.availableOffline));
+              const openSelectedDisabled = isBusy || (isOffline && selectedSnapshotId !== null && !(availability?.selected?.availableOffline));
               return (
                 <article key={record.canvasId} className={`browser-saved-canvas-card ${isCurrent ? 'browser-saved-canvas-card--current' : ''}`}>
                   <div className="browser-saved-canvas-card__content">
@@ -164,6 +198,7 @@ export function BrowserSavedCanvasDialog({
                       </div>
                     </div>
                     <p className="muted">{record.snapshotKey} · Modified {formatCanvasTimestamp(record.lastModifiedAt)}{record.lastSyncedAt ? ` · Synced ${formatCanvasTimestamp(record.lastSyncedAt)}` : ''}</p>
+                    {renderOfflineStatus(availability, selectedSnapshotLabel)}
                     {record.document.sync.conflict ? <p className="muted">Conflict: {record.document.sync.conflict.message}</p> : null}
                     {rebindingCanvasId === record.canvasId && rebindingSummary ? (
                       <div className="browser-saved-canvas-card__rebinding muted">
@@ -172,12 +207,12 @@ export function BrowserSavedCanvasDialog({
                     ) : null}
                   </div>
                   <div className="browser-saved-canvas-card__actions">
-                    <button type="button" className="button-secondary" onClick={() => onOpenOriginalCanvas(record.canvasId)} disabled={isBusy}>Open original</button>
+                    <button type="button" className="button-secondary" onClick={() => onOpenOriginalCanvas(record.canvasId)} disabled={openOriginalDisabled}>Open original</button>
                     {record.currentTargetSnapshotId && record.currentTargetSnapshotId !== record.originSnapshotId ? (
-                      <button type="button" className="button-secondary" onClick={() => onOpenCurrentCanvas(record.canvasId)} disabled={isBusy}>Open current</button>
+                      <button type="button" className="button-secondary" onClick={() => onOpenCurrentCanvas(record.canvasId)} disabled={openCurrentDisabled}>Open current</button>
                     ) : null}
                     {selectedSnapshotId && selectedSnapshotId !== record.originSnapshotId && selectedSnapshotId !== record.currentTargetSnapshotId ? (
-                      <button type="button" className="button-secondary" onClick={() => onOpenSelectedCanvas(record.canvasId)} disabled={isBusy}>Open selected{selectedSnapshotLabel ? ` (${selectedSnapshotLabel})` : ''}</button>
+                      <button type="button" className="button-secondary" onClick={() => onOpenSelectedCanvas(record.canvasId)} disabled={openSelectedDisabled}>Open selected{selectedSnapshotLabel ? ` (${selectedSnapshotLabel})` : ''}</button>
                     ) : null}
                     <button type="button" className="button-secondary" onClick={() => onDeleteCanvas(record.canvasId)} disabled={isBusy}>Delete</button>
                   </div>
