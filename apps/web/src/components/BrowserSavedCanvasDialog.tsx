@@ -11,9 +11,11 @@ export type BrowserSavedCanvasDialogProps = {
   isBusy: boolean;
   statusMessage: string | null;
   selectedSnapshotId: string | null;
+  selectedSnapshotLabel: string | null;
   pendingSyncCount: number;
   onOpenOriginalCanvas: (canvasId: string) => void;
   onOpenCurrentCanvas: (canvasId: string) => void;
+  onOpenSelectedCanvas: (canvasId: string) => void;
   onDeleteCanvas: (canvasId: string) => void;
   onRefresh: () => void;
   onSyncNow: () => void;
@@ -44,9 +46,11 @@ export function BrowserSavedCanvasDialog({
   isBusy,
   statusMessage,
   selectedSnapshotId,
+  selectedSnapshotLabel,
   pendingSyncCount,
   onOpenOriginalCanvas,
   onOpenCurrentCanvas,
+  onOpenSelectedCanvas,
   onDeleteCanvas,
   onRefresh,
   onSyncNow,
@@ -120,6 +124,9 @@ export function BrowserSavedCanvasDialog({
                     <button type="button" className="button-secondary" onClick={() => onOpenOriginalCanvas(record.canvasId)} disabled={isBusy}>Open original</button>
                     {record.currentTargetSnapshotId && record.currentTargetSnapshotId !== record.originSnapshotId ? (
                       <button type="button" className="button-secondary" onClick={() => onOpenCurrentCanvas(record.canvasId)} disabled={isBusy}>Open current</button>
+                    ) : null}
+                    {selectedSnapshotId && selectedSnapshotId !== record.originSnapshotId && selectedSnapshotId !== record.currentTargetSnapshotId ? (
+                      <button type="button" className="button-secondary" onClick={() => onOpenSelectedCanvas(record.canvasId)} disabled={isBusy}>Open selected{selectedSnapshotLabel ? ` (${selectedSnapshotLabel})` : ''}</button>
                     ) : null}
                     <button type="button" className="button-secondary" onClick={() => onDeleteCanvas(record.canvasId)} disabled={isBusy}>Delete</button>
                   </div>

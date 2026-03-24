@@ -16,8 +16,9 @@ import { getBrowserSavedCanvasLocalStore, type SavedCanvasLocalRecord } from '..
 import { createSavedCanvasRemoteStore } from '../savedCanvasRemoteStore';
 import { createSavedCanvasSyncService } from '../savedCanvasSync';
 import { restoreSavedCanvasToBrowserSession } from '../savedCanvasSessionMapping';
-import { loadSavedCanvasSnapshotForOpen, type SavedCanvasOpenMode } from '../savedCanvasOpen';
+import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../savedCanvasOpen';
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
+import { rebindSavedCanvasToTargetSnapshot } from '../savedCanvasRebinding';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { type BrowserViewProps } from './browserView.shared';
@@ -494,6 +495,46 @@ export function BrowserView(_: BrowserViewProps) {
     }
   };
 
+
+  const handleOpenSavedCanvasOnSelectedSnapshot = async (canvasId: string) => {
+    if (!selectedSnapshot) {
+      setSavedCanvasStatusMessage('Select the target snapshot you want to rebind to before opening a saved canvas on it.');
+      return;
+    }
+    setIsSavedCanvasBusy(true);
+    try {
+      const record = await savedCanvasStore.getCanvas(canvasId);
+      if (!record) {
+        throw new Error('Saved canvas could not be found.');
+      }
+      const cache = getBrowserSnapshotCache();
+      const openedSnapshot = await loadSelectedTargetSnapshotForSavedCanvasOpen(selectedSnapshot, cache);
+      const rebound = rebindSavedCanvasToTargetSnapshot(record.document, selectedSnapshot, openedSnapshot.payload, openedSnapshot.preparedAt);
+      const restored = restoreSavedCanvasToBrowserSession({
+        document: rebound.document,
+        payload: openedSnapshot.payload,
+        preparedAt: openedSnapshot.preparedAt,
+      });
+      browserSession.replaceState(restored.state);
+      selection.setSelectedWorkspaceId(selectedSnapshot.workspaceId);
+      selection.setSelectedRepositoryId(selectedSnapshot.repositoryRegistrationId);
+      selection.setSelectedSnapshotId(selectedSnapshot.id);
+      setCurrentSavedCanvasId(record.canvasId);
+      setSavedCanvasDraftName(record.name);
+      const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
+      setSavedCanvasStatusMessage(
+        rebound.unresolvedCount > 0
+          ? `Opened ${record.name} on selected snapshot ${selectedSnapshot.snapshotKey}${availabilityLabel} with ${rebound.exactMatchCount} exact matches and ${rebound.unresolvedCount} unresolved item(s).`
+          : `Opened ${record.name} on selected snapshot ${selectedSnapshot.snapshotKey}${availabilityLabel} with ${rebound.exactMatchCount} exact matches.`
+      );
+      setIsSavedCanvasDialogOpen(false);
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas on the selected snapshot.');
+    } finally {
+      setIsSavedCanvasBusy(false);
+    }
+  };
+
   const handleDeleteSavedCanvas = async (canvasId: string) => {
     setIsSavedCanvasBusy(true);
     try {
@@ -577,9 +618,11 @@ export function BrowserView(_: BrowserViewProps) {
         isBusy={isSavedCanvasBusy}
         statusMessage={savedCanvasStatusMessage}
         selectedSnapshotId={selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null}
+        selectedSnapshotLabel={selectedSnapshotLabel}
         pendingSyncCount={pendingSavedCanvasSyncCount}
         onOpenOriginalCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'original')}
         onOpenCurrentCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId, 'currentTarget')}
+        onOpenSelectedCanvas={(canvasId) => void handleOpenSavedCanvasOnSelectedSnapshot(canvasId)}
         onDeleteCanvas={(canvasId) => void handleDeleteSavedCanvas(canvasId)}
         onRefresh={() => void loadSavedCanvasRecords()}
         onSyncNow={() => void handleSyncSavedCanvasesNow()}

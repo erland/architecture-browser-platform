@@ -1,6 +1,6 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from "../savedCanvasModel";
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../snapshotCache";
-import { loadSavedCanvasSnapshotForOpen } from "../savedCanvasOpen";
+import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen } from "../savedCanvasOpen";
 import { platformApi } from "../platformApi";
 import type { FullSnapshotPayload } from "../appModel";
 
@@ -112,5 +112,20 @@ describe('savedCanvasOpen', () => {
     expect(platformApi.getFullSnapshotPayload).toHaveBeenCalledWith('ws-1', 'snap-1');
     expect(result.availability).toBe('fetched-remotely');
     expect((await cache.getSnapshot('snap-1'))?.payload.snapshot.id).toBe('snap-1');
+  });
+
+  test('loads a selected target snapshot for rebinding and caches it when needed', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    const payload = buildPayload();
+    const targetSnapshot = { ...payload.snapshot, id: 'snap-2', snapshotKey: 'repo@main#2', sourceRevision: 'def456', importedAt: '2026-03-25T10:00:00Z' };
+    const targetPayload = { ...payload, snapshot: targetSnapshot };
+    platformApi.getFullSnapshotPayload = jest.fn(async () => targetPayload) as typeof platformApi.getFullSnapshotPayload;
+
+    const result = await loadSelectedTargetSnapshotForSavedCanvasOpen(targetSnapshot, cache);
+
+    expect(platformApi.getFullSnapshotPayload).toHaveBeenCalledWith('ws-1', 'snap-2');
+    expect(result.snapshotRef.snapshotId).toBe('snap-2');
+    expect(result.availability).toBe('fetched-remotely');
+    expect((await cache.getSnapshot('snap-2'))?.payload.snapshot.id).toBe('snap-2');
   });
 });
