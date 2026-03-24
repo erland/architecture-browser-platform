@@ -138,3 +138,54 @@ describe('savedCanvasLocalStore', () => {
     expect(await store.getCanvas('canvas-delete')).toBeNull();
   });
 });
+
+
+test('listCanvases hides deleted-pending-sync tombstones unless requested', async () => {
+  const storage = new Map<string, any>();
+  const store = createSavedCanvasLocalStore({
+    async get(canvasId) { return storage.get(canvasId) ?? null; },
+    async put(document) {
+      const record = {
+        canvasId: document.canvasId,
+        name: document.name,
+        workspaceId: document.bindings.originSnapshot.workspaceId,
+        repositoryRegistrationId: document.bindings.originSnapshot.repositoryRegistrationId,
+        originSnapshotId: document.bindings.originSnapshot.snapshotId,
+        currentTargetSnapshotId: document.bindings.currentTargetSnapshot?.snapshotId ?? document.bindings.originSnapshot.snapshotId,
+        snapshotKey: document.bindings.originSnapshot.snapshotKey,
+        syncState: document.sync.state,
+        localVersion: document.sync.localVersion,
+        backendVersion: document.sync.backendVersion ?? null,
+        lastModifiedAt: document.sync.lastModifiedAt,
+        lastSyncedAt: document.sync.lastSyncedAt ?? null,
+        document,
+      };
+      storage.set(document.canvasId, record);
+      return record;
+    },
+    async has(canvasId) { return storage.has(canvasId); },
+    async remove(canvasId) { storage.delete(canvasId); },
+    async clear() { storage.clear(); },
+    async list() { return [...storage.values()]; },
+  });
+
+  await store.putCanvas(createSavedCanvasDocument({
+    canvasId: 'canvas-deleted',
+    name: 'Deleted',
+    originSnapshot: {
+      snapshotId: 'snap-1',
+      snapshotKey: 'repo@main#1',
+      workspaceId: 'ws-1',
+      repositoryRegistrationId: 'repo-1',
+      repositoryKey: 'repo-key',
+      repositoryName: 'Repo',
+      sourceBranch: 'main',
+      sourceRevision: 'abc123',
+      importedAt: '2026-03-24T10:00:00Z',
+    },
+    syncState: 'DELETED_LOCALLY_PENDING_SYNC',
+  }));
+
+  expect((await store.listCanvases()).length).toBe(0);
+  expect((await store.listCanvases({ includeDeletedPendingSync: true })).length).toBe(1);
+});

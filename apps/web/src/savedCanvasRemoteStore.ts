@@ -35,10 +35,13 @@ export interface SavedCanvasRemoteStore {
 }
 
 function toSavedCanvasRemoteRecord(response: SavedCanvasBackendResponse): SavedCanvasRemoteRecord {
-  const document = parseSavedCanvasJson(response.documentJson);
-  if (!document) {
+  const parsedDocument = parseSavedCanvasJson(response.documentJson);
+  if (!parsedDocument) {
     throw new Error(`Saved canvas ${response.id} returned invalid document JSON.`);
   }
+  const document = parsedDocument.canvasId === response.id
+    ? parsedDocument
+    : { ...parsedDocument, canvasId: response.id };
   return {
     canvasId: response.id,
     workspaceId: response.workspaceId,

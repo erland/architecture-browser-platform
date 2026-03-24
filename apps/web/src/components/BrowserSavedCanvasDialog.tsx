@@ -11,9 +11,11 @@ export type BrowserSavedCanvasDialogProps = {
   isBusy: boolean;
   statusMessage: string | null;
   selectedSnapshotId: string | null;
+  pendingSyncCount: number;
   onOpenCanvas: (canvasId: string) => void;
   onDeleteCanvas: (canvasId: string) => void;
   onRefresh: () => void;
+  onSyncNow: () => void;
 };
 
 function formatCanvasTimestamp(value: string) {
@@ -41,9 +43,11 @@ export function BrowserSavedCanvasDialog({
   isBusy,
   statusMessage,
   selectedSnapshotId,
+  pendingSyncCount,
   onOpenCanvas,
   onDeleteCanvas,
   onRefresh,
+  onSyncNow,
 }: BrowserSavedCanvasDialogProps) {
   if (!isOpen) {
     return null;
@@ -79,6 +83,9 @@ export function BrowserSavedCanvasDialog({
           </label>
           <button type="button" onClick={onSaveCurrentCanvas} disabled={isBusy || !draftName.trim()}>
             {currentCanvasId ? 'Save changes' : 'Save current canvas'}
+          </button>
+          <button type="button" className="button-secondary" onClick={onSyncNow} disabled={isBusy || pendingSyncCount === 0}>
+            Sync pending{pendingSyncCount > 0 ? ` (${pendingSyncCount})` : ''}
           </button>
           <button type="button" className="button-secondary" onClick={onRefresh} disabled={isBusy}>Refresh</button>
         </div>

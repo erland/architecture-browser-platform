@@ -49,13 +49,14 @@ describe('savedCanvasRemoteStore', () => {
     expect(listSavedCanvases).toHaveBeenCalledWith('ws-1', 'snap-1');
     expect(records[0]?.canvasId).toBe('canvas-1');
     expect(records[0]?.document.name).toBe('Orders canvas');
+    expect(records[0]?.document.canvasId).toBe('canvas-1');
     expect(records[0]?.backendVersion).toBe('1');
   });
 });
 
 function toResponse(document: ReturnType<typeof createSavedCanvasDocument>): SavedCanvasBackendResponse {
   return {
-    id: document.canvasId,
+    id: 'canvas-1',
     workspaceId: document.bindings.originSnapshot.workspaceId,
     snapshotId: document.bindings.originSnapshot.snapshotId,
     name: document.name,

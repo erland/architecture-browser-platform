@@ -1,0 +1,166 @@
+import { createSavedCanvasLocalStore } from '../savedCanvasLocalStore';
+import { createSavedCanvasDocument } from '../savedCanvasModel';
+import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../savedCanvasSync';
+
+function createInMemoryLocalStore() {
+  const records = new Map<string, ReturnType<typeof createSavedCanvasDocument>>();
+  return createSavedCanvasLocalStore({
+    async get(canvasId) {
+      const document = records.get(canvasId);
+      if (!document) {
+        return null;
+      }
+      return {
+        canvasId: document.canvasId,
+        name: document.name,
+        workspaceId: document.bindings.originSnapshot.workspaceId,
+        repositoryRegistrationId: document.bindings.originSnapshot.repositoryRegistrationId,
+        originSnapshotId: document.bindings.originSnapshot.snapshotId,
+        currentTargetSnapshotId: document.bindings.currentTargetSnapshot?.snapshotId ?? document.bindings.originSnapshot.snapshotId,
+        snapshotKey: document.bindings.currentTargetSnapshot?.snapshotKey ?? document.bindings.originSnapshot.snapshotKey,
+        syncState: document.sync.state,
+        localVersion: document.sync.localVersion,
+        backendVersion: document.sync.backendVersion ?? null,
+        lastModifiedAt: document.sync.lastModifiedAt,
+        lastSyncedAt: document.sync.lastSyncedAt ?? null,
+        document,
+      };
+    },
+    async put(document) {
+      records.set(document.canvasId, structuredClone(document));
+      return (await this.get(document.canvasId))!;
+    },
+    async has(canvasId) {
+      return records.has(canvasId);
+    },
+    async remove(canvasId) {
+      records.delete(canvasId);
+    },
+    async clear() {
+      records.clear();
+    },
+    async list() {
+      return Promise.all([...records.keys()].map((canvasId) => this.get(canvasId))) as never;
+    },
+  });
+}
+
+function createDocument(overrides?: Partial<ReturnType<typeof createSavedCanvasDocument>>) {
+  const document = createSavedCanvasDocument({
+    canvasId: 'local-canvas-1',
+    name: 'Orders canvas',
+    originSnapshot: {
+      snapshotId: 'snap-1',
+      snapshotKey: 'repo@main#1',
+      workspaceId: 'ws-1',
+      repositoryRegistrationId: 'repo-1',
+      repositoryKey: 'repo-key',
+      repositoryName: 'Repo',
+      sourceBranch: 'main',
+      sourceRevision: 'abc123',
+      importedAt: '2026-03-24T10:00:00Z',
+    },
+  });
+  return {
+    ...document,
+    ...overrides,
+    sync: {
+      ...document.sync,
+      ...(overrides?.sync ?? {}),
+    },
+  };
+}
+
+describe('savedCanvasSync', () => {
+  test('creates a remote canvas for pending local work and marks it synchronized', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(async (_workspaceId: string, _snapshotId: string, document) => ({
+        canvasId: 'remote-canvas-9',
+        workspaceId: 'ws-1',
+        snapshotId: 'snap-1',
+        name: document.name,
+        document: { ...document, canvasId: 'remote-canvas-9' },
+        documentVersion: 1,
+        backendVersion: '1',
+        createdAt: document.metadata.createdAt,
+        updatedAt: document.metadata.updatedAt,
+      })),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    const document = markSavedCanvasPendingSync(createDocument());
+    await localStore.putCanvas(document);
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+    const synchronized = await localStore.getCanvas('remote-canvas-9');
+
+    expect(result.uploadedCount).toBe(1);
+    expect(await localStore.getCanvas('local-canvas-1')).toBeNull();
+    expect(synchronized?.syncState).toBe('SYNCHRONIZED');
+    expect(synchronized?.backendVersion).toBe('1');
+  });
+
+  test('keeps pending work locally when sync fails', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(async () => {
+        throw new Error('offline');
+      }),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    const document = markSavedCanvasPendingSync(createDocument());
+    await localStore.putCanvas(document);
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+    const stillPending = await localStore.getCanvas('local-canvas-1');
+
+    expect(result.failedCount).toBe(1);
+    expect(stillPending?.syncState).toBe('PENDING_SYNC');
+    expect(stillPending?.document.sync.lastSyncError).toBe('offline');
+  });
+
+  test('marks synchronized canvases for deferred delete and removes them after successful sync', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(async () => undefined),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    const document = createDocument({
+      canvasId: 'remote-canvas-2',
+      sync: {
+        state: 'SYNCHRONIZED',
+        localVersion: 2,
+        backendVersion: '2',
+        lastModifiedAt: '2026-03-24T11:00:00Z',
+        lastSyncedAt: '2026-03-24T11:00:00Z',
+        lastSyncError: null,
+        conflict: null,
+      },
+    });
+    const record = await localStore.putCanvas(document);
+
+    await syncService.markCanvasDeletedPendingSync(record);
+    const pendingDelete = await localStore.getCanvas('remote-canvas-2');
+    expect(pendingDelete?.syncState).toBe('DELETED_LOCALLY_PENDING_SYNC');
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+    expect(result.deletedCount).toBe(1);
+    expect(await localStore.getCanvas('remote-canvas-2')).toBeNull();
+    expect(remoteStore.deleteCanvas).toHaveBeenCalledWith('ws-1', 'snap-1', 'remote-canvas-2');
+  });
+});

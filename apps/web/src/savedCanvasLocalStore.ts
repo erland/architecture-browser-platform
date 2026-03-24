@@ -14,8 +14,10 @@ export type SavedCanvasLocalRecord = {
   snapshotKey: string;
   syncState: SavedCanvasSyncState;
   localVersion: number;
-  updatedAt: string;
+  backendVersion?: string | null;
+  updatedAt?: string;
   lastModifiedAt: string;
+  lastSyncedAt?: string | null;
   document: SavedCanvasDocument;
 };
 
@@ -28,17 +30,20 @@ export interface SavedCanvasLocalStorage {
   list(): Promise<SavedCanvasLocalRecord[]>;
 }
 
+export type SavedCanvasLocalListFilter = {
+  workspaceId?: string | null;
+  repositoryRegistrationId?: string | null;
+  snapshotId?: string | null;
+  includeDeletedPendingSync?: boolean;
+};
+
 export interface SavedCanvasLocalStore {
   getCanvas(canvasId: string): Promise<SavedCanvasLocalRecord | null>;
   putCanvas(document: SavedCanvasDocument): Promise<SavedCanvasLocalRecord>;
   hasCanvas(canvasId: string): Promise<boolean>;
   deleteCanvas(canvasId: string): Promise<void>;
   clearAll(): Promise<void>;
-  listCanvases(filter?: {
-    workspaceId?: string | null;
-    repositoryRegistrationId?: string | null;
-    snapshotId?: string | null;
-  }): Promise<SavedCanvasLocalRecord[]>;
+  listCanvases(filter?: SavedCanvasLocalListFilter): Promise<SavedCanvasLocalRecord[]>;
 }
 
 function normalizeSavedCanvasLocalRecord(document: SavedCanvasDocument): SavedCanvasLocalRecord {
@@ -52,8 +57,10 @@ function normalizeSavedCanvasLocalRecord(document: SavedCanvasDocument): SavedCa
     snapshotKey: document.bindings.originSnapshot.snapshotKey,
     syncState: document.sync.state,
     localVersion: document.sync.localVersion,
+    backendVersion: document.sync.backendVersion ?? null,
     updatedAt: document.metadata.updatedAt,
     lastModifiedAt: document.sync.lastModifiedAt,
+    lastSyncedAt: document.sync.lastSyncedAt ?? null,
     document: structuredClone(document),
   };
 }
@@ -204,6 +211,9 @@ export function createSavedCanvasLocalStore(storage: SavedCanvasLocalStorage): S
     async listCanvases(filter) {
       const records = await storage.list();
       return records.filter((record) => {
+        if (!filter?.includeDeletedPendingSync && record.syncState === 'DELETED_LOCALLY_PENDING_SYNC') {
+          return false;
+        }
         if (filter?.workspaceId && record.workspaceId !== filter.workspaceId) {
           return false;
         }

@@ -13,6 +13,8 @@ import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap'
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { browserTabs } from '../routing/browserTabs';
 import { getBrowserSavedCanvasLocalStore, type SavedCanvasLocalRecord } from '../savedCanvasLocalStore';
+import { createSavedCanvasRemoteStore } from '../savedCanvasRemoteStore';
+import { createSavedCanvasSyncService } from '../savedCanvasSync';
 import { restoreSavedCanvasToBrowserSession } from '../savedCanvasSessionMapping';
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
@@ -58,6 +60,8 @@ export function BrowserView(_: BrowserViewProps) {
   const browserSession = useBrowserSession();
   const browserLayout = useBrowserViewLayout();
   const savedCanvasStore = useMemo(() => getBrowserSavedCanvasLocalStore(), []);
+  const savedCanvasRemoteStore = useMemo(() => createSavedCanvasRemoteStore(), []);
+  const savedCanvasSyncService = useMemo(() => createSavedCanvasSyncService(savedCanvasStore, savedCanvasRemoteStore), [savedCanvasRemoteStore, savedCanvasStore]);
 
   const workspaceData = useWorkspaceData({
     selectedWorkspaceId: selection.selectedWorkspaceId,
@@ -169,6 +173,56 @@ export function BrowserView(_: BrowserViewProps) {
     setSavedCanvasRecords(records);
     return records;
   }, [savedCanvasStore, selection.selectedRepositoryId, selection.selectedWorkspaceId, selectedRepository?.id, workspaceData.selectedWorkspaceId]);
+
+  const pendingSavedCanvasSyncCount = useMemo(() => savedCanvasRecords.filter((record) => (
+    record.syncState === 'PENDING_SYNC'
+      || record.syncState === 'LOCAL_ONLY'
+      || record.syncState === 'LOCALLY_MODIFIED'
+      || record.syncState === 'DELETED_LOCALLY_PENDING_SYNC'
+  )).length, [savedCanvasRecords]);
+
+  const runSavedCanvasSync = useCallback(async (options?: { silent?: boolean }) => {
+    const workspaceId = workspaceData.selectedWorkspaceId ?? selection.selectedWorkspaceId ?? null;
+    const repositoryRegistrationId = selectedRepository?.id ?? selection.selectedRepositoryId ?? null;
+    const result = await savedCanvasSyncService.syncPendingCanvases({
+      workspaceId,
+      repositoryRegistrationId,
+    });
+    await loadSavedCanvasRecords(workspaceId, repositoryRegistrationId);
+    if (!options?.silent) {
+      if (result.failedCount > 0) {
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount}, deleted ${result.deletedCount}, and left ${result.failedCount} pending.`);
+      } else if (result.uploadedCount > 0 || result.deletedCount > 0) {
+        setSavedCanvasStatusMessage(`Saved canvas sync uploaded ${result.uploadedCount} and deleted ${result.deletedCount}.`);
+      } else {
+        setSavedCanvasStatusMessage('No pending saved canvas sync work.');
+      }
+    }
+    return result;
+  }, [loadSavedCanvasRecords, savedCanvasSyncService, selectedRepository?.id, selection.selectedRepositoryId, selection.selectedWorkspaceId, workspaceData.selectedWorkspaceId]);
+
+  const applySavedCanvasSyncResult = useCallback((result: Awaited<ReturnType<typeof runSavedCanvasSync>>, targetCanvasId?: string | null) => {
+    const effectiveCanvasId = targetCanvasId ?? currentSavedCanvasId;
+    if (!effectiveCanvasId) {
+      return;
+    }
+    const replacement = result.replacedCanvasIds.find((entry) => entry.previousCanvasId === effectiveCanvasId);
+    if (replacement) {
+      setCurrentSavedCanvasId(replacement.currentCanvasId);
+    }
+  }, [currentSavedCanvasId]);
+
+  const handleSyncSavedCanvasesNow = useCallback(async () => {
+    setIsSavedCanvasBusy(true);
+    try {
+      const result = await runSavedCanvasSync({ silent: false });
+      applySavedCanvasSyncResult(result);
+    } catch (caught) {
+      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to sync saved canvases.');
+    } finally {
+      setIsSavedCanvasBusy(false);
+    }
+  }, [applySavedCanvasSyncResult, runSavedCanvasSync]);
 
 
   useEffect(() => {
@@ -361,6 +415,7 @@ export function BrowserView(_: BrowserViewProps) {
       setSavedCanvasDraftName(currentRecord?.name ?? defaultSavedCanvasName(selectedSnapshotLabel));
       setSavedCanvasStatusMessage(null);
       setIsSavedCanvasDialogOpen(true);
+      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: true }));
       await loadSavedCanvasRecords();
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to load saved canvases.');
@@ -381,10 +436,12 @@ export function BrowserView(_: BrowserViewProps) {
         existing: existingRecord?.document ?? null,
       });
       const savedRecord = await savedCanvasStore.putCanvas(document);
-      setCurrentSavedCanvasId(savedRecord.canvasId);
-      setSavedCanvasDraftName(savedRecord.name);
-      setSavedCanvasStatusMessage(`Saved ${savedRecord.name}.`);
-      await loadSavedCanvasRecords(savedRecord.workspaceId, savedRecord.repositoryRegistrationId);
+      const pendingRecord = await savedCanvasSyncService.markCanvasPendingSync(savedRecord.document);
+      setCurrentSavedCanvasId(pendingRecord.canvasId);
+      setSavedCanvasDraftName(pendingRecord.name);
+      setSavedCanvasStatusMessage(`Saved ${pendingRecord.name} locally. Sync queued.`);
+      await loadSavedCanvasRecords(pendingRecord.workspaceId, pendingRecord.repositoryRegistrationId);
+      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: false }), pendingRecord.canvasId);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to save canvas.');
     } finally {
@@ -430,13 +487,20 @@ export function BrowserView(_: BrowserViewProps) {
   const handleDeleteSavedCanvas = async (canvasId: string) => {
     setIsSavedCanvasBusy(true);
     try {
-      await savedCanvasStore.deleteCanvas(canvasId);
+      const existingRecord = await savedCanvasStore.getCanvas(canvasId);
+      if (!existingRecord) {
+        throw new Error('Saved canvas could not be found.');
+      }
+      await savedCanvasSyncService.markCanvasDeletedPendingSync(existingRecord);
       if (currentSavedCanvasId === canvasId) {
         setCurrentSavedCanvasId(null);
         setSavedCanvasDraftName(defaultSavedCanvasName(selectedSnapshotLabel));
       }
       await loadSavedCanvasRecords();
-      setSavedCanvasStatusMessage('Saved canvas deleted.');
+      setSavedCanvasStatusMessage(existingRecord.syncState === 'SYNCHRONIZED' || existingRecord.document.sync.backendVersion
+        ? 'Saved canvas marked for deletion. Sync queued.'
+        : 'Saved canvas deleted locally.');
+      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: false }));
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to delete saved canvas.');
     } finally {
@@ -503,9 +567,11 @@ export function BrowserView(_: BrowserViewProps) {
         isBusy={isSavedCanvasBusy}
         statusMessage={savedCanvasStatusMessage}
         selectedSnapshotId={selectedSnapshot?.id ?? browserSession.state.activeSnapshot?.snapshotId ?? null}
+        pendingSyncCount={pendingSavedCanvasSyncCount}
         onOpenCanvas={(canvasId) => void handleOpenSavedCanvas(canvasId)}
         onDeleteCanvas={(canvasId) => void handleDeleteSavedCanvas(canvasId)}
         onRefresh={() => void loadSavedCanvasRecords()}
+        onSyncNow={() => void handleSyncSavedCanvasesNow()}
       />
 
       <BrowserSourceTreeSwitcherDialog
