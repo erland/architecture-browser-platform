@@ -1,0 +1,116 @@
+import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from "../savedCanvasModel";
+import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../snapshotCache";
+import { loadSavedCanvasSnapshotForOpen } from "../savedCanvasOpen";
+import { platformApi } from "../platformApi";
+import type { FullSnapshotPayload } from "../appModel";
+
+const snapshotRef = toSavedCanvasSnapshotRef({
+  id: 'snap-1',
+  workspaceId: 'ws-1',
+  repositoryRegistrationId: 'repo-1',
+  repositoryKey: 'repo-key',
+  repositoryName: 'Repo',
+  snapshotKey: 'repo@main#1',
+  sourceBranch: 'main',
+  sourceRevision: 'abc123',
+  importedAt: '2026-03-24T10:00:00Z',
+  runId: null,
+  status: 'READY',
+  completenessStatus: 'COMPLETE',
+  derivedRunOutcome: 'SUCCESS',
+  schemaVersion: 'indexer-ir-v1',
+  indexerVersion: 'step8',
+  scopeCount: 0,
+  entityCount: 0,
+  relationshipCount: 0,
+  diagnosticCount: 0,
+  indexedFileCount: 0,
+  totalFileCount: 0,
+  degradedFileCount: 0,
+});
+
+function buildPayload(): FullSnapshotPayload {
+  return {
+    snapshot: {
+      id: snapshotRef.snapshotId,
+      workspaceId: snapshotRef.workspaceId,
+      repositoryRegistrationId: snapshotRef.repositoryRegistrationId,
+      repositoryKey: snapshotRef.repositoryKey,
+      repositoryName: snapshotRef.repositoryName,
+      snapshotKey: snapshotRef.snapshotKey,
+      sourceBranch: snapshotRef.sourceBranch,
+      sourceRevision: snapshotRef.sourceRevision,
+      importedAt: snapshotRef.importedAt ?? '2026-03-24T10:00:00Z',
+      runId: null,
+      status: 'READY',
+      completenessStatus: 'COMPLETE',
+      derivedRunOutcome: 'SUCCESS',
+      schemaVersion: 'indexer-ir-v1',
+      indexerVersion: 'step8',
+      scopeCount: 0,
+      entityCount: 0,
+      relationshipCount: 0,
+      diagnosticCount: 0,
+      indexedFileCount: 0,
+      totalFileCount: 0,
+      degradedFileCount: 0,
+    },
+    source: { repositoryId: 'repo-1', acquisitionType: null, path: null, remoteUrl: null, branch: 'main', revision: 'abc123', acquiredAt: null },
+    run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: [] },
+    completeness: { status: 'COMPLETE', indexedFileCount: 0, totalFileCount: 0, degradedFileCount: 0, omittedPaths: [], notes: [] },
+    scopes: [],
+    entities: [],
+    relationships: [],
+    viewpoints: [],
+    diagnostics: [],
+    metadata: { metadata: {} },
+    warnings: [],
+  };
+}
+
+describe('savedCanvasOpen', () => {
+  const originalGetFullSnapshotPayload = platformApi.getFullSnapshotPayload;
+
+  afterEach(() => {
+    platformApi.getFullSnapshotPayload = originalGetFullSnapshotPayload;
+  });
+
+  test('loads original snapshot from local cache when available', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    await cache.putSnapshot({
+      workspaceId: snapshotRef.workspaceId,
+      repositoryId: snapshotRef.repositoryRegistrationId,
+      snapshotKey: snapshotRef.snapshotKey,
+      cacheVersion: cache.buildCacheVersion(buildPayload().snapshot),
+      payload: buildPayload(),
+    });
+    const document = createSavedCanvasDocument({
+      canvasId: 'canvas-1',
+      name: 'Orders canvas',
+      originSnapshot: snapshotRef,
+    });
+
+    const result = await loadSavedCanvasSnapshotForOpen(document, cache, 'original');
+
+    expect(result.snapshotRef.snapshotId).toBe('snap-1');
+    expect(result.availability).toBe('local-cache');
+    expect(result.payload.snapshot.id).toBe('snap-1');
+  });
+
+  test('fetches original snapshot remotely and caches it when not already cached', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    const payload = buildPayload();
+    platformApi.getFullSnapshotPayload = jest.fn(async () => payload) as typeof platformApi.getFullSnapshotPayload;
+    const document = createSavedCanvasDocument({
+      canvasId: 'canvas-1',
+      name: 'Orders canvas',
+      originSnapshot: snapshotRef,
+    });
+
+    const result = await loadSavedCanvasSnapshotForOpen(document, cache, 'original');
+
+    expect(platformApi.getFullSnapshotPayload).toHaveBeenCalledWith('ws-1', 'snap-1');
+    expect(result.availability).toBe('fetched-remotely');
+    expect((await cache.getSnapshot('snap-1'))?.payload.snapshot.id).toBe('snap-1');
+  });
+});
