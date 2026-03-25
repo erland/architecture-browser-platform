@@ -1,4 +1,4 @@
-import type { SavedCanvasDocument, SavedCanvasSyncState } from './savedCanvasModel';
+import type { SavedCanvasDocument, SavedCanvasSyncState } from '../model/document';
 
 const DB_NAME = 'architecture-browser-platform-saved-canvases';
 const STORE_NAME = 'saved-canvases';

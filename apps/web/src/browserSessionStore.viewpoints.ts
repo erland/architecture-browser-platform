@@ -7,14 +7,16 @@ import type {
   BrowserViewpointSelection,
 } from './browserSessionStore.types';
 import {
-  arrangeViewpointCanvasNodes,
-  buildAppliedViewpointGraph,
-  buildAppliedViewpointGraphWithFallback,
   createCanvasEdgesForRelationshipIds,
   upsertCanvasEdge,
   upsertCanvasNode,
-} from './browserSessionStore.utils';
-import { planEntityInsertion } from './browserCanvasPlacement';
+} from './browserSessionStore.canvas.nodes';
+import {
+  arrangeViewpointCanvasNodes,
+  buildAppliedViewpointGraph,
+  buildAppliedViewpointGraphWithFallback,
+} from './browserSessionStore.viewpoints.helpers';
+import { planEntityInsertion } from './browser-canvas-placement';
 import type { BrowserViewpointScopeMode, BrowserViewpointVariant } from './browserSnapshotIndex';
 
 function updateAppliedViewpoint(

@@ -1,6 +1,6 @@
-import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from "../savedCanvasModel";
+import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from "../saved-canvas/model/document";
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../snapshotCache";
-import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen } from "../savedCanvasOpen";
+import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen } from "../saved-canvas/open/load";
 import { platformApi } from "../platformApi";
 import type { FullSnapshotPayload } from "../appModel";
 
@@ -70,9 +70,19 @@ function buildPayload(): FullSnapshotPayload {
 
 describe('savedCanvasOpen', () => {
   const originalGetFullSnapshotPayload = platformApi.getFullSnapshotPayload;
+  const originalNavigator = globalThis.navigator;
 
   afterEach(() => {
     platformApi.getFullSnapshotPayload = originalGetFullSnapshotPayload;
+    if (originalNavigator === undefined) {
+      // @ts-expect-error test-only navigator cleanup
+      delete globalThis.navigator;
+    } else {
+      Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        value: originalNavigator,
+      });
+    }
   });
 
   test('loads original snapshot from local cache when available', async () => {
@@ -112,6 +122,63 @@ describe('savedCanvasOpen', () => {
     expect(platformApi.getFullSnapshotPayload).toHaveBeenCalledWith('ws-1', 'snap-1');
     expect(result.availability).toBe('fetched-remotely');
     expect((await cache.getSnapshot('snap-1'))?.payload.snapshot.id).toBe('snap-1');
+  });
+
+
+  test('loads the current target snapshot when the saved canvas was rebound', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    const targetSnapshotRef = {
+      ...snapshotRef,
+      snapshotId: 'snap-2',
+      snapshotKey: 'repo@main#2',
+      sourceRevision: 'def456',
+      importedAt: '2026-03-25T10:00:00Z',
+    };
+    const targetPayload = {
+      ...buildPayload(),
+      snapshot: {
+        ...buildPayload().snapshot,
+        id: 'snap-2',
+        snapshotKey: 'repo@main#2',
+        sourceRevision: 'def456',
+        importedAt: '2026-03-25T10:00:00Z',
+      },
+    };
+    platformApi.getFullSnapshotPayload = jest.fn(async () => targetPayload) as typeof platformApi.getFullSnapshotPayload;
+    const document = createSavedCanvasDocument({
+      canvasId: 'canvas-1',
+      name: 'Orders canvas',
+      originSnapshot: snapshotRef,
+    });
+    document.bindings.currentTargetSnapshot = targetSnapshotRef;
+
+    const result = await loadSavedCanvasSnapshotForOpen(document, cache, 'currentTarget');
+
+    expect(platformApi.getFullSnapshotPayload).toHaveBeenCalledWith('ws-1', 'snap-2');
+    expect(result.snapshotRef.snapshotId).toBe('snap-2');
+    expect(result.payload.snapshot.id).toBe('snap-2');
+  });
+
+  test('fails with an offline target-snapshot message when the rebound target is not cached locally', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: { onLine: false },
+    });
+    const document = createSavedCanvasDocument({
+      canvasId: 'canvas-1',
+      name: 'Orders canvas',
+      originSnapshot: snapshotRef,
+    });
+    document.bindings.currentTargetSnapshot = {
+      ...snapshotRef,
+      snapshotId: 'snap-2',
+      snapshotKey: 'repo@main#2',
+    };
+
+    await expect(loadSavedCanvasSnapshotForOpen(document, cache, 'currentTarget')).rejects.toThrow(
+      'The saved canvas target snapshot repo@main#2 is not available locally and cannot be fetched while offline.',
+    );
   });
 
   test('loads a selected target snapshot for rebinding and caches it when needed', async () => {

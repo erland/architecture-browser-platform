@@ -3,9 +3,9 @@ import type {
   FullSnapshotRelationship,
   FullSnapshotScope,
   SnapshotSourceRef,
-} from './appModel';
-import type { BrowserSnapshotIndex } from './browserSnapshotIndex';
-import { createSavedCanvasItemReference, type SavedCanvasItemReference } from './savedCanvasModel';
+} from '../../appModel';
+import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { createSavedCanvasItemReference, type SavedCanvasItemReference } from '../model/document';
 
 export type SavedCanvasStableReferenceLookup = {
   scopeIdByStableKey: Map<string, string>;

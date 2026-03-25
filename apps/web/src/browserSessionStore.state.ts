@@ -10,11 +10,9 @@ import type {
   BrowserSessionState,
   PersistedBrowserSessionState,
 } from './browserSessionStore.types';
-import {
-  buildAppliedViewpointGraph,
-  computeSearchResults,
-  normalizeCanvasNodes,
-} from './browserSessionStore.utils';
+import { normalizeCanvasNodes } from './browserSessionStore.canvas.nodes';
+import { computeSearchResults } from './browserSessionStore.search';
+import { buildAppliedViewpointGraph } from './browserSessionStore.viewpoints.helpers';
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
   return {

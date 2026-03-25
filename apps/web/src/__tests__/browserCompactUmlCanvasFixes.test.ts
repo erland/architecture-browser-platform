@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
-import { buildBrowserProjectionModel } from '../browserProjectionModel';
+import { buildBrowserProjectionModel } from '../browser-projection';
 import { buildBrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
 import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import {

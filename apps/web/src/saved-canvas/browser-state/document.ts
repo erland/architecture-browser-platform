@@ -1,6 +1,6 @@
-import type { BrowserSessionState } from './browserSessionStore';
-import type { SavedCanvasDocument } from './savedCanvasModel';
-import { createSavedCanvasDocumentFromBrowserSession } from './savedCanvasSessionMapping';
+import type { BrowserSessionState } from '../../browserSessionStore';
+import type { SavedCanvasDocument } from '../model/document';
+import { createSavedCanvasDocumentFromBrowserSession } from './sessionMapping';
 
 export function createSavedCanvasId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

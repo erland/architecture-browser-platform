@@ -1,6 +1,6 @@
-import type { SavedCanvasLocalRecord } from '../savedCanvasLocalStore';
-import type { SavedCanvasRebindingUiSummary } from '../savedCanvasRebindingUi';
-import type { SavedCanvasOfflineAvailabilitySummary } from '../savedCanvasSnapshotAvailability';
+import type { SavedCanvasLocalRecord } from '../saved-canvas/storage/localStore';
+import type { SavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding/ui';
+import type { SavedCanvasOfflineAvailabilitySummary } from '../saved-canvas/open/availability';
 
 export type BrowserSavedCanvasDialogProps = {
   isOpen: boolean;

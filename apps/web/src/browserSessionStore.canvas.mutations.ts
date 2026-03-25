@@ -9,7 +9,7 @@ import {
   upsertCanvasNode,
   upsertPinnedCanvasNode,
   upsertSelectedEntityIds,
-} from './browserSessionStore.utils';
+} from './browserSessionStore.canvas.nodes';
 
 export function removeEntityFromCanvas(state: BrowserSessionState, entityId: string): BrowserSessionState {
   const canvasNodes = state.canvasNodes.filter((node) => !(node.kind === 'entity' && node.id === entityId));

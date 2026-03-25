@@ -125,6 +125,22 @@ class SnapshotCatalogResourceTest {
             .body("viewpoints.find { it.id == 'ui-navigation' }.expandViaSemantics", hasItem("guards-route"));
     }
 
+
+    @Test
+    void catalogListDerivesRunOutcomeFromSnapshotCompleteness() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-derived-outcome", "Catalog Derived Outcome");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/partial-result.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots", workspaceId)
+            .then()
+            .statusCode(200)
+            .body("find { it.id == '%s' }.derivedRunOutcome".formatted(snapshotId), equalTo("PARTIAL"))
+            .body("find { it.id == '%s' }.completenessStatus".formatted(snapshotId), equalTo("PARTIAL"));
+    }
+
     @Test
     void overviewIncludesWarningsForPartialSnapshot() throws Exception {
         String workspaceId = createWorkspace();

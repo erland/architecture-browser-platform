@@ -1,4 +1,4 @@
-import type { SnapshotSummary } from "./appModel.api";
+import type { SnapshotSummary } from "../../appModel.api";
 
 export const SAVED_CANVAS_DOCUMENT_SCHEMA_VERSION = "saved-canvas/v1" as const;
 

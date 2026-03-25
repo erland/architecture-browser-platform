@@ -2,7 +2,7 @@
 //
 // This module centralizes spacing constants and small math helpers used by
 // browser canvas placement algorithms. The algorithms themselves remain in
-// browserCanvasPlacement.ts.
+// the `browser-canvas-placement/` modules.
 
 export const GRID_X = 224;
 export const GRID_Y = 120;

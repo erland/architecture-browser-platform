@@ -8,7 +8,7 @@ import {
   createSavedCanvasRelationshipReference,
   createSavedCanvasScopeReference,
   resolveSavedCanvasReferenceIdByStableKey,
-} from '../savedCanvasStableReferences';
+} from '../saved-canvas/rebinding/stableReferences';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-stable-1',

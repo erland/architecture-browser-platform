@@ -46,6 +46,24 @@ class OperationsAdminResourceTest {
             .body("failedSnapshots[0].warnings", hasItem(containsString("fatal parser error")));
     }
 
+
+    @Test
+    void operationsOverviewIncludesPartialSnapshotsAsFailedSnapshotAttentionItems() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "operations-partial", "Operations Partial");
+
+        given().contentType(ContentType.JSON).body(read("/contracts/partial-result.json"))
+            .when().post("/api/workspaces/{workspaceId}/repositories/{repositoryId}/imports/indexer-ir", workspaceId, repositoryId)
+            .then().statusCode(201);
+
+        given().when().get("/api/workspaces/{workspaceId}/operations/overview", workspaceId).then().statusCode(200)
+            .body("summary.failedSnapshotCount", equalTo(1))
+            .body("failedSnapshots[0].repositoryKey", equalTo("operations-partial"))
+            .body("failedSnapshots[0].completenessStatus", equalTo("PARTIAL"))
+            .body("failedSnapshots[0].warnings[0]", containsString("partial"))
+            .body("failedSnapshots[0].diagnostics[0].code", equalTo("typescript.parse-error"));
+    }
+
     @Test
     void retentionPreviewAndApplyDeleteOlderSnapshotsAndRunsSafely() throws Exception {
         String workspaceId = createWorkspace();

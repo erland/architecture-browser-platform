@@ -1,8 +1,8 @@
-import type { FullSnapshotPayload, SnapshotSummary } from './appModel';
-import { getOrBuildBrowserSnapshotIndex } from './browserSnapshotIndex';
-import { restoreSavedCanvasToBrowserSession } from './savedCanvasSessionMapping';
-import { toSavedCanvasSnapshotRef, type SavedCanvasDocument } from './savedCanvasModel';
-import { resolveSavedCanvasReferenceWithFallback } from './savedCanvasStableReferences';
+import type { FullSnapshotPayload, SnapshotSummary } from '../../appModel';
+import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { restoreSavedCanvasToBrowserSession } from '../browser-state/sessionMapping';
+import { toSavedCanvasSnapshotRef, type SavedCanvasDocument } from '../model/document';
+import { resolveSavedCanvasReferenceWithFallback } from './stableReferences';
 
 export type SavedCanvasRebindResult = {
   document: SavedCanvasDocument;

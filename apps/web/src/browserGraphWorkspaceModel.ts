@@ -1,4 +1,4 @@
-import { buildBrowserProjectionModel, type BrowserProjectionCompartment } from './browserProjectionModel';
+import { buildBrowserProjectionModel, type BrowserProjectionCompartment } from './browser-projection';
 import type { BrowserSessionState } from './browserSessionStore';
 
 export type BrowserWorkspaceNodeModel = {

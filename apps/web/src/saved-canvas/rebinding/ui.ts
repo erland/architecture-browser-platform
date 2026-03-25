@@ -1,4 +1,4 @@
-import type { SavedCanvasRebindResult } from './savedCanvasRebinding';
+import type { SavedCanvasRebindResult } from './rebind';
 
 export type SavedCanvasRebindingUiSummary = {
   rebindingState: 'EXACT' | 'PARTIAL' | 'UNRESOLVED';

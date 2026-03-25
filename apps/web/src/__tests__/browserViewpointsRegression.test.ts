@@ -54,6 +54,20 @@ describe('Browser viewpoints curated regression coverage', () => {
     expect(graph.entityIds.length).toBeGreaterThanOrEqual(graph.seedEntityIds.length);
   });
 
+
+  test('builds a scoped graph when a viewpoint is applied from a nested selected scope', () => {
+    const payload = createCuratedViewpointsPayload();
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-curated', repositoryId: 'repo-curated', payload });
+    state = selectBrowserScope(state, 'scope:module:web');
+    state = setSelectedViewpoint(state, 'ui-navigation');
+    state = applySelectedViewpoint(state);
+
+    expect(state.appliedViewpoint?.viewpoint.id).toBe('ui-navigation');
+    expect(state.appliedViewpoint?.scopeMode).toBeDefined();
+    expect(state.canvasNodes.some((node: { id: string }) => node.id === 'entity:page:orders')).toBe(true);
+    expect(state.appliedViewpoint?.entityIds.length).toBeGreaterThan(0);
+  });
+
   test.each(curatedViewpointIds)('applies %s and exposes viewpoint explanation in the facts panel', (viewpointId) => {
     const payload = createCuratedViewpointsPayload();
     let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-curated', repositoryId: 'repo-curated', payload });

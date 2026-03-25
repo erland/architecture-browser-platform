@@ -1,6 +1,7 @@
-import { planEntityInsertion } from './browserCanvasPlacement';
+import { planEntityInsertion } from './browser-canvas-placement';
 import type { BrowserCanvasNode, BrowserSessionState } from './browserSessionStore.types';
-import { uniqueValues, upsertCanvasNode } from './browserSessionStore.utils';
+import { uniqueValues } from './browserSessionStore.collections';
+import { upsertCanvasNode } from './browserSessionStore.canvas.nodes';
 
 export function createEntityCanvasFocusState(state: BrowserSessionState, entityId: string) {
   return {

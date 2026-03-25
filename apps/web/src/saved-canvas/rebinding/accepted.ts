@@ -1,4 +1,4 @@
-import type { SavedCanvasDocument } from './savedCanvasModel';
+import type { SavedCanvasDocument } from '../model/document';
 
 export function buildAcceptedSavedCanvasRebindingDocument(options: {
   baseline: SavedCanvasDocument;

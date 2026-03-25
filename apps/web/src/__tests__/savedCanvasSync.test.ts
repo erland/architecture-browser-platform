@@ -1,7 +1,7 @@
 import { HttpError } from '../httpClient';
-import { createSavedCanvasLocalStore } from '../savedCanvasLocalStore';
-import { createSavedCanvasDocument } from '../savedCanvasModel';
-import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../savedCanvasSync';
+import { createSavedCanvasLocalStore } from '../saved-canvas/storage/localStore';
+import { createSavedCanvasDocument } from '../saved-canvas/model/document';
+import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../saved-canvas/sync/service';
 
 function createInMemoryLocalStore() {
   const records = new Map<string, ReturnType<typeof createSavedCanvasDocument>>();
@@ -105,6 +105,48 @@ describe('savedCanvasSync', () => {
     expect(await localStore.getCanvas('local-canvas-1')).toBeNull();
     expect(synchronized?.syncState).toBe('SYNCHRONIZED');
     expect(synchronized?.backendVersion).toBe('1');
+  });
+
+
+  test('syncs against the current target snapshot after a canvas has been rebound', async () => {
+    const localStore = createInMemoryLocalStore();
+    const remoteStore = {
+      listCanvases: jest.fn(),
+      getCanvas: jest.fn(),
+      createCanvas: jest.fn(async (_workspaceId: string, snapshotId: string, document) => ({
+        canvasId: 'remote-canvas-target',
+        workspaceId: 'ws-1',
+        snapshotId,
+        name: document.name,
+        document: { ...document, canvasId: 'remote-canvas-target' },
+        documentVersion: 1,
+        backendVersion: '1',
+        createdAt: document.metadata.createdAt,
+        updatedAt: document.metadata.updatedAt,
+      })),
+      updateCanvas: jest.fn(),
+      duplicateCanvas: jest.fn(),
+      deleteCanvas: jest.fn(),
+    };
+    const syncService = createSavedCanvasSyncService(localStore, remoteStore as never);
+    await localStore.putCanvas(markSavedCanvasPendingSync(createDocument({
+      bindings: {
+        ...createDocument().bindings,
+        currentTargetSnapshot: {
+          ...createDocument().bindings.originSnapshot,
+          snapshotId: 'snap-2',
+          snapshotKey: 'repo@main#2',
+          sourceRevision: 'def456',
+          importedAt: '2026-03-25T10:00:00Z',
+        },
+      },
+    })));
+
+    const result = await syncService.syncPendingCanvases({ workspaceId: 'ws-1', repositoryRegistrationId: 'repo-1' });
+
+    expect(result.uploadedCount).toBe(1);
+    expect(remoteStore.createCanvas).toHaveBeenCalledWith('ws-1', 'snap-2', expect.objectContaining({ canvasId: 'local-canvas-1' }));
+    expect(await localStore.getCanvas('remote-canvas-target')).not.toBeNull();
   });
 
   test('keeps pending work locally when sync fails', async () => {

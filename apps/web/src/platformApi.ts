@@ -1,4 +1,4 @@
-import type { SavedCanvasDocument } from "./savedCanvasModel";
+import type { SavedCanvasDocument } from "./saved-canvas/model/document";
 import { httpClient } from "./httpClient";
 
 export type WorkspaceEditorRequest = {

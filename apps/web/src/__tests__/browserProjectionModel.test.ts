@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
-import { buildBrowserProjectionModel } from '../browserProjectionModel';
+import { buildBrowserProjectionModel } from '../browser-projection';
 import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, setSelectedViewpoint } from '../browserSessionStore';
 

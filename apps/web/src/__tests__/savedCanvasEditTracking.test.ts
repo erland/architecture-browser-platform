@@ -1,4 +1,4 @@
-import { createSavedCanvasDocumentFromBrowserSession } from '../savedCanvasSessionMapping';
+import { createSavedCanvasDocumentFromBrowserSession } from '../saved-canvas/browser-state/sessionMapping';
 import { createEmptyBrowserSessionState, openSnapshotSession } from '../browserSessionStore';
 import type { BrowserSessionState } from '../browserSessionStore';
 import type { FullSnapshotPayload } from '../appModel';
@@ -6,7 +6,7 @@ import {
   buildSavedCanvasTrackedDocument,
   hasSavedCanvasTrackedContentEdits,
   hasSavedCanvasTrackedNameEdit,
-} from '../savedCanvasEditTracking';
+} from '../saved-canvas/browser-state/editTracking';
 
 function createPayload(): FullSnapshotPayload {
   return {

@@ -1,6 +1,19 @@
-import { arrangeCanvasNodesAroundEntityFocus, arrangeCanvasNodesInGrid } from './browserCanvasPlacement';
+import { arrangeCanvasNodesAroundEntityFocus, arrangeCanvasNodesInGrid } from './browser-canvas-placement';
 import type { BrowserCanvasViewport, BrowserSessionState } from './browserSessionStore.types';
-import { mergeCanvasViewport } from './browserSessionStore.utils';
+
+
+
+function clampCanvasZoom(zoom: number) {
+  return Math.min(2.2, Math.max(0.35, Number.isFinite(zoom) ? zoom : 1));
+}
+
+function mergeCanvasViewport(current: BrowserCanvasViewport, viewport: Partial<BrowserCanvasViewport>): BrowserCanvasViewport {
+  return {
+    zoom: clampCanvasZoom(viewport.zoom ?? current.zoom),
+    offsetX: viewport.offsetX ?? current.offsetX,
+    offsetY: viewport.offsetY ?? current.offsetY,
+  };
+}
 
 export function clearCanvas(state: BrowserSessionState): BrowserSessionState {
   return {

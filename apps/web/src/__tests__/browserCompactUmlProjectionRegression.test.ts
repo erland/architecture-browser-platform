@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
-import { buildBrowserProjectionModel } from '../browserProjectionModel';
+import { buildBrowserProjectionModel } from '../browser-projection';
 import { clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { BrowserGraphWorkspace } from '../components/BrowserGraphWorkspace';
 import {

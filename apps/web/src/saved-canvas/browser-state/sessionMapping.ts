@@ -1,12 +1,12 @@
-import type { FullSnapshotPayload, FullSnapshotRelationship } from './appModel';
-import { getOrBuildBrowserSnapshotIndex } from './browserSnapshotIndex';
-import { createEmptyBrowserSessionState, openSnapshotSession } from './browserSessionStore';
+import type { FullSnapshotPayload, FullSnapshotRelationship } from '../../appModel';
+import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browserSessionStore';
 import type {
   BrowserCanvasEdge,
   BrowserCanvasLayoutMode,
   BrowserCanvasNode,
   BrowserSessionState,
-} from './browserSessionStore';
+} from '../../browserSessionStore';
 import {
   createSavedCanvasDocument,
   type CreateSavedCanvasDocumentInput,
@@ -15,13 +15,13 @@ import {
   type SavedCanvasItemReference,
   type SavedCanvasNode,
   toSavedCanvasSnapshotRef,
-} from './savedCanvasModel';
+} from '../model/document';
 import {
   createSavedCanvasEntityReference,
   createSavedCanvasRelationshipReference,
   createSavedCanvasScopeReference,
   resolveSavedCanvasReferenceWithFallback,
-} from './savedCanvasStableReferences';
+} from '../rebinding/stableReferences';
 
 export type CreateSavedCanvasFromBrowserSessionOptions = {
   state: BrowserSessionState;

@@ -1,7 +1,7 @@
 import type { FullSnapshotPayload } from '../appModel';
 import { createEmptyBrowserSessionState, openSnapshotSession } from '../browserSessionStore';
-import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../savedCanvasBrowserState';
-import { createSavedCanvasDocument } from '../savedCanvasModel';
+import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../saved-canvas/browser-state/document';
+import { createSavedCanvasDocument } from '../saved-canvas/model/document';
 
 function createPayload(): FullSnapshotPayload {
   return {

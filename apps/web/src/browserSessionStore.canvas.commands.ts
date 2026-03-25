@@ -1,14 +1,14 @@
-import { planEntityInsertion } from './browserCanvasPlacement';
+import { planEntityInsertion } from './browser-canvas-placement';
 import type { BrowserDependencyDirection } from './browserSnapshotIndex';
 import { getDependencyNeighborhood, getPrimaryEntitiesForScope } from './browserSnapshotIndex';
 import type { BrowserSessionState } from './browserSessionStore.types';
+import { uniqueValues } from './browserSessionStore.collections';
 import {
-  uniqueValues,
-  upsertCanvasEdge,
-  upsertCanvasNode,
   planEntityNodePosition,
   planScopeNodePosition,
-} from './browserSessionStore.utils';
+  upsertCanvasEdge,
+  upsertCanvasNode,
+} from './browserSessionStore.canvas.nodes';
 import {
   createEntityCanvasFocusState,
   insertAnchoredEntities,
