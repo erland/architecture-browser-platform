@@ -1,8 +1,50 @@
+import { useEffect, useRef } from 'react';
 import type { FullSnapshotEntity } from '../appModel';
 import type { BrowserWorkspaceNodeModel, BrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
 import type { BrowserSessionState } from '../browserSessionStore';
 import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
+
+
+
+function closeOpenMenus(root: ParentNode | null) {
+  if (!root) {
+    return;
+  }
+  root.querySelectorAll('details[open]').forEach((element) => {
+    if (element instanceof HTMLDetailsElement) {
+      element.open = false;
+    }
+  });
+}
+
+function handleMenuSummaryClick(event: React.MouseEvent<HTMLElement>, enabled: boolean) {
+  if (enabled) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function closeContainingMenus(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  let current: HTMLElement | null = target;
+  while (current) {
+    const detailsElement: Element | null = current.closest('details');
+    if (!(detailsElement instanceof HTMLDetailsElement)) {
+      break;
+    }
+    detailsElement.open = false;
+    current = detailsElement.parentElement;
+  }
+}
+
+function runMenuAction(event: React.MouseEvent<HTMLButtonElement>, action: () => void) {
+  action();
+  closeContainingMenus(event.currentTarget);
+}
 
 type ToolbarProps = {
   model: BrowserGraphWorkspaceModel;
@@ -57,6 +99,38 @@ export function BrowserGraphWorkspaceToolbar({
   onTogglePinNode,
   onEntityAction,
 }: ToolbarProps) {
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const hasFocusedEntity = Boolean(focusedEntity);
+  const canAddPrimary = Boolean(scopeActionScopeId) && scopePrimaryEntityCount > 0;
+  const canAddDirect = Boolean(scopeActionScopeId) && scopeDirectEntityCount > 0;
+  const canAddSubtree = Boolean(scopeActionScopeId) && scopeSubtreeEntityCount > 0;
+  const canOpenAddMenu = canAddPrimary || canAddDirect || canAddSubtree;
+  const canArrangeAll = model.nodes.length > 0;
+  const canArrangeAroundFocus = model.nodes.length > 0 && hasFocusedEntity;
+  const canOpenArrangeMenu = canArrangeAll || canArrangeAroundFocus;
+  const canIsolateOrRemove = selectedEntityCount > 0 || Boolean(focusedScopeId);
+  const canOpenEntityAction = hasFocusedEntity && entityActions.some((action) => !action.disabled || action.key === 'pin');
+  const canAddChildPrimary = Boolean(focusedScopeId) && scopeChildCount > 0;
+  const canAddFocusedDirect = Boolean(focusedScopeId) && scopeDirectEntityCount > 0;
+  const canAddFocusedSubtree = Boolean(focusedScopeId) && scopeSubtreeEntityCount > 0;
+  const canOpenAdvancedScopeMenu = Boolean(focusedScopeId);
+  const canOpenSelectionMenu = canIsolateOrRemove || canOpenEntityAction || Boolean(focusedScopeId);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const toolbar = toolbarRef.current;
+      if (!toolbar || toolbar.contains(event.target as Node | null)) {
+        return;
+      }
+      closeOpenMenus(toolbar);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, []);
+
   return (
     <>
       <header className="browser-canvas__header browser-canvas__header--compact">
@@ -73,62 +147,83 @@ export function BrowserGraphWorkspaceToolbar({
         </div>
       </header>
 
-      <div className="browser-canvas__toolbar browser-canvas__toolbar--compact">
+      <div ref={toolbarRef} className="browser-canvas__toolbar browser-canvas__toolbar--compact">
         <details className="browser-canvas__menu">
-          <summary className="button-secondary browser-canvas__menu-summary">Add</summary>
+          <summary
+            className={['button-secondary', 'browser-canvas__menu-summary', !canOpenAddMenu ? 'browser-canvas__menu-summary--disabled' : ''].filter(Boolean).join(' ')}
+            aria-disabled={!canOpenAddMenu}
+            onClick={(event) => handleMenuSummaryClick(event, canOpenAddMenu)}
+          >Add</summary>
           <div className="browser-canvas__menu-list card">
-            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'primary') : undefined} disabled={!scopeActionScopeId || scopePrimaryEntityCount === 0}>Primary entities</button>
-            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'direct') : undefined} disabled={!scopeActionScopeId || scopeDirectEntityCount === 0}>Direct entities</button>
-            <button type="button" className="button-secondary" onClick={() => scopeActionScopeId ? onAddScopeAnalysis(scopeActionScopeId, 'subtree') : undefined} disabled={!scopeActionScopeId || scopeSubtreeEntityCount === 0}>Subtree entities</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => { if (scopeActionScopeId) onAddScopeAnalysis(scopeActionScopeId, 'primary'); })} disabled={!canAddPrimary}>Primary entities</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => { if (scopeActionScopeId) onAddScopeAnalysis(scopeActionScopeId, 'direct'); })} disabled={!canAddDirect}>Direct entities</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => { if (scopeActionScopeId) onAddScopeAnalysis(scopeActionScopeId, 'subtree'); })} disabled={!canAddSubtree}>Subtree entities</button>
           </div>
         </details>
 
         <details className="browser-canvas__menu">
-          <summary className="button-secondary browser-canvas__menu-summary">Arrange</summary>
+          <summary
+            className={['button-secondary', 'browser-canvas__menu-summary', !canOpenArrangeMenu ? 'browser-canvas__menu-summary--disabled' : ''].filter(Boolean).join(' ')}
+            aria-disabled={!canOpenArrangeMenu}
+            onClick={(event) => handleMenuSummaryClick(event, canOpenArrangeMenu)}
+          >Arrange</summary>
           <div className="browser-canvas__menu-list card">
-            <button type="button" className="button-secondary" onClick={onArrangeAllCanvasNodes} disabled={model.nodes.length === 0}>Arrange all</button>
-            <button type="button" className="button-secondary" onClick={onArrangeCanvasAroundFocus} disabled={model.nodes.length === 0 || !focusedEntity}>Arrange around focus</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeAllCanvasNodes)} disabled={!canArrangeAll}>Arrange all</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeCanvasAroundFocus)} disabled={!canArrangeAroundFocus}>Arrange around focus</button>
           </div>
         </details>
 
         <details className="browser-canvas__menu">
-          <summary className="button-secondary browser-canvas__menu-summary">Selection</summary>
+          <summary
+            className={['button-secondary', 'browser-canvas__menu-summary', !canOpenSelectionMenu ? 'browser-canvas__menu-summary--disabled' : ''].filter(Boolean).join(' ')}
+            aria-disabled={!canOpenSelectionMenu}
+            onClick={(event) => handleMenuSummaryClick(event, canOpenSelectionMenu)}
+          >Selection</summary>
           <div className="browser-canvas__menu-list card">
-            <button type="button" className="button-secondary" onClick={onIsolateSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Isolate</button>
-            <button type="button" className="button-secondary" onClick={onRemoveSelection} disabled={selectedEntityCount === 0 && !focusedScopeId}>Remove</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onIsolateSelection)} disabled={!canIsolateOrRemove}>Isolate</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onRemoveSelection)} disabled={!canIsolateOrRemove}>Remove</button>
             {focusedEntity ? (
               entityActions.map((action) => {
                 if (action.key === 'pin') {
                   const isPinned = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === focusedEntity.externalId)?.pinned;
                   return (
-                    <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)}>
+                    <button key={action.key} type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onEntityAction(action.key))}>
                       {isPinned ? 'Unpin' : 'Pin'}
                     </button>
                   );
                 }
                 return (
-                  <button key={action.key} type="button" className="button-secondary" onClick={() => onEntityAction(action.key)} disabled={action.disabled}>
+                  <button key={action.key} type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onEntityAction(action.key))} disabled={action.disabled}>
                     {action.label}
                   </button>
                 );
               })
             ) : focusedScopeId ? (
               <>
-                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'children-primary')} disabled={scopeChildCount === 0}>Child primary</button>
-                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'direct')} disabled={scopeDirectEntityCount === 0}>Direct entities</button>
-                <button type="button" className="button-secondary" onClick={() => onAddScopeAnalysis(focusedScopeId, 'subtree')} disabled={scopeSubtreeEntityCount === 0}>Subtree entities</button>
+                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onAddScopeAnalysis(focusedScopeId, 'children-primary'))} disabled={!canAddChildPrimary}>Child primary</button>
+                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onAddScopeAnalysis(focusedScopeId, 'direct'))} disabled={!canAddFocusedDirect}>Direct entities</button>
+                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onAddScopeAnalysis(focusedScopeId, 'subtree'))} disabled={!canAddFocusedSubtree}>Subtree entities</button>
                 <details className="browser-canvas__menu browser-canvas__menu--inline">
-                  <summary className="button-secondary browser-canvas__menu-summary">Advanced scope node</summary>
+                  <summary
+                    className={['button-secondary', 'browser-canvas__menu-summary', !canOpenAdvancedScopeMenu ? 'browser-canvas__menu-summary--disabled' : ''].filter(Boolean).join(' ')}
+                    aria-disabled={!canOpenAdvancedScopeMenu}
+                    onClick={(event) => handleMenuSummaryClick(event, canOpenAdvancedScopeMenu)}
+                  >Advanced scope node</summary>
                   <div className="browser-canvas__menu-list card">
-                    <button type="button" className="button-secondary" onClick={() => onShowScopeContainer(focusedScopeId)}>Show selected scope as container</button>
-                    <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'scope', id: focusedScopeId })}>
+                    <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onShowScopeContainer(focusedScopeId))}>Show selected scope as container</button>
+                    <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onTogglePinNode({ kind: 'scope', id: focusedScopeId }))}>
                       {state.canvasNodes.find((node) => node.kind === 'scope' && node.id === focusedScopeId)?.pinned ? 'Unpin container' : 'Pin container'}
                     </button>
                   </div>
                 </details>
               </>
             ) : (
-              <span className="muted browser-canvas__menu-empty">Focus an entity or scope for more actions.</span>
+              <>
+                <button type="button" className="button-secondary" disabled>Isolate</button>
+                <button type="button" className="button-secondary" disabled>Remove</button>
+                <button type="button" className="button-secondary" disabled>Pin</button>
+                <span className="muted browser-canvas__menu-empty">Focus an entity or scope for more actions.</span>
+              </>
             )}
           </div>
         </details>
