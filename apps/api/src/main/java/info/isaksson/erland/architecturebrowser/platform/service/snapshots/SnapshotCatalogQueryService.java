@@ -1,6 +1,7 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
+import jakarta.persistence.NoResultException;
 import info.isaksson.erland.architecturebrowser.platform.service.management.NotFoundException;
 import info.isaksson.erland.architecturebrowser.platform.service.management.RepositoryManagementService;
 import info.isaksson.erland.architecturebrowser.platform.service.management.WorkspaceManagementService;
@@ -41,6 +42,21 @@ public class SnapshotCatalogQueryService {
             .setParameter("workspaceId", workspaceId)
             .setParameter("repositoryId", repositoryId)
             .getResultList();
+    }
+
+
+    public SnapshotCatalogSummaryProjection requireSummary(String workspaceId, String snapshotId) {
+        workspaceManagementService.requireWorkspace(workspaceId);
+        try {
+            return entityManager.createQuery(baseSummaryQuery() + """
+                where s.workspaceId = :workspaceId and s.id = :snapshotId
+                """, SnapshotCatalogSummaryProjection.class)
+                .setParameter("workspaceId", workspaceId)
+                .setParameter("snapshotId", snapshotId)
+                .getSingleResult();
+        } catch (NoResultException ex) {
+            throw new NotFoundException("Snapshot not found: " + snapshotId);
+        }
     }
 
     public SnapshotEntity requireSnapshot(String workspaceId, String snapshotId) {

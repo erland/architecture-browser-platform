@@ -1,6 +1,8 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { emptyRepositoryForm, type Repository, type RepositorySourceType, type RepositoryUpdateRequest, type Workspace } from '../appModel';
+import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../appModel';
 import type { SourceTreeLauncherItem } from '../appModel.sourceTree';
+import { BrowserSourceTreeManagementList } from './BrowserSourceTreeManagementList';
+import { BrowserSourceTreeCreateFormPanel, BrowserSourceTreeEditFormPanel } from './BrowserSourceTreeRepositoryFormPanel';
+import { useBrowserSourceTreeSwitcherController } from './useBrowserSourceTreeSwitcherController';
 
 export type BrowserSourceTreeSwitcherDialogProps = {
   isOpen: boolean;
@@ -16,22 +18,6 @@ export type BrowserSourceTreeSwitcherDialogProps = {
   onClose: () => void;
 };
 
-function buildInitialRepositoryForm() {
-  return { ...emptyRepositoryForm };
-}
-
-function isGitSource(sourceType: RepositorySourceType) {
-  return sourceType === 'GIT';
-}
-
-function isLocalSource(sourceType: RepositorySourceType) {
-  return sourceType === 'LOCAL_PATH';
-}
-
-function formatLastIndexedLabel(value: string | null) {
-  return value ? `Indexed ${value}` : 'Not indexed yet';
-}
-
 export function BrowserSourceTreeSwitcherDialog({
   isOpen,
   items,
@@ -45,130 +31,21 @@ export function BrowserSourceTreeSwitcherDialog({
   onUpdateRepository,
   onClose,
 }: BrowserSourceTreeSwitcherDialogProps) {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [repositoryForm, setRepositoryForm] = useState(buildInitialRepositoryForm);
-  const [actionRepositoryId, setActionRepositoryId] = useState<string | null>(null);
-  const [editRepositoryId, setEditRepositoryId] = useState<string | null>(null);
-  const [editRepositoryForm, setEditRepositoryForm] = useState<RepositoryUpdateRequest>({
-    name: '',
-    localPath: '',
-    remoteUrl: '',
-    defaultBranch: 'main',
-    metadataJson: '',
+  const controller = useBrowserSourceTreeSwitcherController({
+    isOpen,
+    items,
+    repositories,
+    onSelectSourceTree,
+    onCreateRepository,
+    onRequestReindex,
+    onArchiveRepository,
+    onUpdateRepository,
+    onClose,
   });
-
-  useEffect(() => {
-    if (!isOpen || typeof window === 'undefined') {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (editRepositoryId) {
-          setEditRepositoryId(null);
-          return;
-        }
-        if (isAddDialogOpen) {
-          setIsAddDialogOpen(false);
-          return;
-        }
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isAddDialogOpen, editRepositoryId, onClose]);
-
-  const repositoriesById = useMemo(() => {
-    const result = new Map<string, Repository>();
-    for (const repository of repositories) {
-      result.set(repository.id, repository);
-    }
-    return result;
-  }, [repositories]);
 
   if (!isOpen) {
     return null;
   }
-
-  const handleOpenAddDialog = () => {
-    setRepositoryForm(buildInitialRepositoryForm());
-    setIsAddDialogOpen(true);
-  };
-
-  const handleOpenEditDialog = (repository: Repository) => {
-    setEditRepositoryId(repository.id);
-    setEditRepositoryForm({
-      name: repository.name,
-      localPath: repository.localPath ?? '',
-      remoteUrl: repository.remoteUrl ?? '',
-      defaultBranch: repository.defaultBranch ?? '',
-      metadataJson: repository.metadataJson ?? '',
-    });
-  };
-
-  const handleUpdate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!editRepositoryId) {
-      return;
-    }
-    const repository = repositoriesById.get(editRepositoryId);
-    if (!repository) {
-      return;
-    }
-    setActionRepositoryId(repository.id);
-    try {
-      await onUpdateRepository(repository, editRepositoryForm);
-      setEditRepositoryId(null);
-    } finally {
-      setActionRepositoryId(null);
-    }
-  };
-
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await onCreateRepository(repositoryForm);
-    setRepositoryForm(buildInitialRepositoryForm());
-    setIsAddDialogOpen(false);
-  };
-
-  const handleReindex = async (item: SourceTreeLauncherItem) => {
-    const repository = repositoriesById.get(item.repositoryId);
-    if (!repository) {
-      return;
-    }
-    setActionRepositoryId(repository.id);
-    try {
-      await onRequestReindex(repository);
-    } finally {
-      setActionRepositoryId(null);
-    }
-  };
-
-  const handleArchive = async (item: SourceTreeLauncherItem) => {
-    const repository = repositoriesById.get(item.repositoryId);
-    if (!repository) {
-      return;
-    }
-    const confirmed = typeof window === 'undefined'
-      ? true
-      : window.confirm(`Archive source tree "${item.sourceTreeLabel}"?`);
-    if (!confirmed) {
-      return;
-    }
-    setActionRepositoryId(repository.id);
-    try {
-      await onArchiveRepository(repository);
-    } finally {
-      setActionRepositoryId(null);
-    }
-  };
-
-  const handleSelect = (item: SourceTreeLauncherItem) => {
-    onSelectSourceTree(item);
-    onClose();
-  };
 
   return (
     <div className="browser-dialog" role="presentation">
@@ -191,7 +68,7 @@ export function BrowserSourceTreeSwitcherDialog({
               <h2 id="browser-source-tree-switcher-title">Source trees</h2>
             </div>
             <div className="browser-dialog__header-actions">
-              <button type="button" onClick={handleOpenAddDialog} disabled={!selectedWorkspace}>Add source tree</button>
+              <button type="button" onClick={controller.openAddDialog} disabled={!selectedWorkspace}>Add source tree</button>
               <button type="button" className="button-secondary" onClick={onClose}>Close</button>
             </div>
           </div>
@@ -205,168 +82,34 @@ export function BrowserSourceTreeSwitcherDialog({
             </section>
           ) : null}
 
-          <div className="browser-dialog__source-list" role="list" aria-label="Source tree management list">
-            {items.map((item) => {
-              const busy = actionRepositoryId === item.repositoryId;
-              const canOpen = item.latestSnapshotId !== null;
-              const repository = repositoriesById.get(item.repositoryId) ?? null;
-              return (
-                <section key={item.id} className="browser-dialog__source-item" role="listitem">
-                  <div className="browser-dialog__source-main">
-                    <div>
-                      <h4>{item.sourceTreeLabel}</h4>
-                      <p className="muted">{item.sourceSummary}</p>
-                    </div>
-                    <div className="browser-source-tree-launcher__badges">
-                      <span className="badge">{item.sourceTreeKey}</span>
-                      <span className={`badge ${item.latestRunStatusLabel === 'Success' ? 'badge--status' : ''}`}>{item.latestRunStatusLabel}</span>
-                      <span className={`badge ${item.status === 'ready' ? 'badge--status' : ''}`}>{formatLastIndexedLabel(item.latestIndexedAtLabel)}</span>
-                    </div>
-                  </div>
-                  <div className="browser-dialog__source-actions">
-                    <button type="button" onClick={() => handleSelect(item)} disabled={!canOpen || busy}>
-                      {canOpen ? 'Open in Browser' : 'Select source tree'}
-                    </button>
-                    <button type="button" className="button-secondary" onClick={() => void handleReindex(item)} disabled={busy}>
-                      Re-index
-                    </button>
-                    <button type="button" className="button-secondary" onClick={() => repository && handleOpenEditDialog(repository)} disabled={busy || !repository}>
-                      Edit
-                    </button>
-                    <button type="button" className="button-secondary" onClick={() => void handleArchive(item)} disabled={busy}>
-                      Archive
-                    </button>
-                  </div>
-                </section>
-              );
-            })}
-            {!items.length && selectedWorkspace ? <p className="muted">No source trees are available yet. Add one to start indexing.</p> : null}
-          </div>
+          <BrowserSourceTreeManagementList
+            items={items}
+            repositoriesById={controller.repositoriesById}
+            actionRepositoryId={controller.actionRepositoryId}
+            selectedWorkspaceAvailable={selectedWorkspace !== null}
+            onSelectItem={controller.selectItem}
+            onReindexItem={controller.reindexItem}
+            onEditRepository={controller.openEditDialog}
+            onArchiveItem={controller.archiveItem}
+          />
         </section>
 
-        {isAddDialogOpen ? (
-          <section className="card browser-dialog__nested-panel" aria-label="Add source tree">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Register source tree</p>
-                <h3>Add source tree</h3>
-              </div>
-              <button type="button" className="button-secondary" onClick={() => setIsAddDialogOpen(false)}>Close</button>
-            </div>
-            <form className="grid-form" onSubmit={(event) => void handleCreate(event)}>
-              <label>
-                <span>Key</span>
-                <input
-                  value={repositoryForm.repositoryKey}
-                  onChange={(event) => setRepositoryForm((current) => ({ ...current, repositoryKey: event.target.value }))}
-                  placeholder="customs-api"
-                  required
-                />
-              </label>
-              <label>
-                <span>Name</span>
-                <input
-                  value={repositoryForm.name}
-                  onChange={(event) => setRepositoryForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Customs API"
-                  required
-                />
-              </label>
-              <label>
-                <span>Source type</span>
-                <select
-                  value={repositoryForm.sourceType}
-                  onChange={(event) => setRepositoryForm((current) => ({
-                    ...current,
-                    sourceType: event.target.value as RepositorySourceType,
-                    localPath: event.target.value === 'LOCAL_PATH' ? current.localPath : '',
-                    remoteUrl: event.target.value === 'GIT' ? current.remoteUrl : '',
-                  }))}
-                >
-                  <option value="LOCAL_PATH">Local path</option>
-                  <option value="GIT">Git</option>
-                </select>
-              </label>
-              {isLocalSource(repositoryForm.sourceType) ? (
-                <label>
-                  <span>Local path</span>
-                  <input
-                    value={repositoryForm.localPath}
-                    onChange={(event) => setRepositoryForm((current) => ({ ...current, localPath: event.target.value }))}
-                    placeholder="/repos/customs-api"
-                    required
-                  />
-                </label>
-              ) : null}
-              {isGitSource(repositoryForm.sourceType) ? (
-                <label>
-                  <span>Remote URL</span>
-                  <input
-                    value={repositoryForm.remoteUrl}
-                    onChange={(event) => setRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))}
-                    placeholder="https://github.com/example/customs-api.git"
-                    required
-                  />
-                </label>
-              ) : null}
-              <label>
-                <span>Default branch</span>
-                <input
-                  value={repositoryForm.defaultBranch}
-                  onChange={(event) => setRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))}
-                  placeholder="main"
-                />
-              </label>
-              <label>
-                <span>Metadata JSON</span>
-                <textarea
-                  value={repositoryForm.metadataJson}
-                  onChange={(event) => setRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))}
-                  placeholder='{"team":"platform"}'
-                />
-              </label>
-              <div className="actions">
-                <button type="submit">Save source tree</button>
-              </div>
-            </form>
-          </section>
+        {controller.isAddDialogOpen ? (
+          <BrowserSourceTreeCreateFormPanel
+            repositoryForm={controller.repositoryForm}
+            onChange={controller.setRepositoryForm}
+            onSubmit={controller.createRepository}
+            onClose={controller.closeAddDialog}
+          />
         ) : null}
 
-        {editRepositoryId ? (
-          <section className="card browser-dialog__nested-panel" aria-label="Edit source tree">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Source tree settings</p>
-                <h3>Edit source tree</h3>
-              </div>
-              <button type="button" className="button-secondary" onClick={() => setEditRepositoryId(null)}>Close</button>
-            </div>
-            <form className="grid-form" onSubmit={(event) => void handleUpdate(event)}>
-              <label>
-                <span>Name</span>
-                <input value={editRepositoryForm.name} onChange={(event) => setEditRepositoryForm((current) => ({ ...current, name: event.target.value }))} required />
-              </label>
-              <label>
-                <span>Local path</span>
-                <input value={editRepositoryForm.localPath ?? ''} onChange={(event) => setEditRepositoryForm((current) => ({ ...current, localPath: event.target.value }))} />
-              </label>
-              <label>
-                <span>Remote URL</span>
-                <input value={editRepositoryForm.remoteUrl ?? ''} onChange={(event) => setEditRepositoryForm((current) => ({ ...current, remoteUrl: event.target.value }))} />
-              </label>
-              <label>
-                <span>Default branch</span>
-                <input value={editRepositoryForm.defaultBranch ?? ''} onChange={(event) => setEditRepositoryForm((current) => ({ ...current, defaultBranch: event.target.value }))} />
-              </label>
-              <label>
-                <span>Metadata JSON</span>
-                <textarea value={editRepositoryForm.metadataJson ?? ''} onChange={(event) => setEditRepositoryForm((current) => ({ ...current, metadataJson: event.target.value }))} />
-              </label>
-              <div className="actions">
-                <button type="submit">Save source tree</button>
-              </div>
-            </form>
-          </section>
+        {controller.editRepositoryId ? (
+          <BrowserSourceTreeEditFormPanel
+            repositoryForm={controller.editRepositoryForm}
+            onChange={controller.setEditRepositoryForm}
+            onSubmit={controller.updateRepository}
+            onClose={controller.closeEditDialog}
+          />
         ) : null}
       </section>
     </div>

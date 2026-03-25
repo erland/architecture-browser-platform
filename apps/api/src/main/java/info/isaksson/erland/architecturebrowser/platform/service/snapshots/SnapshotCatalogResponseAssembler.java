@@ -7,9 +7,7 @@ import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.Sn
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotSummaryResponse;
 import info.isaksson.erland.architecturebrowser.platform.domain.CompletenessStatus;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
-import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegistrationEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RunOutcome;
-import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -25,34 +23,6 @@ public class SnapshotCatalogResponseAssembler {
 
     public List<SnapshotSummaryResponse> toSummaries(List<SnapshotCatalogSummaryProjection> snapshots) {
         return snapshots.stream().map(this::toSummary).toList();
-    }
-
-    public SnapshotSummaryResponse toSummary(SnapshotEntity snapshot) {
-        RepositoryRegistrationEntity repository = RepositoryRegistrationEntity.findById(snapshot.repositoryRegistrationId);
-        return new SnapshotSummaryResponse(
-            snapshot.id,
-            snapshot.workspaceId,
-            snapshot.repositoryRegistrationId,
-            repository != null ? repository.repositoryKey : null,
-            repository != null ? repository.name : null,
-            snapshot.runId,
-            snapshot.snapshotKey,
-            snapshot.status,
-            snapshot.completenessStatus,
-            deriveRunOutcome(snapshot.completenessStatus),
-            snapshot.schemaVersion,
-            snapshot.indexerVersion,
-            snapshot.sourceRevision,
-            snapshot.sourceBranch,
-            snapshot.importedAt,
-            snapshot.scopeCount,
-            snapshot.entityCount,
-            snapshot.relationshipCount,
-            snapshot.diagnosticCount,
-            snapshot.indexedFileCount,
-            snapshot.totalFileCount,
-            snapshot.degradedFileCount
-        );
     }
 
     public SnapshotSummaryResponse toSummary(SnapshotCatalogSummaryProjection snapshot) {
@@ -84,7 +54,7 @@ public class SnapshotCatalogResponseAssembler {
 
     public SnapshotDetailResponse toDetail(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new SnapshotDetailResponse(
-            toSummary(context.snapshot()),
+            toSummary(context.summary()),
             documentMapper.toSourceInfo(context.document()),
             documentMapper.toRunInfo(context.document()),
             overviewBuilder.collectWarnings(context.document())
@@ -93,7 +63,7 @@ public class SnapshotCatalogResponseAssembler {
 
     public FullSnapshotPayloadResponse toFullPayload(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new FullSnapshotPayloadResponse(
-            toSummary(context.snapshot()),
+            toSummary(context.summary()),
             documentMapper.toSourceInfo(context.document()),
             documentMapper.toRunInfo(context.document()),
             documentMapper.toCompletenessInfo(context.document()),
@@ -109,7 +79,7 @@ public class SnapshotCatalogResponseAssembler {
 
     public SnapshotOverviewResponse toOverview(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new SnapshotOverviewResponse(
-            toSummary(context.snapshot()),
+            toSummary(context.summary()),
             documentMapper.toSourceInfo(context.document()),
             documentMapper.toRunInfo(context.document()),
             documentMapper.toCompletenessInfo(context.document()),

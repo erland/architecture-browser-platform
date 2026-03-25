@@ -47,11 +47,12 @@ public class SnapshotCatalogService {
     }
 
     public SnapshotSummaryResponse getSummary(String workspaceId, String snapshotId) {
-        return responseAssembler.toSummary(queryService.requireSnapshot(workspaceId, snapshotId));
+        return responseAssembler.toSummary(queryService.requireSummary(workspaceId, snapshotId));
     }
 
     private SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext loadDocumentContext(String workspaceId, String snapshotId) {
         SnapshotEntity snapshot = queryService.requireSnapshot(workspaceId, snapshotId);
-        return payloadLoader.load(snapshot);
+        SnapshotCatalogSummaryProjection summary = queryService.requireSummary(workspaceId, snapshotId);
+        return payloadLoader.load(snapshot, summary);
     }
 }
