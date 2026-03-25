@@ -55,4 +55,6 @@ export type ViewportEventHandlers = {
   beginNodeDrag: (event: ReactMouseEvent<HTMLElement>, node: BrowserWorkspaceNodeModel) => void;
   beginViewportPan: (event: ReactMouseEvent<HTMLDivElement>) => void;
   handleViewportWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
+  draggingNodeId?: string | null;
+  isPanning?: boolean;
 };

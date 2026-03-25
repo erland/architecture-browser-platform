@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BrowserWorkspaceNodeModel } from '../browserGraphWorkspaceModel';
 import {
   computeDraggedCanvasNodePosition,
@@ -21,6 +21,9 @@ type UseBrowserGraphWorkspaceInteractionsResult = ViewportEventHandlers & {
   suppressClickRef: React.MutableRefObject<boolean>;
 };
 
+const DRAG_THRESHOLD_PX = 6;
+const PAN_THRESHOLD_PX = 3;
+
 export function useBrowserGraphWorkspaceInteractions({
   state,
   modelSize,
@@ -34,6 +37,19 @@ export function useBrowserGraphWorkspaceInteractions({
   const panDistanceRef = useRef(0);
   const suppressClickRef = useRef(false);
   const handledFitViewRequestRef = useRef<string | null>(null);
+  const latestZoomRef = useRef(state.canvasViewport.zoom);
+  const latestViewportRef = useRef(state.canvasViewport);
+  const onMoveCanvasNodeRef = useRef(onMoveCanvasNode);
+  const onSetCanvasViewportRef = useRef(onSetCanvasViewport);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+
+  useEffect(() => {
+    latestZoomRef.current = state.canvasViewport.zoom;
+    latestViewportRef.current = state.canvasViewport;
+    onMoveCanvasNodeRef.current = onMoveCanvasNode;
+    onSetCanvasViewportRef.current = onSetCanvasViewport;
+  }, [onMoveCanvasNode, onSetCanvasViewport, state.canvasViewport]);
 
   useEffect(() => {
     if (!state.fitViewRequestedAt || modelSize.nodeCount === 0) {
@@ -57,24 +73,40 @@ export function useBrowserGraphWorkspaceInteractions({
   }, [modelSize.height, modelSize.nodeCount, modelSize.width, onSetCanvasViewport, state.fitViewRequestedAt]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const handleMouseMove = (event: MouseEvent) => {
       const dragState = dragStateRef.current;
       if (dragState) {
-        event.preventDefault();
         const deltaX = event.clientX - dragState.startClientX;
         const deltaY = event.clientY - dragState.startClientY;
+        const movedDistance = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+        if (movedDistance <= DRAG_THRESHOLD_PX) {
+          return;
+        }
+        event.preventDefault();
+        if (draggingNodeId !== dragState.node.id) {
+          setDraggingNodeId(dragState.node.id);
+        }
         const nextPosition = computeDraggedCanvasNodePosition({
           x: dragState.startX,
           y: dragState.startY,
         }, {
           x: deltaX,
           y: deltaY,
-        }, state.canvasViewport.zoom);
-        dragDistanceRef.current = Math.max(dragDistanceRef.current, Math.abs(nextPosition.x - dragState.startX), Math.abs(nextPosition.y - dragState.startY));
-        suppressClickRef.current = dragDistanceRef.current > 4;
-        onMoveCanvasNode(dragState.node, nextPosition);
+        }, latestZoomRef.current);
+        dragDistanceRef.current = Math.max(
+          dragDistanceRef.current,
+          Math.abs(nextPosition.x - dragState.startX),
+          Math.abs(nextPosition.y - dragState.startY),
+        );
+        suppressClickRef.current = true;
+        onMoveCanvasNodeRef.current(dragState.node, nextPosition);
         return;
       }
+
       const panState = panStateRef.current;
       if (!panState) {
         return;
@@ -82,9 +114,13 @@ export function useBrowserGraphWorkspaceInteractions({
       event.preventDefault();
       const deltaX = event.clientX - panState.startClientX;
       const deltaY = event.clientY - panState.startClientY;
+      const movedDistance = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+      if (movedDistance > PAN_THRESHOLD_PX) {
+        setIsPanning(true);
+      }
       panDistanceRef.current = Math.max(panDistanceRef.current, Math.abs(deltaX), Math.abs(deltaY));
-      onSetCanvasViewport(computePannedCanvasViewport({
-        zoom: state.canvasViewport.zoom,
+      onSetCanvasViewportRef.current(computePannedCanvasViewport({
+        zoom: latestViewportRef.current.zoom,
         offsetX: panState.startOffsetX,
         offsetY: panState.startOffsetY,
       }, {
@@ -98,27 +134,20 @@ export function useBrowserGraphWorkspaceInteractions({
       panStateRef.current = null;
       dragDistanceRef.current = 0;
       panDistanceRef.current = 0;
+      setDraggingNodeId(null);
+      setIsPanning(false);
       window.setTimeout(() => {
         suppressClickRef.current = false;
       }, 0);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
     };
 
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (dragStateRef.current || panStateRef.current) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onMoveCanvasNode, onSetCanvasViewport, state.canvasViewport.zoom]);
+  }, [draggingNodeId]);
 
   const beginNodeDrag = (event: React.MouseEvent<HTMLElement>, node: BrowserWorkspaceNodeModel) => {
     if (event.button !== 0) {
@@ -136,20 +165,31 @@ export function useBrowserGraphWorkspaceInteractions({
   };
 
   const beginViewportPan = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || event.target !== event.currentTarget) {
+    if (event.button !== 0) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Element && target.closest('.browser-canvas__node, .browser-canvas__edge-hitbox')) {
       return;
     }
     panStateRef.current = {
       startClientX: event.clientX,
       startClientY: event.clientY,
-      startOffsetX: state.canvasViewport.offsetX,
-      startOffsetY: state.canvasViewport.offsetY,
+      startOffsetX: latestViewportRef.current.offsetX,
+      startOffsetY: latestViewportRef.current.offsetY,
     };
     panDistanceRef.current = 0;
+    suppressClickRef.current = false;
+    setIsPanning(false);
   };
 
   const handleViewportWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      onSetCanvasViewport(computePannedCanvasViewport(latestViewportRef.current, {
+        x: -event.deltaX,
+        y: -event.deltaY,
+      }));
       return;
     }
     event.preventDefault();
@@ -160,7 +200,7 @@ export function useBrowserGraphWorkspaceInteractions({
     const rect = viewport.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
     const pointerY = event.clientY - rect.top;
-    onSetCanvasViewport(computeZoomedCanvasViewportAroundPointer(state.canvasViewport, {
+    onSetCanvasViewport(computeZoomedCanvasViewportAroundPointer(latestViewportRef.current, {
       x: pointerX,
       y: pointerY,
     }, event.deltaY));
@@ -172,5 +212,7 @@ export function useBrowserGraphWorkspaceInteractions({
     beginNodeDrag,
     beginViewportPan,
     handleViewportWheel,
+    draggingNodeId,
+    isPanning,
   };
 }

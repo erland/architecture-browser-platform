@@ -166,6 +166,7 @@ function BrowserGraphWorkspaceNode({
   node,
   suppressClickRef,
   beginNodeDrag,
+  draggingNodeId,
   onFocusScope,
   onFocusEntity,
   onSelectEntity,
@@ -173,6 +174,7 @@ function BrowserGraphWorkspaceNode({
   node: BrowserWorkspaceNodeModel;
   suppressClickRef: React.MutableRefObject<boolean>;
   beginNodeDrag: ViewportEventHandlers['beginNodeDrag'];
+  draggingNodeId?: string | null;
   onFocusScope: (scopeId: string) => void;
   onFocusEntity: (entityId: string) => void;
   onSelectEntity: (entityId: string, additive?: boolean) => void;
@@ -186,6 +188,7 @@ function BrowserGraphWorkspaceNode({
         node.selected ? 'browser-canvas__node--selected' : '',
         node.focused ? 'browser-canvas__node--focused' : '',
         node.pinned ? 'browser-canvas__node--pinned' : '',
+        draggingNodeId === node.id ? 'browser-canvas__node--dragging' : '',
       ].filter(Boolean).join(' ')}
       style={{ left: node.x, top: node.y, width: node.width, minHeight: node.height }}
       onMouseDown={(event) => beginNodeDrag(event, node)}
@@ -271,7 +274,10 @@ export function BrowserGraphWorkspaceCanvas({
   }
 
   return (
-    <div ref={viewportRef} className="browser-canvas__viewport" onMouseDown={viewportHandlers.beginViewportPan} onWheel={viewportHandlers.handleViewportWheel}>
+    <div ref={viewportRef} className={[
+      'browser-canvas__viewport',
+      viewportHandlers.isPanning ? 'browser-canvas__viewport--panning' : '',
+    ].filter(Boolean).join(' ')} onMouseDown={viewportHandlers.beginViewportPan} onWheel={viewportHandlers.handleViewportWheel}>
       <div className="browser-canvas__surface" style={{ width: model.width, height: model.height, transform: `translate(${state.canvasViewport.offsetX}px, ${state.canvasViewport.offsetY}px) scale(${state.canvasViewport.zoom})`, transformOrigin: 'top left' }}>
         <svg className="browser-canvas__edges" width={model.width} height={model.height} viewBox={`0 0 ${model.width} ${model.height}`} aria-hidden="true">
           <defs>
@@ -296,6 +302,7 @@ export function BrowserGraphWorkspaceCanvas({
             node={node}
             suppressClickRef={suppressClickRef}
             beginNodeDrag={viewportHandlers.beginNodeDrag}
+            draggingNodeId={viewportHandlers.draggingNodeId}
             onFocusScope={onFocusScope}
             onFocusEntity={onFocusEntity}
             onSelectEntity={onSelectEntity}

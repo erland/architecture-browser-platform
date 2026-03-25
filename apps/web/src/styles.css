@@ -1806,7 +1806,7 @@ dd {
   user-select: none;
 }
 
-.browser-canvas__viewport:active {
+.browser-canvas__viewport--panning {
   cursor: grabbing;
 }
 
@@ -1846,7 +1846,7 @@ dd {
 }
 
 .browser-canvas__node {
-  cursor: grab;
+  cursor: default;
   position: absolute;
   display: grid;
   gap: 6px;
@@ -1884,8 +1884,13 @@ dd {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 16px 30px rgba(2, 6, 23, 0.28);
 }
 
+.browser-canvas__node--dragging,
+.browser-canvas__node--dragging .browser-canvas__node-main {
+  cursor: grabbing;
+}
+
 .browser-canvas__node-main {
-  cursor: inherit;
+  cursor: pointer;
   width: 100%;
   display: grid;
   justify-items: start;
