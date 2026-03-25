@@ -244,6 +244,66 @@ describe('browserSessionStore', () => {
   });
 
 
+
+  test('adding related entities automatically shows meaningful relationships already present between visible nodes', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    expect(state.canvasEdges).toEqual([]);
+
+    state = addEntityToCanvas(state, 'entity:search');
+
+    expect(state.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
+  });
+
+  test('adding a third related entity keeps previously visible edges and adds newly visible meaningful relationships', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:layout');
+    state = addEntityToCanvas(state, 'entity:browser');
+    expect(state.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:2']);
+
+    state = addEntityToCanvas(state, 'entity:search');
+
+    expect(state.canvasEdges.map((edge) => edge.relationshipId).sort()).toEqual(['rel:1', 'rel:2']);
+  });
+
+
+  test('reopening a snapshot with kept view state restores meaningful relationships between visible entities', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addEntityToCanvas(state, 'entity:search');
+
+    const persisted = createPersistedBrowserSessionState({
+      ...state,
+      canvasEdges: [],
+    });
+    const hydrated = hydrateBrowserSessionState(persisted);
+    const reopened = openSnapshotSession(hydrated, {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+      keepViewState: true,
+    });
+
+    expect(reopened.canvasNodes.map((node) => node.id).sort()).toEqual(['entity:browser', 'entity:search']);
+    expect(reopened.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
+  });
+
   test('scope add defaults can resolve to primary entities instead of scope nodes', () => {
     const payload = {
       ...createPayload(),

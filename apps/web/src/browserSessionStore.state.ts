@@ -11,6 +11,7 @@ import type {
   PersistedBrowserSessionState,
 } from './browserSessionStore.types';
 import { normalizeCanvasNodes } from './browserSessionStore.canvas.nodes';
+import { syncMeaningfulCanvasEdges } from './browserSessionStore.canvas.relationships';
 import { computeSearchResults } from './browserSessionStore.search';
 import { buildAppliedViewpointGraph } from './browserSessionStore.viewpoints.helpers';
 
@@ -131,7 +132,14 @@ export function openSnapshotSession(
     : args.payload.scopes[0]?.externalId ?? null;
   const selectedEntityIds = nextState.selectedEntityIds.filter((entityId) => index.entitiesById.has(entityId));
   const canvasNodes = normalizeCanvasNodes(nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id)));
-  const canvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
+  const persistedCanvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
+  const canvasEdges = syncMeaningfulCanvasEdges({
+    ...nextState,
+    payload: args.payload,
+    index,
+    canvasNodes,
+    canvasEdges: persistedCanvasEdges,
+  }, canvasNodes);
   const searchResults = computeSearchResults(index, nextState.searchQuery, nextState.searchScopeId);
   const treeMode: BrowserTreeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);
   const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)

@@ -3,6 +3,7 @@ import type { BrowserDependencyDirection } from './browserSnapshotIndex';
 import { getDependencyNeighborhood, getPrimaryEntitiesForScope } from './browserSnapshotIndex';
 import type { BrowserSessionState } from './browserSessionStore.types';
 import { uniqueValues } from './browserSessionStore.collections';
+import { syncMeaningfulCanvasEdges } from './browserSessionStore.canvas.relationships';
 import {
   planEntityNodePosition,
   planScopeNodePosition,
@@ -21,9 +22,11 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
     return state;
   }
   const canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId }, planEntityNodePosition(state, entityId));
+  const canvasEdges = syncMeaningfulCanvasEdges(state, canvasNodes);
   return {
     ...state,
     canvasNodes,
+    canvasEdges,
     ...createEntityCanvasFocusState(state, entityId),
   };
 }
@@ -57,9 +60,11 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
   }
 
   const focusEntityId = validEntityIds[0];
+  const canvasEdges = syncMeaningfulCanvasEdges(state, canvasNodes);
   return {
     ...state,
     canvasNodes,
+    canvasEdges,
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, ...validEntityIds]),
     focusedElement: { kind: 'entity', id: focusEntityId },
     factsPanelMode: 'entity',
@@ -87,9 +92,11 @@ export function addScopeToCanvas(state: BrowserSessionState, scopeId: string): B
   if (!scope) {
     return state;
   }
+  const canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'scope', id: scopeId }, planScopeNodePosition(state, scopeId));
   return {
     ...state,
-    canvasNodes: upsertCanvasNode(state.canvasNodes, { kind: 'scope', id: scopeId }, planScopeNodePosition(state, scopeId)),
+    canvasNodes,
+    canvasEdges: syncMeaningfulCanvasEdges(state, canvasNodes),
     focusedElement: { kind: 'scope', id: scopeId },
     factsPanelMode: 'scope',
     appliedViewpoint: null,
@@ -146,7 +153,7 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
   return {
     ...state,
     canvasNodes,
-    canvasEdges,
+    canvasEdges: syncMeaningfulCanvasEdges({ ...state, canvasEdges }, canvasNodes),
     ...createEntityCanvasFocusState(state, entityId),
     graphExpansionActions: [...state.graphExpansionActions, {
       type: 'dependencies',

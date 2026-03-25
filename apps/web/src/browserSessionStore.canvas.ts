@@ -26,3 +26,5 @@ export {
   requestFitCanvasView,
   setCanvasViewport,
 } from './browserSessionStore.canvas.viewport';
+
+export { syncMeaningfulCanvasEdges } from './browserSessionStore.canvas.relationships';
