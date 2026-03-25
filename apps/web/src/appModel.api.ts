@@ -48,17 +48,6 @@ export type Repository = {
   updatedAt: string;
 };
 
-export type AuditEvent = {
-  id: string;
-  eventType: string;
-  actorType: string;
-  actorId: string | null;
-  happenedAt: string;
-  detailsJson: string | null;
-  repositoryRegistrationId: string | null;
-  runId: string | null;
-};
-
 export type RunRecord = {
   id: string;
   workspaceId: string;

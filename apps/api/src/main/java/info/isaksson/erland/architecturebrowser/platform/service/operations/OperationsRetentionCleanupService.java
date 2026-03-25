@@ -10,8 +10,6 @@ public class OperationsRetentionCleanupService {
     void applySnapshotDeletes(List<SnapshotEntity> snapshotsToDelete) {
         for (SnapshotEntity snapshot : snapshotsToDelete) {
             ImportedFactEntity.delete("snapshotId", snapshot.id);
-            OverlayEntity.delete("snapshotId", snapshot.id);
-            SavedViewEntity.delete("snapshotId", snapshot.id);
             SavedCanvasEntity.delete("snapshotId", snapshot.id);
             AuditEventEntity.delete("snapshotId", snapshot.id);
             snapshot.delete();

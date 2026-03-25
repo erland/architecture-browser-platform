@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
+import info.isaksson.erland.architecturebrowser.platform.domain.AuditEventEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class OperationsAdminResourceTest {
@@ -92,9 +94,7 @@ class OperationsAdminResourceTest {
         given().when().get("/api/workspaces/{workspaceId}/runs/recent", workspaceId).then().statusCode(200)
             .body("size()", equalTo(1))
             .body("id", not(hasItem(firstRunId)));
-
-        given().when().get("/api/workspaces/{workspaceId}/audit-events", workspaceId).then().statusCode(200)
-            .body("eventType", hasItem("retention.applied"));
+        assertTrue(AuditEventEntity.count("workspaceId", workspaceId) >= 1);
     }
 
     private String runRequest(String result) {

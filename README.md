@@ -1,10 +1,10 @@
 # architecture-browser-platform
 
-Architecture Browser Platform monorepo baseline for the user-facing self-hosted product. This repository owns the platform API, web UI, deployment packaging, persistence, and the import boundary for normalized IR produced by the separate `architecture-browser-indexer` repository.
+Architecture Browser Platform monorepo baseline for the user-facing self-hosted product. This repository owns the platform API, Browser-first web UI, deployment packaging, persistence, and the import boundary for normalized IR produced by the separate `architecture-browser-indexer` repository.
 
 ## Repository layout
 
-- `apps/web` — React + TypeScript web UI
+- `apps/web` — React + TypeScript Browser-first web UI
 - `apps/api` — Quarkus 3.31 backend with JPA + Flyway
 - `libs/contracts` — shared import-contract notes and TypeScript contract/domain types
 - `libs/view-models` — shared pure helpers used by stable frontend tests

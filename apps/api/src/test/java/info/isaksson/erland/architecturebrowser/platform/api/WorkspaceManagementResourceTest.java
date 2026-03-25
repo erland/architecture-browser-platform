@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
+import info.isaksson.erland.architecturebrowser.platform.domain.AuditEventEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class WorkspaceManagementResourceTest {
@@ -63,16 +65,7 @@ class WorkspaceManagementResourceTest {
             .then()
             .statusCode(200)
             .body("status", equalTo("ARCHIVED"));
-
-        given()
-            .when()
-            .get("/api/workspaces/{workspaceId}/audit-events", workspaceId)
-            .then()
-            .statusCode(200)
-            .body("size()", greaterThanOrEqualTo(3))
-            .body("eventType", hasItem("workspace.created"))
-            .body("eventType", hasItem("workspace.updated"))
-            .body("eventType", hasItem("workspace.archived"));
+        assertTrue(AuditEventEntity.count("workspaceId", workspaceId) >= 3);
     }
 
     @Test

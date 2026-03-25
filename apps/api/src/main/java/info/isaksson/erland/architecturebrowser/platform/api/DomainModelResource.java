@@ -19,8 +19,6 @@ public class DomainModelResource {
                 "repository_registration",
                 "index_run",
                 "snapshot",
-                "overlay",
-                "saved_view",
                 "audit_event"
             ),
             "importProjection", List.of(
@@ -28,7 +26,6 @@ public class DomainModelResource {
             ),
             "notes", List.of(
                 "Imported indexer data is immutable once attached to a snapshot.",
-                "User-authored overlays and saved views are modeled separately from imported facts.",
                 "Step 2 intentionally stores snapshot facts in a generic projection table before later view-specific schemas are introduced."
             )
         );

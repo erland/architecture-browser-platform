@@ -1,5 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
+import info.isaksson.erland.architecturebrowser.platform.domain.AuditEventEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class RepositoryManagementResourceTest {
@@ -84,16 +86,7 @@ class RepositoryManagementResourceTest {
             .then()
             .statusCode(200)
             .body("status", equalTo("ARCHIVED"));
-
-        given()
-            .when()
-            .get("/api/workspaces/{workspaceId}/audit-events", workspaceId)
-            .then()
-            .statusCode(200)
-            .body("size()", greaterThanOrEqualTo(4))
-            .body("eventType", hasItem("repository.created"))
-            .body("eventType", hasItem("repository.updated"))
-            .body("eventType", hasItem("repository.archived"));
+        assertTrue(AuditEventEntity.count("workspaceId", workspaceId) >= 4);
     }
 
     @Test

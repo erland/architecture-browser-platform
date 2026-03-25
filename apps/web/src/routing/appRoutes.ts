@@ -4,12 +4,13 @@ export const appRoutes = [
   {
     path: browserRoutePath,
     label: 'Browser',
-    description: 'Focused architecture browser shell with overview, layout, dependency, entry-point, and search tabs.',
+    description: 'Browser-first architecture workspace with overview, layout, dependency, entry-point, and search tabs.',
   },
 ] as const;
 
 export type AppRoutePath = typeof browserRoutePath;
 
+// Keep a narrow alias list so older deep links continue to land in the Browser after the retired frontend pages were removed.
 const browserAliases = new Set<string>(['/compare', '/operations', '/repositories', '/snapshots', '/sources', '/workspaces']);
 
 export function normalizeRoutePath(pathname: string): AppRoutePath {

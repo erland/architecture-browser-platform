@@ -1,10 +1,8 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
-import info.isaksson.erland.architecturebrowser.platform.api.dto.AuditDtos.AuditEventResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.WorkspaceDtos.CreateWorkspaceRequest;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.WorkspaceDtos.UpdateWorkspaceRequest;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.WorkspaceDtos.WorkspaceResponse;
-import info.isaksson.erland.architecturebrowser.platform.domain.AuditEventEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.management.WorkspaceManagementService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -54,30 +52,5 @@ public class WorkspaceResource {
     @Path("/{workspaceId}/archive")
     public WorkspaceResponse archive(@PathParam("workspaceId") String workspaceId) {
         return workspaceManagementService.archive(workspaceId);
-    }
-
-    @GET
-    @Path("/{workspaceId}/audit-events")
-    public List<AuditEventResponse> listAuditEvents(@PathParam("workspaceId") String workspaceId) {
-        workspaceManagementService.requireWorkspace(workspaceId);
-        return AuditEventEntity.<AuditEventEntity>list("workspaceId", workspaceId).stream()
-            .sorted((left, right) -> right.happenedAt.compareTo(left.happenedAt))
-            .map(this::toAuditResponse)
-            .toList();
-    }
-
-    private AuditEventResponse toAuditResponse(AuditEventEntity entity) {
-        return new AuditEventResponse(
-            entity.id,
-            entity.workspaceId,
-            entity.repositoryRegistrationId,
-            entity.runId,
-            entity.snapshotId,
-            entity.eventType,
-            entity.actorType,
-            entity.actorId,
-            entity.happenedAt,
-            entity.detailsJson
-        );
     }
 }
