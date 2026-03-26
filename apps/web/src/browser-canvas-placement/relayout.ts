@@ -5,6 +5,7 @@ import { type BrowserCanvasPlacementOptions } from './types';
 import { avoidBrowserCanvasCollisions, isAnchoredCanvasNode } from './collision';
 import { placeAppendedCanvasNode } from './initialPlacement';
 import { placeCanvasNodeNearAnchor } from './incrementalPlacement';
+import { cleanupArrangedCanvasNodes } from './postLayoutCleanup';
 
 export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[], options?: BrowserCanvasPlacementOptions): BrowserCanvasNode[] {
   const fixedNodes = nodes
@@ -48,7 +49,10 @@ export function arrangeCanvasNodesInGrid(nodes: BrowserCanvasNode[], options?: B
     }];
   }
 
-  return nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
+  const merged = nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
+  return options?.state?.routingLayoutConfig.features.postLayoutCleanup === false
+    ? merged
+    : cleanupArrangedCanvasNodes(merged, options);
 }
 
 export function arrangeCanvasNodesAroundEntityFocus(
@@ -123,5 +127,8 @@ export function arrangeCanvasNodesAroundEntityFocus(
     arranged = [...arranged, { ...node, ...placement, manuallyPlaced: false }];
   }
 
-  return nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
+  const merged = nodes.map((node) => arranged.find((candidate) => candidate.kind === node.kind && candidate.id === node.id) ?? { ...node });
+  return options?.state?.routingLayoutConfig.features.postLayoutCleanup === false
+    ? merged
+    : cleanupArrangedCanvasNodes(merged, options);
 }

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../browserSnapshotIndex';
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../components/BrowserGraphWorkspace';
+import { resolveRenderedEdgeGeometry } from '../components/BrowserGraphWorkspace.sections';
 import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../browserSessionStore';
 
 const snapshotSummary: SnapshotSummary = {
@@ -218,6 +219,92 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     expect(markup).toContain('1 pinned');
   });
 
+
+  test('renders routed SVG paths, arrowheads, and edge labels for visible relationships', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        { id: 'entity:function.render', kind: 'entity', x: 56, y: 64 },
+        { id: 'entity:service', kind: 'entity', x: 320, y: 160 },
+      ],
+      focusedElement: { kind: 'relationship', id: 'rel:function:calls' },
+    };
+
+    const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state,
+      activeModeLabel: 'Analysis',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onArrangeAllCanvasNodes: () => {},
+      onArrangeCanvasAroundFocus: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+      onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
+    }));
+
+    expect(markup).toContain('marker-end="url(#browser-canvas-arrow)"');
+    expect(markup).toContain('browser-canvas__edge browser-canvas__edge--focused');
+    expect(markup).toContain('browser-canvas__edge-hitbox');
+    expect(markup).toContain('calls');
+    expect(markup).toContain('<path d="M ');
+  });
+
+  test('falls back to default endpoint path rendering when route geometry is invalid', () => {
+    const fallback = resolveRenderedEdgeGeometry({
+      relationshipId: 'rel:fallback',
+      fromEntityId: 'entity:function.render',
+      toEntityId: 'entity:service',
+      label: 'calls',
+      focused: false,
+      route: {
+        kind: 'polyline',
+        points: [],
+        path: '',
+        labelPosition: { x: Number.NaN, y: Number.NaN },
+      },
+      routingInput: {
+        relationshipId: 'rel:fallback',
+        fromNodeId: 'entity:function.render',
+        toNodeId: 'entity:service',
+        sourceRect: { nodeId: 'entity:function.render', kind: 'entity', x: 56, y: 64, width: 160, height: 88 },
+        targetRect: { nodeId: 'entity:service', kind: 'entity', x: 320, y: 160, width: 160, height: 88 },
+        defaultStart: { x: 216, y: 108 },
+        defaultEnd: { x: 320, y: 204 },
+        preferredStartSide: 'right',
+        preferredEndSide: 'left',
+        selfLoop: false,
+        obstacleNodeIds: [],
+        obstacles: [],
+      },
+      laneIndex: 0,
+      laneOffset: 0,
+    });
+
+    expect(fallback.path).toBe('M 216 108 L 320 204');
+    expect(fallback.hitboxPath).toBe('M 216 108 L 320 204');
+    expect(fallback.labelPosition).toEqual({ x: 216, y: 108 });
+  });
+
+
   test('renders compact UML class nodes with attribute and operation compartments', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
@@ -323,4 +410,91 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     expect(markup).not.toContain('>Add scope node<');
     expect(markup).not.toContain('>Pin scope<');
   });
+
+
+  test('renders a routing revision marker that changes with graph geometry', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        { id: 'entity:function.render', kind: 'entity', x: 56, y: 64, pinned: false },
+        { id: 'entity:service', kind: 'entity', x: 320, y: 64, pinned: false },
+      ],
+      canvasEdges: [
+        { relationshipId: 'rel:function:calls', fromEntityId: 'entity:function.render', toEntityId: 'entity:service' },
+      ],
+    };
+
+    const initialMarkup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state,
+      activeModeLabel: 'Layout',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onArrangeAllCanvasNodes: () => {},
+      onArrangeCanvasAroundFocus: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+      onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
+    }));
+
+    const movedState = {
+      ...state,
+      canvasNodes: state.canvasNodes.map((node) =>
+        node.id === 'entity:service' ? { ...node, x: node.x + 160, y: node.y + 80 } : node,
+      ),
+    };
+
+    const movedMarkup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+      state: movedState,
+      activeModeLabel: 'Layout',
+      onShowScopeContainer: () => {},
+      onAddScopeAnalysis: () => {},
+      onAddContainedEntities: () => {},
+      onAddPeerEntities: () => {},
+      onFocusScope: () => {},
+      onFocusEntity: () => {},
+      onSelectEntity: () => {},
+      onFocusRelationship: () => {},
+      onExpandEntityDependencies: () => {},
+      onExpandInboundDependencies: () => {},
+      onExpandOutboundDependencies: () => {},
+      onRemoveEntity: () => {},
+      onRemoveSelection: () => {},
+      onIsolateSelection: () => {},
+      onTogglePinNode: () => {},
+      onArrangeAllCanvasNodes: () => {},
+      onArrangeCanvasAroundFocus: () => {},
+      onClearCanvas: () => {},
+      onFitView: () => {},
+      onMoveCanvasNode: () => {},
+      onSetCanvasViewport: () => {},
+    }));
+
+    const initialRevision = initialMarkup.match(/data-routing-revision="([^"]+)"/)?.[1];
+    const movedRevision = movedMarkup.match(/data-routing-revision="([^"]+)"/)?.[1];
+
+    expect(initialRevision).toBeTruthy();
+    expect(movedRevision).toBeTruthy();
+    expect(movedRevision).not.toBe(initialRevision);
+  });
+
+
 });

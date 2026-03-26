@@ -15,6 +15,13 @@ function mergeCanvasViewport(current: BrowserCanvasViewport, viewport: Partial<B
   };
 }
 
+function withRouteRefresh(state: BrowserSessionState): BrowserSessionState {
+  return {
+    ...state,
+    routeRefreshRequestedAt: new Date().toISOString(),
+  };
+}
+
 export function clearCanvas(state: BrowserSessionState): BrowserSessionState {
   return {
     ...state,
@@ -50,12 +57,13 @@ export function arrangeAllCanvasNodes(state: BrowserSessionState): BrowserSessio
   if (state.canvasNodes.length === 0) {
     return state;
   }
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     canvasNodes: arrangeCanvasNodesInGrid(state.canvasNodes, { state }),
     canvasLayoutMode: 'grid',
     fitViewRequestedAt: new Date().toISOString(),
   };
+  return withRouteRefresh(nextState);
 }
 
 export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSessionState {
@@ -65,12 +73,13 @@ export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSes
   if (state.focusedElement?.kind !== 'entity') {
     return arrangeAllCanvasNodes(state);
   }
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     canvasNodes: arrangeCanvasNodesAroundEntityFocus(state.canvasNodes, state.canvasEdges, state.focusedElement.id, { state }),
     canvasLayoutMode: 'radial',
     fitViewRequestedAt: new Date().toISOString(),
   };
+  return withRouteRefresh(nextState);
 }
 
 export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {

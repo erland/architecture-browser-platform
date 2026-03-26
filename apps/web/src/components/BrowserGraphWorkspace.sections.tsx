@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FullSnapshotEntity } from '../appModel';
-import type { BrowserWorkspaceNodeModel, BrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
+import type { BrowserWorkspaceEdgeModel, BrowserWorkspaceNodeModel, BrowserGraphWorkspaceModel } from '../browserGraphWorkspaceModel';
 import type { BrowserSessionState } from '../browserSessionStore';
 import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
@@ -257,6 +257,66 @@ type CanvasProps = {
   onSelectEntity: (entityId: string, additive?: boolean) => void;
 };
 
+function isFinitePoint(point: { x: number; y: number } | undefined): point is { x: number; y: number } {
+  return Number.isFinite(point?.x) && Number.isFinite(point?.y);
+}
+
+export function buildSvgPolylinePath(points: BrowserWorkspaceEdgeModel['route']['points']): string {
+  if (points.length < 2 || points.some((point) => !isFinitePoint(point))) {
+    return '';
+  }
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
+}
+
+export function buildFallbackEdgePath(edge: BrowserWorkspaceEdgeModel): string {
+  const start = edge.routingInput.defaultStart;
+  const end = edge.routingInput.defaultEnd;
+  if (!isFinitePoint(start) || !isFinitePoint(end)) {
+    return '';
+  }
+  return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+}
+
+export function resolveRenderedEdgeGeometry(edge: BrowserWorkspaceEdgeModel): {
+  path: string;
+  hitboxPath: string;
+  labelPosition: BrowserWorkspaceEdgeModel['route']['labelPosition'];
+} {
+  const routePath = edge.route.path.trim();
+  const polylinePath = buildSvgPolylinePath(edge.route.points);
+  const path = routePath || polylinePath || buildFallbackEdgePath(edge);
+  const hitboxPath = polylinePath || path;
+  const labelPosition = isFinitePoint(edge.route.labelPosition)
+    ? edge.route.labelPosition
+    : edge.routingInput.defaultStart;
+  return { path, hitboxPath, labelPosition };
+}
+
+function BrowserWorkspaceEdge({
+  edge,
+  onFocusRelationship,
+}: {
+  edge: BrowserWorkspaceEdgeModel;
+  onFocusRelationship: (relationshipId: string) => void;
+}) {
+  const { path, hitboxPath, labelPosition } = resolveRenderedEdgeGeometry(edge);
+  if (!path) {
+    return null;
+  }
+
+  return (
+    <g>
+      <path d={path} className={edge.focused ? 'browser-canvas__edge browser-canvas__edge--focused' : 'browser-canvas__edge'} markerEnd="url(#browser-canvas-arrow)" />
+      <path d={hitboxPath} className="browser-canvas__edge-hitbox" onClick={() => onFocusRelationship(edge.relationshipId)} />
+      <text x={labelPosition.x} y={labelPosition.y - 8} className="browser-canvas__edge-label" textAnchor="middle">
+        {edge.label}
+      </text>
+    </g>
+  );
+}
+
 function BrowserGraphWorkspaceNode({
   node,
   suppressClickRef,
@@ -380,15 +440,11 @@ export function BrowserGraphWorkspaceCanvas({
               <path d="M0,0 L8,4 L0,8 z" className="browser-canvas__arrow" />
             </marker>
           </defs>
-          {model.edges.map((edge) => (
-            <g key={edge.relationshipId}>
-              <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} className={edge.focused ? 'browser-canvas__edge browser-canvas__edge--focused' : 'browser-canvas__edge'} markerEnd="url(#browser-canvas-arrow)" />
-              <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} className="browser-canvas__edge-hitbox" onClick={() => onFocusRelationship(edge.relationshipId)} />
-              <text x={(edge.x1 + edge.x2) / 2} y={(edge.y1 + edge.y2) / 2 - 8} className="browser-canvas__edge-label" textAnchor="middle">
-                {edge.label}
-              </text>
-            </g>
-          ))}
+          <g key={model.routingRevision} data-routing-revision={model.routingRevision}>
+            {model.edges.map((edge) => (
+              <BrowserWorkspaceEdge key={edge.relationshipId} edge={edge} onFocusRelationship={onFocusRelationship} />
+            ))}
+          </g>
         </svg>
 
         {model.nodes.map((node) => (

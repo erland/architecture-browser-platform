@@ -2,6 +2,7 @@ import type { FullSnapshotViewpoint } from './appModel';
 import {
   arrangeCanvasNodesAroundEntityFocus,
   arrangeCanvasNodesInGrid,
+  cleanupArrangedCanvasNodes,
 } from './browser-canvas-placement';
 import {
   type BrowserResolvedViewpointGraph,
@@ -88,7 +89,7 @@ export function arrangeViewpointCanvasNodes(
               : [120, 420, 720, 1020, 1320];
     const laneCounts = graph.recommendedLayout === 'api-surface' || graph.recommendedLayout === 'persistence-model' || graph.recommendedLayout === 'integration-map' || graph.recommendedLayout === 'ui-navigation' ? [0, 0, 0, 0] : graph.recommendedLayout === 'module-dependencies' ? [0, 0, 0] : [0, 0, 0, 0, 0];
     const graphEntityIds = new Set(graph.entityIds);
-    return nodes.map((node, nodeIndex) => {
+    const arranged = nodes.map((node, nodeIndex) => {
       if (node.kind !== 'entity' || !graphEntityIds.has(node.id)) {
         if (node.kind === 'scope') {
           return { ...node, x: 40, y: 40 + nodeIndex * 96 };
@@ -170,6 +171,9 @@ export function arrangeViewpointCanvasNodes(
         pinned: graph.seedEntityIds.includes(node.id) || node.pinned,
       };
     });
+    return state.routingLayoutConfig.features.postLayoutCleanup === false
+      ? arranged
+      : cleanupArrangedCanvasNodes(arranged, { state });
   }
   if (graph.seedEntityIds.length > 0) {
     return arrangeCanvasNodesAroundEntityFocus(nodes, edges, graph.seedEntityIds[0], { state });

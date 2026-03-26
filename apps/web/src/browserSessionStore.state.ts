@@ -11,6 +11,7 @@ import type {
   PersistedBrowserSessionState,
 } from './browserSessionStore.types';
 import { normalizeCanvasNodes } from './browserSessionStore.canvas.nodes';
+import { createDefaultBrowserRoutingLayoutConfig, normalizeBrowserRoutingLayoutConfig } from './browserRoutingLayoutConfig';
 import { syncMeaningfulCanvasEdges } from './browserSessionStore.canvas.relationships';
 import { computeSearchResults } from './browserSessionStore.search';
 import { buildAppliedViewpointGraph } from './browserSessionStore.viewpoints.helpers';
@@ -47,6 +48,8 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
       offsetY: 0,
     },
     fitViewRequestedAt: null,
+    routeRefreshRequestedAt: null,
+    routingLayoutConfig: createDefaultBrowserRoutingLayoutConfig(),
   };
 }
 
@@ -68,6 +71,10 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     canvasLayoutMode: state.canvasLayoutMode,
     treeMode: state.treeMode,
     canvasViewport: { ...state.canvasViewport },
+    routingLayoutConfig: {
+      features: { ...state.routingLayoutConfig.features },
+      defaults: { ...state.routingLayoutConfig.defaults },
+    },
   };
 }
 
@@ -104,6 +111,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
       offsetX: typeof persisted.canvasViewport?.offsetX === 'number' && Number.isFinite(persisted.canvasViewport.offsetX) ? persisted.canvasViewport.offsetX : state.canvasViewport.offsetX,
       offsetY: typeof persisted.canvasViewport?.offsetY === 'number' && Number.isFinite(persisted.canvasViewport.offsetY) ? persisted.canvasViewport.offsetY : state.canvasViewport.offsetY,
     },
+    routingLayoutConfig: normalizeBrowserRoutingLayoutConfig(persisted.routingLayoutConfig),
   };
 }
 

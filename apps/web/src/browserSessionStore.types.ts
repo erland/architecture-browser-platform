@@ -51,6 +51,26 @@ export type BrowserCanvasEdge = {
   toEntityId: string;
 };
 
+export type BrowserRoutingFeatureFlags = {
+  orthogonalRouting: boolean;
+  laneSeparation: boolean;
+  postLayoutCleanup: boolean;
+};
+
+export type BrowserRoutingConservativeDefaults = {
+  gridSize: number;
+  obstacleMargin: number;
+  laneSpacing: number;
+  maxChannelShiftSteps: number;
+  endpointStubLength: number;
+  maxLaneCountForSpacing: number;
+};
+
+export type BrowserRoutingLayoutConfig = {
+  features: BrowserRoutingFeatureFlags;
+  defaults: BrowserRoutingConservativeDefaults;
+};
+
 export type BrowserGraphExpansionAction = {
   type: 'dependencies';
   entityId: string;
@@ -88,6 +108,8 @@ export type BrowserSessionState = {
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
   fitViewRequestedAt: string | null;
+  routeRefreshRequestedAt: string | null;
+  routingLayoutConfig: BrowserRoutingLayoutConfig;
 };
 
 export type PersistedBrowserSessionState = {
@@ -107,4 +129,5 @@ export type PersistedBrowserSessionState = {
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
   canvasViewport: BrowserCanvasViewport;
+  routingLayoutConfig: BrowserRoutingLayoutConfig;
 };

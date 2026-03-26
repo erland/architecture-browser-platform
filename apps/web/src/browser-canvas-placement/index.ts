@@ -30,3 +30,5 @@ export {
   arrangeCanvasNodesAroundEntityFocus,
   arrangeCanvasNodesInGrid,
 } from './relayout';
+
+export { cleanupArrangedCanvasNodes } from './postLayoutCleanup';

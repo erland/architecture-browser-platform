@@ -145,5 +145,6 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
     appliedViewpoint: graph,
     canvasLayoutMode: graph.entityIds.length > 0 ? 'radial' : 'grid',
     fitViewRequestedAt: new Date().toISOString(),
+    routeRefreshRequestedAt: new Date().toISOString(),
   };
 }

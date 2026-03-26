@@ -662,6 +662,8 @@ describe('browserSessionStore', () => {
     expect(isolated.canvasNodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
     expect(arrangedAroundFocus.canvasLayoutMode).toBe('radial');
     expect(arrangedAll.canvasLayoutMode).toBe('grid');
+    expect(arrangedAroundFocus.routeRefreshRequestedAt).not.toBeNull();
+    expect(arrangedAll.routeRefreshRequestedAt).not.toBeNull();
     expect(afterRemoval.canvasNodes).toEqual([]);
     expect(afterRemoval.selectedEntityIds).toEqual([]);
   });
@@ -713,6 +715,92 @@ describe('browserSessionStore', () => {
     const focusNode = arranged.canvasNodes.find((node) => node.id === 'entity:browser');
 
     expect(focusNode).toMatchObject({ x: 840, y: 420, manuallyPlaced: true });
+  });
+
+
+  test('session state seeds conservative routing/layout defaults and preserves them through persistence', () => {
+    const state = createEmptyBrowserSessionState();
+
+    expect(state.routingLayoutConfig.features).toEqual({
+      orthogonalRouting: true,
+      laneSeparation: true,
+      postLayoutCleanup: true,
+    });
+    expect(state.routingLayoutConfig.defaults).toMatchObject({
+      gridSize: 20,
+      obstacleMargin: 10,
+      laneSpacing: 16,
+      maxChannelShiftSteps: 12,
+      endpointStubLength: 10,
+      maxLaneCountForSpacing: 5,
+    });
+
+    const opened = openSnapshotSession(state, {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    const customized = {
+      ...opened,
+      routingLayoutConfig: {
+        ...opened.routingLayoutConfig,
+        features: {
+          ...opened.routingLayoutConfig.features,
+          postLayoutCleanup: false,
+        },
+        defaults: {
+          ...opened.routingLayoutConfig.defaults,
+          laneSpacing: 24,
+        },
+      },
+    };
+
+    const persisted = createPersistedBrowserSessionState(customized);
+    const hydrated = hydrateBrowserSessionState(persisted);
+
+    expect(hydrated.routingLayoutConfig.features.postLayoutCleanup).toBe(false);
+    expect(hydrated.routingLayoutConfig.defaults.laneSpacing).toBe(24);
+  });
+
+  test('hydration normalizes partial routing/layout config to conservative defaults', () => {
+    const hydrated = hydrateBrowserSessionState({
+      routingLayoutConfig: {
+        features: { orthogonalRouting: false },
+        defaults: { laneSpacing: -12, maxLaneCountForSpacing: 0 },
+      } as never,
+    });
+
+    expect(hydrated.routingLayoutConfig.features.orthogonalRouting).toBe(false);
+    expect(hydrated.routingLayoutConfig.features.laneSeparation).toBe(true);
+    expect(hydrated.routingLayoutConfig.features.postLayoutCleanup).toBe(true);
+    expect(hydrated.routingLayoutConfig.defaults.laneSpacing).toBe(0);
+    expect(hydrated.routingLayoutConfig.defaults.maxLaneCountForSpacing).toBe(1);
+    expect(hydrated.routingLayoutConfig.defaults.obstacleMargin).toBe(10);
+  });
+
+  test('arrange commands can skip post-layout cleanup when the conservative flag is disabled', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = {
+      ...state,
+      routingLayoutConfig: {
+        ...state.routingLayoutConfig,
+        features: {
+          ...state.routingLayoutConfig.features,
+          postLayoutCleanup: false,
+        },
+      },
+    };
+
+    const arranged = arrangeAllCanvasNodes(state);
+
+    expect(arranged.routeRefreshRequestedAt).not.toBeNull();
+    expect(arranged.routingLayoutConfig.features.postLayoutCleanup).toBe(false);
   });
 
   test('viewport state persists pan and zoom in the Browser session store', () => {
