@@ -8,6 +8,7 @@ import {
   openSnapshotSession,
   setCanvasViewport,
   setSelectedViewpoint,
+  arrangeAllCanvasNodes,
 } from '../browserSessionStore';
 import {
   createSavedCanvasDocumentFromBrowserSession,
@@ -126,6 +127,27 @@ describe('savedCanvasSessionMapping', () => {
     expect(document.content.nodes.find((node) => node.reference.targetType === 'ENTITY')?.reference.stableKey).not.toBe('entity:browser');
     expect(document.content.edges[0].reference.stableKey).not.toBe('rel:browser-search');
     expect(document.content.edges[0].reference.originalSnapshotLocalId).toBe('rel:browser-search');
+  });
+
+
+  test('preserves structure layout mode when saving an arranged Browser canvas', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = arrangeAllCanvasNodes(state);
+
+    const document = createSavedCanvasDocumentFromBrowserSession({
+      state,
+      canvasId: 'canvas-structure-1',
+      name: 'UI structure',
+    });
+
+    expect(state.canvasLayoutMode).toBe('structure');
+    expect(document.presentation.layoutMode).toBe('structure');
   });
 
   test('restores a saved canvas document into Browser session state', () => {

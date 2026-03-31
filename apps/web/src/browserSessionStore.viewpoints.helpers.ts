@@ -2,7 +2,6 @@ import type { FullSnapshotViewpoint } from './appModel';
 import {
   arrangeCanvasNodesAroundEntityFocus,
   arrangeCanvasNodesInGrid,
-  cleanupArrangedCanvasNodes,
 } from './browser-canvas-placement';
 import {
   type BrowserResolvedViewpointGraph,
@@ -171,9 +170,7 @@ export function arrangeViewpointCanvasNodes(
         pinned: graph.seedEntityIds.includes(node.id) || node.pinned,
       };
     });
-    return state.routingLayoutConfig.features.postLayoutCleanup === false
-      ? arranged
-      : cleanupArrangedCanvasNodes(arranged, { state });
+    return arranged;
   }
   if (graph.seedEntityIds.length > 0) {
     return arrangeCanvasNodesAroundEntityFocus(nodes, edges, graph.seedEntityIds[0], { state });

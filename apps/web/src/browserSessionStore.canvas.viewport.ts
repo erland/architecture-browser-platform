@@ -1,4 +1,6 @@
-import { arrangeCanvasNodesAroundEntityFocus, arrangeCanvasNodesInGrid } from './browser-canvas-placement';
+import { arrangeCanvasNodesAroundEntityFocus } from './browser-canvas-placement';
+import { runBrowserAutoLayout } from './browser-auto-layout';
+import type { BrowserAutoLayoutMode } from './browser-auto-layout';
 import type { BrowserCanvasViewport, BrowserSessionState } from './browserSessionStore.types';
 
 
@@ -53,17 +55,42 @@ export function panCanvasViewport(state: BrowserSessionState, delta: { x: number
   });
 }
 
-export function arrangeAllCanvasNodes(state: BrowserSessionState): BrowserSessionState {
+function arrangeCanvasNodesWithResolvedMode(state: BrowserSessionState, mode: BrowserAutoLayoutMode = 'structure', configOverride?: { manualNodesAreHardAnchors?: boolean }): BrowserSessionState {
   if (state.canvasNodes.length === 0) {
     return state;
   }
+  const layoutResult = runBrowserAutoLayout({
+    mode,
+    nodes: state.canvasNodes,
+    edges: state.canvasEdges,
+    options: { state },
+    state,
+    config: configOverride,
+  });
   const nextState: BrowserSessionState = {
     ...state,
-    canvasNodes: arrangeCanvasNodesInGrid(state.canvasNodes, { state }),
-    canvasLayoutMode: 'grid',
+    canvasNodes: layoutResult.nodes,
+    canvasLayoutMode: layoutResult.canvasLayoutMode,
     fitViewRequestedAt: new Date().toISOString(),
   };
   return withRouteRefresh(nextState);
+}
+
+
+export function arrangeCanvasNodesWithMode(state: BrowserSessionState, mode: BrowserAutoLayoutMode = 'structure'): BrowserSessionState {
+  return arrangeCanvasNodesWithResolvedMode(state, mode);
+}
+
+export function arrangeCanvasNodesInteractivelyWithMode(state: BrowserSessionState, mode: BrowserAutoLayoutMode = 'structure'): BrowserSessionState {
+  return arrangeCanvasNodesWithResolvedMode(state, mode, { manualNodesAreHardAnchors: false });
+}
+
+export function arrangeAllCanvasNodes(state: BrowserSessionState): BrowserSessionState {
+  return arrangeCanvasNodesWithMode(state, 'structure');
+}
+
+export function arrangeAllCanvasNodesInteractive(state: BrowserSessionState): BrowserSessionState {
+  return arrangeCanvasNodesInteractivelyWithMode(state, 'structure');
 }
 
 export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSessionState {
@@ -83,5 +110,5 @@ export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSes
 }
 
 export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
-  return arrangeAllCanvasNodes(state);
+  return arrangeCanvasNodesInteractivelyWithMode(state, state.canvasLayoutMode === 'flow' || state.canvasLayoutMode === 'hierarchy' ? state.canvasLayoutMode : 'structure');
 }

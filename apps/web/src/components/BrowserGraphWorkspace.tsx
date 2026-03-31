@@ -30,6 +30,9 @@ export function BrowserGraphWorkspace({
   onMoveCanvasNode,
   onSetCanvasViewport,
   onArrangeAllCanvasNodes,
+  onArrangeCanvasWithMode = () => {
+    onArrangeAllCanvasNodes();
+  },
   onArrangeCanvasAroundFocus,
   onClearCanvas,
   onFitView,
@@ -124,6 +127,7 @@ export function BrowserGraphWorkspace({
         onIsolateSelection={onIsolateSelection}
         onRemoveSelection={onRemoveSelection}
         onArrangeAllCanvasNodes={onArrangeAllCanvasNodes}
+        onArrangeCanvasWithMode={onArrangeCanvasWithMode}
         onArrangeCanvasAroundFocus={onArrangeCanvasAroundFocus}
         onFitView={onFitView}
         onClearCanvas={onClearCanvas}

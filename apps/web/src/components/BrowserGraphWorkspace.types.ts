@@ -1,5 +1,6 @@
 import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react';
 import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
+import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
 import type { BrowserWorkspaceNodeModel } from '../browserGraphWorkspaceModel';
 
 export type ScopeAnalysisMode = 'primary' | 'direct' | 'subtree' | 'children-primary';
@@ -25,6 +26,7 @@ export type BrowserGraphWorkspaceProps = {
   onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onArrangeAllCanvasNodes: () => void;
+  onArrangeCanvasWithMode?: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;

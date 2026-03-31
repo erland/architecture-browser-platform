@@ -1,4 +1,5 @@
 import { COLLISION_MARGIN, GRID_X, GRID_Y, roundToGrid } from '../browserCanvasPlacement.policy';
+import type { BrowserAutoLayoutCleanupIntensity } from '../browser-auto-layout';
 import type { BrowserCanvasNode } from '../browserSessionStore';
 import type { BrowserCanvasPlacementOptions } from './types';
 import { avoidBrowserCanvasCollisions, getNodeSize, isAnchoredCanvasNode } from './collision';
@@ -39,6 +40,33 @@ function normalizeRowSpacing(nodes: MutableNode[], options?: BrowserCanvasPlacem
   }
 }
 
+
+function compactRows(nodes: MutableNode[], options?: BrowserCanvasPlacementOptions) {
+  const sorted = [...nodes].sort((left, right) => left.y - right.y || left.x - right.x || stableNodeSort(left, right));
+  for (let i = 1; i < sorted.length; i += 1) {
+    const previous = sorted[i - 1];
+    const current = sorted[i];
+    const previousSize = getNodeSize(previous, options);
+    const minimumY = roundToGrid(previous.y + previousSize.height + Math.max(COLLISION_MARGIN, Math.round(GRID_Y / 4)), GRID_Y / 2);
+    if (current.y > minimumY) {
+      current.y = minimumY;
+    }
+  }
+}
+
+function compactColumns(nodes: MutableNode[], options?: BrowserCanvasPlacementOptions) {
+  const sorted = [...nodes].sort((left, right) => left.x - right.x || left.y - right.y || stableNodeSort(left, right));
+  for (let i = 1; i < sorted.length; i += 1) {
+    const previous = sorted[i - 1];
+    const current = sorted[i];
+    const previousSize = getNodeSize(previous, options);
+    const minimumX = roundToGrid(previous.x + previousSize.width + Math.max(COLLISION_MARGIN, Math.round(GRID_X / 4)), GRID_X / 2);
+    if (current.x > minimumX) {
+      current.x = minimumX;
+    }
+  }
+}
+
 function normalizeColumnSpacing(nodes: MutableNode[], options?: BrowserCanvasPlacementOptions) {
   const minGapY = Math.max(COLLISION_MARGIN, Math.round(GRID_Y / 4));
   const sorted = [...nodes].sort((left, right) => left.x - right.x || left.y - right.y || stableNodeSort(left, right));
@@ -59,7 +87,7 @@ function normalizeColumnSpacing(nodes: MutableNode[], options?: BrowserCanvasPla
   }
 }
 
-export function cleanupArrangedCanvasNodes(nodes: BrowserCanvasNode[], options?: BrowserCanvasPlacementOptions): BrowserCanvasNode[] {
+export function cleanupArrangedCanvasNodes(nodes: BrowserCanvasNode[], options?: BrowserCanvasPlacementOptions, cleanupIntensity: BrowserAutoLayoutCleanupIntensity = 'compact'): BrowserCanvasNode[] {
   if (nodes.length <= 1) {
     return nodes.map((node) => ({ ...node }));
   }
@@ -75,6 +103,10 @@ export function cleanupArrangedCanvasNodes(nodes: BrowserCanvasNode[], options?:
 
   normalizeRowSpacing(movable, options);
   normalizeColumnSpacing(movable, options);
+  if (cleanupIntensity === 'compact') {
+    compactRows(movable, options);
+    compactColumns(movable, options);
+  }
 
   let arranged: BrowserCanvasNode[] = anchored.map((node) => ({ ...node }));
   for (const node of movable) {

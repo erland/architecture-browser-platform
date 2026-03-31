@@ -1,5 +1,6 @@
-import type { FullSnapshotEntity } from '../appModel';
+import type { FullSnapshotEntity, FullSnapshotRelationship } from '../appModel';
 import type { BrowserSnapshotIndex } from '../browserSnapshotIndex';
+import { extractBrowserAutoLayoutGraph } from '../browser-auto-layout';
 import {
   CONTAINED_OFFSET_X,
   CONTAINED_OFFSET_Y,
@@ -7,7 +8,7 @@ import {
   PEER_SPACING_Y,
   RADIAL_RADIUS,
 } from '../browserCanvasPlacement.policy';
-import type { BrowserCanvasNode } from '../browserSessionStore';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
 import type {
   BrowserCanvasNodeLike,
   BrowserCanvasNodeSizeLike,
@@ -16,6 +17,7 @@ import type {
 } from './types';
 import { avoidBrowserCanvasCollisions, getNodeSize } from './collision';
 import { placeAppendedCanvasNode, placeFirstCanvasNode } from './initialPlacement';
+import { syncMeaningfulCanvasEdges } from '../browserSessionStore.canvas.relationships';
 
 export function placeCanvasNodeNearAnchor(
   nodes: BrowserCanvasNodeSizeLike[],
@@ -85,6 +87,132 @@ export function getCanvasNodeById(nodes: BrowserCanvasNode[], kind: BrowserCanva
   return nodes.find((node) => node.kind === kind && node.id === id) ?? null;
 }
 
+
+
+type InsertionDirection = 'around' | 'left' | 'right';
+
+function compareInsertionRelationships(left: FullSnapshotRelationship, right: FullSnapshotRelationship) {
+  return left.externalId.localeCompare(right.externalId);
+}
+
+function getVisibleInsertionRelationships(index: BrowserSnapshotIndex, visibleEntityIds: Set<string>) {
+  const relationships = [...index.relationshipsById.values()]
+    .filter((relationship) => visibleEntityIds.has(relationship.fromEntityId) && visibleEntityIds.has(relationship.toEntityId))
+    .sort(compareInsertionRelationships);
+  return relationships;
+}
+
+function buildInsertionState(
+  state: BrowserSessionState,
+  nodes: BrowserCanvasNode[],
+  entityId: string,
+) {
+  const syntheticNodes = [...nodes, { kind: 'entity' as const, id: entityId, x: 0, y: 0 }];
+  const syntheticState = {
+    ...state,
+    canvasNodes: syntheticNodes,
+    canvasEdges: syncMeaningfulCanvasEdges({ ...state, canvasNodes: syntheticNodes }, syntheticNodes),
+  };
+  return { syntheticNodes, syntheticState };
+}
+
+function resolveInsertionDirection(
+  candidateId: string,
+  anchorId: string,
+  relationships: FullSnapshotRelationship[],
+): InsertionDirection {
+  const hasCandidateToAnchor = relationships.some((relationship) => relationship.fromEntityId === candidateId && relationship.toEntityId === anchorId);
+  const hasAnchorToCandidate = relationships.some((relationship) => relationship.fromEntityId === anchorId && relationship.toEntityId === candidateId);
+  if (hasCandidateToAnchor && !hasAnchorToCandidate) {
+    return 'left';
+  }
+  if (hasAnchorToCandidate && !hasCandidateToAnchor) {
+    return 'right';
+  }
+  return 'around';
+}
+
+function chooseGraphInsertionAnchor(
+  nodes: BrowserCanvasNode[],
+  index: BrowserSnapshotIndex,
+  entity: FullSnapshotEntity,
+  state: BrowserSessionState,
+  insertionOptions?: {
+    anchorEntityId?: string | null;
+    anchorDirection?: InsertionDirection;
+    selectedScopeId?: string | null;
+    insertionIndex?: number;
+    insertionCount?: number;
+  },
+) {
+  const visibleEntityIds = new Set(
+    nodes
+      .filter((node) => node.kind === 'entity')
+      .map((node) => node.id),
+  );
+  visibleEntityIds.add(entity.externalId);
+
+  const relevantRelationships = getVisibleInsertionRelationships(index, visibleEntityIds)
+    .filter((relationship) => relationship.fromEntityId === entity.externalId || relationship.toEntityId === entity.externalId);
+  if (relevantRelationships.length === 0) {
+    return null;
+  }
+
+  const { syntheticNodes, syntheticState } = buildInsertionState(state, nodes, entity.externalId);
+  const graph = extractBrowserAutoLayoutGraph({
+    mode: 'structure',
+    state: syntheticState,
+    nodes: syntheticNodes,
+    edges: syntheticState.canvasEdges,
+  });
+
+  const neighborIds = [...new Set(relevantRelationships.flatMap((relationship) => [relationship.fromEntityId, relationship.toEntityId]))]
+    .filter((candidateId) => candidateId !== entity.externalId);
+  if (neighborIds.length === 0) {
+    return null;
+  }
+
+  const graphNodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const anchorNodeId = [...neighborIds].sort((left, right) => {
+    if (left === (insertionOptions?.anchorEntityId ?? null)) {
+      return -1;
+    }
+    if (right === (insertionOptions?.anchorEntityId ?? null)) {
+      return 1;
+    }
+    const leftNode = graphNodesById.get(left);
+    const rightNode = graphNodesById.get(right);
+    if ((leftNode?.focused ?? false) !== (rightNode?.focused ?? false)) {
+      return leftNode?.focused ? -1 : 1;
+    }
+    if ((leftNode?.selected ?? false) !== (rightNode?.selected ?? false)) {
+      return leftNode?.selected ? -1 : 1;
+    }
+    if ((leftNode?.anchored ?? false) !== (rightNode?.anchored ?? false)) {
+      return leftNode?.anchored ? -1 : 1;
+    }
+    if ((leftNode?.incidentCount ?? 0) !== (rightNode?.incidentCount ?? 0)) {
+      return (rightNode?.incidentCount ?? 0) - (leftNode?.incidentCount ?? 0);
+    }
+    return left.localeCompare(right);
+  })[0] ?? null;
+
+  if (!anchorNodeId) {
+    return null;
+  }
+
+  const anchorNode = getCanvasNodeById(nodes, 'entity', anchorNodeId);
+  if (!anchorNode) {
+    return null;
+  }
+
+  return {
+    anchorNode,
+    direction: insertionOptions?.anchorEntityId === anchorNodeId
+      ? (insertionOptions?.anchorDirection ?? resolveInsertionDirection(entity.externalId, anchorNodeId, relevantRelationships))
+      : resolveInsertionDirection(entity.externalId, anchorNodeId, relevantRelationships),
+  };
+}
 export function planEntityInsertion(
   nodes: BrowserCanvasNode[],
   index: BrowserSnapshotIndex,
@@ -110,6 +238,21 @@ export function planEntityInsertion(
     if (anchorNode) {
       return placeCanvasNodeNearAnchor(nodes, 'entity', anchorNode, insertionIndex, insertionCount, insertionOptions?.anchorDirection ?? 'around', layoutOptions);
     }
+  }
+
+  const graphInsertion = layoutOptions?.state
+    ? chooseGraphInsertionAnchor(nodes, index, entity, layoutOptions.state, insertionOptions)
+    : null;
+  if (graphInsertion) {
+    return placeCanvasNodeNearAnchor(
+      nodes,
+      'entity',
+      graphInsertion.anchorNode,
+      insertionIndex,
+      insertionCount,
+      graphInsertion.direction,
+      layoutOptions,
+    );
   }
 
   const scopeId = entity.scopeId ?? null;

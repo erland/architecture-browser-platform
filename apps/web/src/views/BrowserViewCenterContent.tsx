@@ -118,6 +118,7 @@ export function BrowserViewCenterContent({
         onMoveCanvasNode={browserSession.moveCanvasNode}
         onSetCanvasViewport={browserSession.setCanvasViewport}
         onArrangeAllCanvasNodes={browserSession.arrangeAllCanvasNodes}
+        onArrangeCanvasWithMode={browserSession.arrangeCanvasWithMode}
         onArrangeCanvasAroundFocus={browserSession.arrangeCanvasAroundFocus}
         onClearCanvas={browserSession.clearCanvas}
         onFitView={browserSession.fitCanvasView}

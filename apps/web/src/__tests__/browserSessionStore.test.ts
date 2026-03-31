@@ -661,7 +661,7 @@ describe('browserSessionStore', () => {
     expect(isolated.canvasEdges.map((edge) => edge.relationshipId)).toEqual(['rel:1']);
     expect(isolated.canvasNodes.find((node) => node.id === 'entity:browser')?.pinned).toBe(true);
     expect(arrangedAroundFocus.canvasLayoutMode).toBe('radial');
-    expect(arrangedAll.canvasLayoutMode).toBe('grid');
+    expect(arrangedAll.canvasLayoutMode).toBe('structure');
     expect(arrangedAroundFocus.routeRefreshRequestedAt).not.toBeNull();
     expect(arrangedAll.routeRefreshRequestedAt).not.toBeNull();
     expect(afterRemoval.canvasNodes).toEqual([]);

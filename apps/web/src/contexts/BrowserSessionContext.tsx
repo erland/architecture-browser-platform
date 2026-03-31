@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex';
 import type { FullSnapshotPayload } from '../appModel';
+import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
 import {
   type BrowserFactsPanelLocation,
   type BrowserFactsPanelMode,
@@ -23,7 +24,8 @@ import {
   openSnapshotSession,
   persistBrowserSession,
   readPersistedBrowserSession,
-  arrangeAllCanvasNodes,
+  arrangeAllCanvasNodesInteractive,
+  arrangeCanvasNodesInteractivelyWithMode,
   arrangeCanvasAroundFocus,
   relayoutCanvas,
   removeCanvasSelection,
@@ -79,6 +81,7 @@ export type BrowserSessionContextValue = {
   setCanvasViewport: (viewport: Partial<BrowserCanvasViewport>) => void;
   panCanvasViewport: (delta: { x: number; y: number }) => void;
   arrangeAllCanvasNodes: () => void;
+  arrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   arrangeCanvasAroundFocus: () => void;
   relayoutCanvas: () => void;
   clearCanvas: () => void;
@@ -122,7 +125,8 @@ export function BrowserSessionProvider({ children }: { children: ReactNode }) {
     moveCanvasNode: (node, position) => setState((current) => moveCanvasNode(current, node, position)),
     setCanvasViewport: (viewport) => setState((current) => setCanvasViewport(current, viewport)),
     panCanvasViewport: (delta) => setState((current) => panCanvasViewport(current, delta)),
-    arrangeAllCanvasNodes: () => setState((current) => arrangeAllCanvasNodes(current)),
+    arrangeAllCanvasNodes: () => setState((current) => arrangeAllCanvasNodesInteractive(current)),
+    arrangeCanvasWithMode: (mode) => setState((current) => arrangeCanvasNodesInteractivelyWithMode(current, mode)),
     arrangeCanvasAroundFocus: () => setState((current) => arrangeCanvasAroundFocus(current)),
     relayoutCanvas: () => setState((current) => relayoutCanvas(current)),
     clearCanvas: () => setState((current) => clearCanvas(current)),

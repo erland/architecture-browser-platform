@@ -9,6 +9,7 @@ TARGETS=(
   "apps/web/node_modules"
   "apps/web/tsconfig.app.tsbuildinfo"
   "apps/api/target"
+  "node_modules"
 )
 
 removed_any=0

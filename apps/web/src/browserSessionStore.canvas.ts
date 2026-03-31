@@ -19,6 +19,9 @@ export {
 
 export {
   arrangeAllCanvasNodes,
+  arrangeAllCanvasNodesInteractive,
+  arrangeCanvasNodesWithMode,
+  arrangeCanvasNodesInteractivelyWithMode,
   arrangeCanvasAroundFocus,
   clearCanvas,
   panCanvasViewport,

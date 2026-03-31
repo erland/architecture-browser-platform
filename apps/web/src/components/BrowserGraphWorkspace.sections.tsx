@@ -4,6 +4,7 @@ import type { BrowserWorkspaceEdgeModel, BrowserWorkspaceNodeModel, BrowserGraph
 import type { BrowserSessionState } from '../browserSessionStore';
 import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
+import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
 
 
 
@@ -64,6 +65,7 @@ type ToolbarProps = {
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
   onArrangeAllCanvasNodes: () => void;
+  onArrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
   onFitView: () => void;
   onClearCanvas: () => void;
@@ -91,6 +93,7 @@ export function BrowserGraphWorkspaceToolbar({
   onIsolateSelection,
   onRemoveSelection,
   onArrangeAllCanvasNodes,
+  onArrangeCanvasWithMode,
   onArrangeCanvasAroundFocus,
   onFitView,
   onClearCanvas,
@@ -168,7 +171,9 @@ export function BrowserGraphWorkspaceToolbar({
             onClick={(event) => handleMenuSummaryClick(event, canOpenArrangeMenu)}
           >Arrange</summary>
           <div className="browser-canvas__menu-list card">
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeAllCanvasNodes)} disabled={!canArrangeAll}>Arrange all</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeAllCanvasNodes)} disabled={!canArrangeAll}>Arrange all (Structure)</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onArrangeCanvasWithMode('flow'))} disabled={!canArrangeAll}>Flow layout</button>
+            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onArrangeCanvasWithMode('hierarchy'))} disabled={!canArrangeAll}>Hierarchy layout</button>
             <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeCanvasAroundFocus)} disabled={!canArrangeAroundFocus}>Arrange around focus</button>
           </div>
         </details>

@@ -182,7 +182,7 @@ describe('browserGraphWorkspaceModel', () => {
     const gridArrangedModel = buildBrowserGraphWorkspaceModel(gridArrangedState);
 
     expect(focusedArrangedState.canvasLayoutMode).toBe('radial');
-    expect(gridArrangedState.canvasLayoutMode).toBe('grid');
+    expect(gridArrangedState.canvasLayoutMode).toBe('structure');
     expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.x).toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.x);
     expect(initialModel.nodes.find((node) => node.id === 'entity:browser')?.y).toBe(focusedArrangedModel.nodes.find((node) => node.id === 'entity:browser')?.y);
     const movedNonAnchoredNode = focusedArrangedModel.nodes

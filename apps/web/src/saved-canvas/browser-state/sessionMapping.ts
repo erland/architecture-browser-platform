@@ -286,5 +286,13 @@ function resolveSavedCanvasReferenceId(
 }
 
 function normalizeCanvasLayoutMode(layoutMode: string | null | undefined): BrowserCanvasLayoutMode {
-  return layoutMode === 'radial' ? 'radial' : 'grid';
+  return layoutMode === 'radial'
+    ? 'radial'
+    : layoutMode === 'structure'
+      ? 'structure'
+      : layoutMode === 'flow'
+        ? 'flow'
+        : layoutMode === 'hierarchy'
+          ? 'hierarchy'
+          : 'grid';
 }
