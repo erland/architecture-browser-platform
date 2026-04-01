@@ -1,5 +1,5 @@
-import { createSavedCanvasDocument } from '../saved-canvas/model/document';
-import { buildAcceptedSavedCanvasRebindingDocument } from '../saved-canvas/rebinding/accepted';
+import { createSavedCanvasDocument } from '../saved-canvas';
+import { buildAcceptedSavedCanvasRebindingDocument } from '../saved-canvas/rebinding';
 
 describe('savedCanvasAcceptedRebinding', () => {
   it('preserves original provenance while persisting accepted rebinding metadata', () => {

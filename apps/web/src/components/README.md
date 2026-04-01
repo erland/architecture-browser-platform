@@ -14,5 +14,10 @@
 
 - `BrowserFactsPanel.model.ts` owns domain fact assembly for scope/entity/relationship/overview selections.
 - `BrowserFactsPanel.presentation.ts` owns section/header/action presentation shaping for the facts panel.
-- `BrowserFactsPanel.sections.tsx` now renders section-specific presentation models instead of reaching through the full Browser session state.
-
+- `BrowserFactsPanel.sections.tsx` is now a thin export/composition layer for section renderers.
+- `BrowserFactsPanelHeaderSection.tsx` owns header and action rendering.
+- `BrowserFactsPanelViewpointSection.tsx` owns the applied-viewpoint section.
+- `BrowserFactsPanelScopeSections.tsx` owns scope and entity-group sections.
+- `BrowserFactsPanelEntitySections.tsx` owns entity relationship-context rendering.
+- `BrowserFactsPanelRelationshipSections.tsx` owns connected-entity and semantics rendering.
+- `BrowserFactsPanelSupportSections.tsx` owns diagnostics and source-ref rendering.

@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../appModel';
-import { createSavedCanvasDocumentFromBrowserSession, restoreSavedCanvasToBrowserSession } from '../saved-canvas/browser-state/sessionMapping';
-import { rebindSavedCanvasToTargetSnapshot } from '../saved-canvas/rebinding/rebind';
+import { createSavedCanvasDocumentFromBrowserSession, restoreSavedCanvasToBrowserSession } from '../saved-canvas/browserState';
+import { rebindSavedCanvasToTargetSnapshot } from '../saved-canvas/rebinding';
 import {
   addDependenciesToCanvas,
   addEntityToCanvas,

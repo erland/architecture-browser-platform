@@ -1,8 +1,8 @@
-import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../saved-canvas/model/document';
+import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../saved-canvas';
 import {
   InMemorySavedCanvasLocalStorage,
   createSavedCanvasLocalStore,
-} from '../saved-canvas/storage/localStore';
+} from '../saved-canvas/storage';
 import type { SnapshotSummary } from '../appModel.api';
 
 const snapshotA: SnapshotSummary = {

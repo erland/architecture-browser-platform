@@ -13,7 +13,7 @@ import {
 import {
   createSavedCanvasDocumentFromBrowserSession,
   restoreSavedCanvasToBrowserSession,
-} from '../saved-canvas/browser-state/sessionMapping';
+} from '../saved-canvas/browserState';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-save-1',

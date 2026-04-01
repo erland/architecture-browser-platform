@@ -9,5 +9,10 @@
 - `useBrowserViewHandlers.ts` assembles the side-effectful action surface exposed to `BrowserView.tsx`.
 - `useBrowserSavedCanvasController.ts` now composes smaller saved-canvas controller hooks for shared state, record/sync orchestration, and action-driven open/save/rebinding flows.
 - Keep domain logic in subsystem modules rather than rebuilding it in React components.
-- `browserViewWorkflows.ts` owns application-service style Browser commands for search-result handling and canvas analysis/open workflows.
-- `savedCanvasWorkflows.ts` owns application-service style saved-canvas commands for dialog open, save, open, rebind-open, and delete workflows.
+- `browserViewWorkflows.ts` is a compatibility barrel over focused Browser workflow modules.
+- `browserViewFocusWorkflows.ts` owns canvas focus and scope/entity analysis workflows.
+- `browserTopSearchWorkflows.ts` owns top-search action workflows.
+- `savedCanvasWorkflows.ts` is a compatibility barrel over focused saved-canvas workflow modules.
+- `savedCanvasDialogWorkflows.ts` owns dialog-open and record refresh workflows.
+- `savedCanvasOpeningWorkflows.ts` owns open and rebind-open workflows.
+- `savedCanvasPersistenceWorkflows.ts` owns save and delete workflows.

@@ -61,3 +61,36 @@ The auto-layout subsystem now has an explicit pipeline contract:
 - final node application back onto the browser canvas
 
 This keeps `engine.ts` as a small coordinator and gives the three layout modes a common execution contract without changing their current placement behavior.
+
+
+## Step 1b status
+
+Shared layout scaffolding that had been repeated across `flowLayout.ts`, `hierarchyLayout.ts`, and `structureLayout.ts` now lives in small shared helpers:
+
+- `layoutShared.ts`
+  - id and canvas lookup maps
+  - component entity/edge extraction
+  - initial entity origin calculation
+  - shared component ordering wrapper
+  - shared directed adjacency builder
+- `layoutScopePlacement.ts`
+  - common scope placement
+- `layoutAnchors.ts`
+  - common anchored-node detection
+
+This keeps the three mode files focused more on mode-specific band/level/tree logic while preserving existing arrange behavior.
+
+
+## Shared placement orchestration
+
+Step 2 extracts shared placement scaffolding into dedicated modules:
+
+- `layoutAnchoredPlacement.ts` handles anchored-component preparation, anchor assignment, and placement finalization.
+- `layoutFreePlacement.ts` handles shared band-based free-node placement used by multiple layout modes.
+
+The mode files remain responsible for strategy-specific root selection, level assignment, and per-band coordinate decisions.
+
+## Mode strategy support modules
+
+The public `flowLayout.ts`, `hierarchyLayout.ts`, and `structureLayout.ts` files are intentionally thin entrypoints.
+Algorithm-heavy mode internals live in the matching `*LayoutSupport.ts` files so the exported mode modules stay focused on strategy registration and request/context wiring.

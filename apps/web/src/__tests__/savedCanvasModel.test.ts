@@ -4,7 +4,7 @@ import {
   createSavedCanvasItemReference,
   parseSavedCanvasJson,
   toSavedCanvasSnapshotRef,
-} from "../saved-canvas/model/document";
+} from "../saved-canvas";
 import type { SnapshotSummary } from "../appModel.api";
 
 const snapshot: SnapshotSummary = {

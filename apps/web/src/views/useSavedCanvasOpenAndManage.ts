@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
 import type { AppSelectionState } from '../routing/appSelectionState';
-import { type SavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding/ui';
-import { type SavedCanvasOfflineAvailabilitySummary } from '../saved-canvas/open/availability';
-import type { SavedCanvasOpenMode } from '../saved-canvas/open/load';
+import { type SavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding';
+import { type SavedCanvasOfflineAvailabilitySummary } from '../saved-canvas/opening';
+import type { SavedCanvasOpenMode } from '../saved-canvas/opening';
 import type { SnapshotSummary } from '../appModel';
-import type { SavedCanvasDocument } from '../saved-canvas/model/document';
-import type { SavedCanvasLocalStore } from '../saved-canvas/storage/localStore';
-import type { SavedCanvasSyncService } from '../saved-canvas/sync/service';
+import type { SavedCanvasDocument } from '../saved-canvas';
+import type { SavedCanvasLocalStore } from '../saved-canvas/storage';
+import type { SavedCanvasSyncService } from '../saved-canvas/syncing';
 import { runDeleteSavedCanvasCommand, runOpenSavedCanvasCommand, runOpenSavedCanvasDialogCommand, runOpenSavedCanvasOnSelectedSnapshotCommand, runSaveCurrentCanvasCommand } from './savedCanvasWorkflows';
 
 export type SavedCanvasOpenAndManageArgs = {
