@@ -13,6 +13,7 @@ import { buildUndirectedAdjacency, compareNodePriority, orderComponentsForLayout
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from './config';
 import { extractBrowserAutoLayoutGraph } from './graph';
 import { placeBrowserAutoLayoutNode } from './placement';
+import type { BrowserAutoLayoutPipelineContext, BrowserAutoLayoutStrategy } from './pipeline';
 
 function compareIds(left: string, right: string) {
   return left.localeCompare(right);
@@ -592,12 +593,8 @@ function orderComponents(graph: BrowserAutoLayoutGraph, nodeById: Map<string, Br
   return orderComponentsForLayout(graph, nodeById);
 }
 
-export function runBrowserFlowAutoLayout(
-  request: BrowserAutoLayoutRequest,
-  graph?: BrowserAutoLayoutGraph,
-): BrowserAutoLayoutResult {
-  const config = getBrowserAutoLayoutConfig(request);
-  const resolvedGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+export function runBrowserFlowAutoLayoutWithContext(context: BrowserAutoLayoutPipelineContext): BrowserAutoLayoutResult {
+  const { request, config, graph: resolvedGraph } = context;
   const nodeById = getNodeById(resolvedGraph);
   const canvasNodeByKey = getCanvasNodeByKey(request.nodes);
 
@@ -629,4 +626,24 @@ export function runBrowserFlowAutoLayout(
       ? merged
       : cleanupArrangedCanvasNodes(merged, request.options, config.cleanupIntensity),
   };
+}
+
+
+export const runBrowserFlowAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
+  mode: 'flow',
+  run: runBrowserFlowAutoLayoutWithContext,
+};
+
+export function runBrowserFlowAutoLayout(
+  request: BrowserAutoLayoutRequest,
+  graph?: BrowserAutoLayoutGraph,
+): BrowserAutoLayoutResult {
+  const config = getBrowserAutoLayoutConfig(request);
+  const resolvedGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+  return runBrowserFlowAutoLayoutWithContext({
+    request,
+    config,
+    graph: resolvedGraph,
+    mode: 'flow',
+  });
 }

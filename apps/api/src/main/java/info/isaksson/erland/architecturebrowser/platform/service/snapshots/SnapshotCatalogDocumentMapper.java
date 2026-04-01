@@ -1,14 +1,14 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.CompletenessInfo;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullDiagnostic;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullEntity;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullRelationship;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullScope;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.FullViewpoint;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.RunInfo;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceInfo;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SourceRef;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.CompletenessInfo;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullDiagnostic;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullEntity;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullRelationship;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullScope;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullViewpoint;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.RunInfo;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.SourceInfo;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.SourceRef;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

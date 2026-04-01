@@ -1,18 +1,14 @@
 import { useCallback } from 'react';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
 import type { AppSelectionState } from '../routing/appSelectionState';
-import { getBrowserSnapshotCache } from '../snapshotCache';
-import { restoreSavedCanvasToBrowserSession } from '../saved-canvas/browser-state/sessionMapping';
-import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../saved-canvas/open/load';
-import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../saved-canvas/browser-state/document';
-import { rebindSavedCanvasToTargetSnapshot } from '../saved-canvas/rebinding/rebind';
-import { buildAcceptedSavedCanvasRebindingDocument } from '../saved-canvas/rebinding/accepted';
-import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary, type SavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding/ui';
-import { getSavedCanvasOfflineAvailability, type SavedCanvasOfflineAvailabilitySummary } from '../saved-canvas/open/availability';
+import { type SavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding/ui';
+import { type SavedCanvasOfflineAvailabilitySummary } from '../saved-canvas/open/availability';
+import type { SavedCanvasOpenMode } from '../saved-canvas/open/load';
 import type { SnapshotSummary } from '../appModel';
 import type { SavedCanvasDocument } from '../saved-canvas/model/document';
 import type { SavedCanvasLocalStore } from '../saved-canvas/storage/localStore';
 import type { SavedCanvasSyncService } from '../saved-canvas/sync/service';
+import { runDeleteSavedCanvasCommand, runOpenSavedCanvasCommand, runOpenSavedCanvasDialogCommand, runOpenSavedCanvasOnSelectedSnapshotCommand, runSaveCurrentCanvasCommand } from './savedCanvasWorkflows';
 
 export type SavedCanvasOpenAndManageArgs = {
   browserSession: BrowserSessionContextValue;
@@ -75,241 +71,83 @@ export function useSavedCanvasOpenAndManage({
   loadSavedCanvasRecords,
   buildOfflineUnavailableMessage,
 }: SavedCanvasOpenAndManageArgs) {
+  const commandPorts = {
+    browserSession,
+    selection,
+    selectedSnapshot,
+    selectedSnapshotLabel,
+    currentSavedCanvasId,
+    currentSavedCanvasBaseline,
+    savedCanvasDraftName,
+    savedCanvasAvailabilityById,
+    isOffline,
+    rebindingCanvasId,
+    setSavedCanvasStatusMessage,
+    setCurrentSavedCanvasId,
+    setCurrentSavedCanvasBaseline,
+    setSavedCanvasDraftName,
+    setRebindingCanvasId,
+    setRebindingSummary,
+    setIsSavedCanvasDialogOpen,
+    savedCanvasStore,
+    savedCanvasSyncService,
+    runSavedCanvasSync,
+    applySavedCanvasSyncResult,
+    loadSavedCanvasRecords,
+    buildOfflineUnavailableMessage,
+  };
+
   const handleOpenSavedCanvasDialog = useCallback(async () => {
     try {
-      const currentRecord = currentSavedCanvasId ? await savedCanvasStore.getCanvas(currentSavedCanvasId) : null;
-      setSavedCanvasDraftName(currentRecord?.name ?? defaultSavedCanvasName(selectedSnapshotLabel));
-      setSavedCanvasStatusMessage(null);
-      setIsSavedCanvasDialogOpen(true);
-      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: true }));
-      await loadSavedCanvasRecords();
+      await runOpenSavedCanvasDialogCommand(commandPorts);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to load saved canvases.');
     }
-  }, [applySavedCanvasSyncResult, currentSavedCanvasId, loadSavedCanvasRecords, runSavedCanvasSync, savedCanvasStore, selectedSnapshotLabel, setIsSavedCanvasDialogOpen, setSavedCanvasDraftName, setSavedCanvasStatusMessage]);
+  }, [commandPorts, setSavedCanvasStatusMessage]);
 
   const handleSaveCurrentCanvas = useCallback(async () => {
-    if (!browserSession.state.activeSnapshot || !browserSession.state.payload || !browserSession.state.index) {
-      setSavedCanvasStatusMessage('Open a prepared Browser snapshot before saving a canvas.');
-      return;
-    }
     setIsSavedCanvasBusy(true);
     try {
-      const existingRecord = currentSavedCanvasId ? await savedCanvasStore.getCanvas(currentSavedCanvasId) : null;
-      const document = buildSavedCanvasDocumentForSave({
-        state: browserSession.state,
-        name: savedCanvasDraftName,
-        existing: currentSavedCanvasBaseline ?? existingRecord?.document ?? null,
-      });
-      const savedRecord = await savedCanvasStore.putCanvas(document);
-      const pendingRecord = await savedCanvasSyncService.markCanvasPendingSync(savedRecord.document);
-      setCurrentSavedCanvasId(pendingRecord.canvasId);
-      setCurrentSavedCanvasBaseline(pendingRecord.document);
-      setSavedCanvasDraftName(pendingRecord.name);
-      setRebindingCanvasId(null);
-      setRebindingSummary(null);
-      setSavedCanvasStatusMessage(`Saved ${pendingRecord.name} locally. Sync queued.`);
-      await loadSavedCanvasRecords(pendingRecord.workspaceId, pendingRecord.repositoryRegistrationId);
-      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: false }), pendingRecord.canvasId);
+      await runSaveCurrentCanvasCommand(commandPorts);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to save canvas.');
     } finally {
       setIsSavedCanvasBusy(false);
     }
-  }, [
-    applySavedCanvasSyncResult,
-    browserSession.state,
-    currentSavedCanvasBaseline,
-    currentSavedCanvasId,
-    loadSavedCanvasRecords,
-    runSavedCanvasSync,
-    savedCanvasDraftName,
-    savedCanvasStore,
-    savedCanvasSyncService,
-    setCurrentSavedCanvasBaseline,
-    setCurrentSavedCanvasId,
-    setIsSavedCanvasBusy,
-    setRebindingCanvasId,
-    setRebindingSummary,
-    setSavedCanvasDraftName,
-    setSavedCanvasStatusMessage,
-  ]);
+  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   const handleOpenSavedCanvas = useCallback(async (canvasId: string, mode: SavedCanvasOpenMode = 'original') => {
     setIsSavedCanvasBusy(true);
     try {
-      const record = await savedCanvasStore.getCanvas(canvasId);
-      if (!record) {
-        throw new Error('Saved canvas could not be found.');
-      }
-      const availability = savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), selectedSnapshot);
-      if (isOffline) {
-        const requestedAvailable = mode === 'original'
-          ? availability.origin.availableOffline
-          : (availability.currentTarget?.availableOffline ?? false);
-        if (!requestedAvailable) {
-          throw new Error(buildOfflineUnavailableMessage(availability, mode));
-        }
-      }
-      const cache = getBrowserSnapshotCache();
-      const openedSnapshot = await loadSavedCanvasSnapshotForOpen(record.document, cache, mode);
-      const documentForOpen = mode === 'original'
-        ? {
-            ...record.document,
-            bindings: {
-              ...record.document.bindings,
-              currentTargetSnapshot: record.document.bindings.originSnapshot,
-            },
-          }
-        : record.document;
-      const restored = restoreSavedCanvasToBrowserSession({
-        document: documentForOpen,
-        payload: openedSnapshot.payload,
-        preparedAt: openedSnapshot.preparedAt,
-      });
-      browserSession.replaceState(restored.state);
-      const snapshotRef = openedSnapshot.snapshotRef;
-      selection.setSelectedWorkspaceId(snapshotRef.workspaceId);
-      selection.setSelectedRepositoryId(snapshotRef.repositoryRegistrationId);
-      selection.setSelectedSnapshotId(snapshotRef.snapshotId);
-      setCurrentSavedCanvasId(record.canvasId);
-      setCurrentSavedCanvasBaseline(documentForOpen);
-      setSavedCanvasDraftName(record.name);
-      setRebindingCanvasId(null);
-      setRebindingSummary(null);
-      const unresolvedCount = restored.unresolvedNodeIds.length + restored.unresolvedEdgeIds.length;
-      const modeLabel = mode === 'original' ? 'original snapshot' : 'current target snapshot';
-      const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
-      setSavedCanvasStatusMessage(unresolvedCount > 0 ? `Opened ${record.name} on the ${modeLabel}${availabilityLabel} with ${unresolvedCount} unresolved canvas item(s).` : `Opened ${record.name} on the ${modeLabel}${availabilityLabel}.`);
-      setIsSavedCanvasDialogOpen(false);
+      await runOpenSavedCanvasCommand(commandPorts, canvasId, mode);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas.');
     } finally {
       setIsSavedCanvasBusy(false);
     }
-  }, [browserSession, buildOfflineUnavailableMessage, isOffline, savedCanvasAvailabilityById, savedCanvasStore, selectedSnapshot, selection, setCurrentSavedCanvasBaseline, setCurrentSavedCanvasId, setIsSavedCanvasBusy, setIsSavedCanvasDialogOpen, setRebindingCanvasId, setRebindingSummary, setSavedCanvasDraftName, setSavedCanvasStatusMessage]);
+  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   const handleOpenSavedCanvasOnSelectedSnapshot = useCallback(async (canvasId: string) => {
-    if (!selectedSnapshot) {
-      setSavedCanvasStatusMessage('Select the target snapshot you want to rebind to before opening a saved canvas on it.');
-      return;
-    }
     setIsSavedCanvasBusy(true);
     try {
-      const record = await savedCanvasStore.getCanvas(canvasId);
-      if (!record) {
-        throw new Error('Saved canvas could not be found.');
-      }
-      const availability = savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), selectedSnapshot);
-      if (isOffline && !availability.selected?.availableOffline) {
-        throw new Error(buildOfflineUnavailableMessage(availability, 'selected'));
-      }
-      const cache = getBrowserSnapshotCache();
-      const openedSnapshot = await loadSelectedTargetSnapshotForSavedCanvasOpen(selectedSnapshot, cache);
-      const rebound = rebindSavedCanvasToTargetSnapshot(record.document, selectedSnapshot, openedSnapshot.payload, openedSnapshot.preparedAt);
-      const acceptedRebindingDocument = buildAcceptedSavedCanvasRebindingDocument({
-        baseline: record.document,
-        rebound: rebound.document,
-        acceptedAt: openedSnapshot.preparedAt,
-      });
-      const persistedAcceptedRecord = await savedCanvasStore.putCanvas(acceptedRebindingDocument);
-      const pendingAcceptedRecord = await savedCanvasSyncService.markCanvasPendingSync(persistedAcceptedRecord.document, openedSnapshot.preparedAt);
-      const restored = restoreSavedCanvasToBrowserSession({
-        document: pendingAcceptedRecord.document,
-        payload: openedSnapshot.payload,
-        preparedAt: openedSnapshot.preparedAt,
-      });
-      browserSession.replaceState(restored.state);
-      selection.setSelectedWorkspaceId(selectedSnapshot.workspaceId);
-      selection.setSelectedRepositoryId(selectedSnapshot.repositoryRegistrationId);
-      selection.setSelectedSnapshotId(selectedSnapshot.id);
-      setCurrentSavedCanvasId(pendingAcceptedRecord.canvasId);
-      setCurrentSavedCanvasBaseline(pendingAcceptedRecord.document);
-      setSavedCanvasDraftName(pendingAcceptedRecord.name);
-      await loadSavedCanvasRecords(pendingAcceptedRecord.workspaceId, pendingAcceptedRecord.repositoryRegistrationId);
-      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: true }), pendingAcceptedRecord.canvasId);
-      const summary = toSavedCanvasRebindingUiSummary(rebound);
-      setRebindingCanvasId(pendingAcceptedRecord.canvasId);
-      setRebindingSummary(summary);
-      const availabilityLabel = openedSnapshot.availability === 'fetched-remotely' ? ' after fetching the snapshot' : '';
-      setSavedCanvasStatusMessage(`${buildSavedCanvasRebindingStatusMessage({
-        canvasName: pendingAcceptedRecord.name,
-        targetSnapshotLabel: selectedSnapshot.snapshotKey,
-        availabilityLabel,
-        summary,
-      })} Accepted remap metadata was saved for future opens.`);
-      setIsSavedCanvasDialogOpen(summary.unresolvedCount > 0);
+      await runOpenSavedCanvasOnSelectedSnapshotCommand(commandPorts, canvasId);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas on the selected snapshot.');
     } finally {
       setIsSavedCanvasBusy(false);
     }
-  }, [
-    applySavedCanvasSyncResult,
-    browserSession,
-    buildOfflineUnavailableMessage,
-    isOffline,
-    loadSavedCanvasRecords,
-    runSavedCanvasSync,
-    savedCanvasAvailabilityById,
-    savedCanvasStore,
-    savedCanvasSyncService,
-    selectedSnapshot,
-    selection,
-    setCurrentSavedCanvasBaseline,
-    setCurrentSavedCanvasId,
-    setIsSavedCanvasBusy,
-    setIsSavedCanvasDialogOpen,
-    setRebindingCanvasId,
-    setRebindingSummary,
-    setSavedCanvasDraftName,
-    setSavedCanvasStatusMessage,
-  ]);
+  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   const handleDeleteSavedCanvas = useCallback(async (canvasId: string) => {
     setIsSavedCanvasBusy(true);
     try {
-      const existingRecord = await savedCanvasStore.getCanvas(canvasId);
-      if (!existingRecord) {
-        throw new Error('Saved canvas could not be found.');
-      }
-      await savedCanvasSyncService.markCanvasDeletedPendingSync(existingRecord);
-      if (currentSavedCanvasId === canvasId) {
-        setCurrentSavedCanvasId(null);
-        setCurrentSavedCanvasBaseline(null);
-        setSavedCanvasDraftName(defaultSavedCanvasName(selectedSnapshotLabel));
-      }
-      if (rebindingCanvasId === canvasId) {
-        setRebindingCanvasId(null);
-        setRebindingSummary(null);
-      }
-      await loadSavedCanvasRecords();
-      setSavedCanvasStatusMessage(existingRecord.syncState === 'SYNCHRONIZED' || existingRecord.document.sync.backendVersion
-        ? 'Saved canvas marked for deletion. Sync queued.'
-        : 'Saved canvas deleted locally.');
-      applySavedCanvasSyncResult(await runSavedCanvasSync({ silent: false }));
+      await runDeleteSavedCanvasCommand(commandPorts, canvasId);
     } catch (caught) {
       setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to delete saved canvas.');
     } finally {
       setIsSavedCanvasBusy(false);
     }
-  }, [
-    applySavedCanvasSyncResult,
-    currentSavedCanvasId,
-    loadSavedCanvasRecords,
-    rebindingCanvasId,
-    runSavedCanvasSync,
-    savedCanvasStore,
-    savedCanvasSyncService,
-    selectedSnapshotLabel,
-    setCurrentSavedCanvasBaseline,
-    setCurrentSavedCanvasId,
-    setIsSavedCanvasBusy,
-    setRebindingCanvasId,
-    setRebindingSummary,
-    setSavedCanvasDraftName,
-    setSavedCanvasStatusMessage,
-  ]);
+  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   return {
     handleOpenSavedCanvasDialog,

@@ -1,24 +1,15 @@
-import { applyBrowserAutoLayoutNodes } from './apply';
-import { getBrowserAutoLayoutConfig } from './config';
-import { extractBrowserAutoLayoutGraph } from './graph';
-import { runBrowserFlowAutoLayout } from './flowLayout';
-import { runBrowserHierarchyAutoLayout } from './hierarchyLayout';
-import { runBrowserStructureAutoLayout } from './structureLayout';
+import { runBrowserFlowAutoLayoutStrategy } from './flowLayout';
+import { runBrowserHierarchyAutoLayoutStrategy } from './hierarchyLayout';
+import { runBrowserAutoLayoutPipeline } from './pipeline';
+import { runBrowserStructureAutoLayoutStrategy } from './structureLayout';
 import type { BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from './types';
 
+const BROWSER_AUTO_LAYOUT_STRATEGIES = [
+  runBrowserStructureAutoLayoutStrategy,
+  runBrowserFlowAutoLayoutStrategy,
+  runBrowserHierarchyAutoLayoutStrategy,
+] as const;
+
 export function runBrowserAutoLayout(request: BrowserAutoLayoutRequest): BrowserAutoLayoutResult {
-  const config = getBrowserAutoLayoutConfig(request);
-  const graph = extractBrowserAutoLayoutGraph(request);
-  const mode = request.mode ?? config.defaultMode;
-
-  const result = mode === 'flow'
-    ? runBrowserFlowAutoLayout(request, graph)
-    : mode === 'hierarchy'
-      ? runBrowserHierarchyAutoLayout(request, graph)
-      : runBrowserStructureAutoLayout(request, graph);
-
-  return {
-    ...result,
-    nodes: applyBrowserAutoLayoutNodes(request.nodes, result.nodes),
-  };
+  return runBrowserAutoLayoutPipeline(request, BROWSER_AUTO_LAYOUT_STRATEGIES);
 }

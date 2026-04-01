@@ -67,61 +67,61 @@ export function BrowserViewCenterContent({
           if (!targetScopeId) {
             return;
           }
-          browserSession.addScopeToCanvas(targetScopeId);
-          browserSession.selectScope(targetScopeId);
-          browserSession.focusElement({ kind: 'scope', id: targetScopeId });
-          browserSession.openFactsPanel('scope', 'right');
+          browserSession.canvas.addScopeToCanvas(targetScopeId);
+          browserSession.navigation.selectScope(targetScopeId);
+          browserSession.factsPanel.focusElement({ kind: 'scope', id: targetScopeId });
+          browserSession.factsPanel.open('scope', 'right');
         }}
         onAddScopeAnalysis={onAddScopeAnalysis}
         onAddContainedEntities={onAddContainedEntities}
         onAddPeerEntities={onAddPeerEntities}
         onFocusScope={(scopeId) => {
-          browserSession.selectScope(scopeId);
-          browserSession.focusElement({ kind: 'scope', id: scopeId });
-          browserSession.openFactsPanel('scope', 'right');
+          browserSession.navigation.selectScope(scopeId);
+          browserSession.factsPanel.focusElement({ kind: 'scope', id: scopeId });
+          browserSession.factsPanel.open('scope', 'right');
         }}
         onFocusEntity={(entityId) => {
-          browserSession.selectCanvasEntity(entityId);
-          browserSession.focusElement({ kind: 'entity', id: entityId });
-          browserSession.openFactsPanel('entity', 'right');
+          browserSession.canvas.selectEntity(entityId);
+          browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+          browserSession.factsPanel.open('entity', 'right');
         }}
         onSelectEntity={(entityId, additive) => {
-          browserSession.selectCanvasEntity(entityId, additive);
-          browserSession.openFactsPanel('entity', 'right');
+          browserSession.canvas.selectEntity(entityId, additive);
+          browserSession.factsPanel.open('entity', 'right');
         }}
         onFocusRelationship={(relationshipId) => {
-          browserSession.focusElement({ kind: 'relationship', id: relationshipId });
-          browserSession.openFactsPanel('relationship', 'right');
+          browserSession.factsPanel.focusElement({ kind: 'relationship', id: relationshipId });
+          browserSession.factsPanel.open('relationship', 'right');
         }}
         onExpandEntityDependencies={(entityId) => {
-          browserSession.addDependenciesToCanvas(entityId);
-          browserSession.selectCanvasEntity(entityId);
-          browserSession.focusElement({ kind: 'entity', id: entityId });
-          browserSession.openFactsPanel('entity', 'right');
+          browserSession.canvas.addDependenciesToCanvas(entityId);
+          browserSession.canvas.selectEntity(entityId);
+          browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+          browserSession.factsPanel.open('entity', 'right');
         }}
         onExpandInboundDependencies={(entityId) => {
-          browserSession.addDependenciesToCanvas(entityId, 'INBOUND');
-          browserSession.selectCanvasEntity(entityId);
-          browserSession.focusElement({ kind: 'entity', id: entityId });
-          browserSession.openFactsPanel('entity', 'right');
+          browserSession.canvas.addDependenciesToCanvas(entityId, 'INBOUND');
+          browserSession.canvas.selectEntity(entityId);
+          browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+          browserSession.factsPanel.open('entity', 'right');
         }}
         onExpandOutboundDependencies={(entityId) => {
-          browserSession.addDependenciesToCanvas(entityId, 'OUTBOUND');
-          browserSession.selectCanvasEntity(entityId);
-          browserSession.focusElement({ kind: 'entity', id: entityId });
-          browserSession.openFactsPanel('entity', 'right');
+          browserSession.canvas.addDependenciesToCanvas(entityId, 'OUTBOUND');
+          browserSession.canvas.selectEntity(entityId);
+          browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+          browserSession.factsPanel.open('entity', 'right');
         }}
-        onRemoveEntity={(entityId) => browserSession.removeEntityFromCanvas(entityId)}
-        onRemoveSelection={browserSession.removeCanvasSelection}
-        onIsolateSelection={browserSession.isolateCanvasSelection}
-        onTogglePinNode={browserSession.toggleCanvasNodePin}
-        onMoveCanvasNode={browserSession.moveCanvasNode}
-        onSetCanvasViewport={browserSession.setCanvasViewport}
-        onArrangeAllCanvasNodes={browserSession.arrangeAllCanvasNodes}
-        onArrangeCanvasWithMode={browserSession.arrangeCanvasWithMode}
-        onArrangeCanvasAroundFocus={browserSession.arrangeCanvasAroundFocus}
-        onClearCanvas={browserSession.clearCanvas}
-        onFitView={browserSession.fitCanvasView}
+        onRemoveEntity={(entityId) => browserSession.canvas.removeEntityFromCanvas(entityId)}
+        onRemoveSelection={browserSession.canvas.removeSelection}
+        onIsolateSelection={browserSession.canvas.isolateSelection}
+        onTogglePinNode={browserSession.canvas.toggleNodePin}
+        onMoveCanvasNode={browserSession.canvas.moveNode}
+        onSetCanvasViewport={browserSession.canvas.setViewport}
+        onArrangeAllCanvasNodes={browserSession.canvas.arrangeAllNodes}
+        onArrangeCanvasWithMode={browserSession.canvas.arrangeWithMode}
+        onArrangeCanvasAroundFocus={browserSession.canvas.arrangeAroundFocus}
+        onClearCanvas={browserSession.canvas.clear}
+        onFitView={browserSession.canvas.fitView}
       />
     </div>
   );

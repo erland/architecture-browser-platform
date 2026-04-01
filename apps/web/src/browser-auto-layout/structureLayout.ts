@@ -13,6 +13,7 @@ import { buildUndirectedAdjacency, compareNodePriority, orderComponentsForLayout
 import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNode } from './config';
 import { extractBrowserAutoLayoutGraph } from './graph';
 import { placeBrowserAutoLayoutNode } from './placement';
+import type { BrowserAutoLayoutPipelineContext, BrowserAutoLayoutStrategy } from './pipeline';
 
 function compareIds(left: string, right: string) {
   return left.localeCompare(right);
@@ -295,13 +296,13 @@ function placeAnchoredComponentNodes(
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
+  const config = getBrowserAutoLayoutConfig(request);
   const componentNodes = getEntityComponentNodes(component, nodeById);
   if (componentNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
   const componentEdges = graph.edges.filter((edge) => component.nodeIds.includes(edge.fromEntityId) && component.nodeIds.includes(edge.toEntityId));
-  const config = getBrowserAutoLayoutConfig(request);
   const anchorNodes = getAnchoredNodes(componentNodes, request);
   if (anchorNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
@@ -413,6 +414,7 @@ function placeFreeComponentNodes(
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
+  const config = getBrowserAutoLayoutConfig(request);
   const componentNodes = getEntityComponentNodes(component, nodeById);
   if (componentNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
@@ -424,7 +426,6 @@ function placeFreeComponentNodes(
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
-  const config = getBrowserAutoLayoutConfig(request);
   const componentOrigin = {
     ...getInitialEntityOrigin(arranged),
     y: fallbackOriginY,
@@ -474,8 +475,8 @@ function placeComponentNodes(
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
-  const componentNodes = getEntityComponentNodes(component, nodeById);
   const config = getBrowserAutoLayoutConfig(request);
+  const componentNodes = getEntityComponentNodes(component, nodeById);
   if (componentNodes.some((node) => isHardAnchorCanvasNode(node, config))) {
     return placeAnchoredComponentNodes(
       component,
@@ -506,11 +507,8 @@ function orderComponents(graph: BrowserAutoLayoutGraph, nodeById: Map<string, Br
     : [...graph.components].sort((left, right) => left.id.localeCompare(right.id));
 }
 
-export function runBrowserStructureAutoLayout(
-  request: BrowserAutoLayoutRequest,
-  graph?: BrowserAutoLayoutGraph,
-): BrowserAutoLayoutResult {
-  const resolvedGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+export function runBrowserStructureAutoLayoutWithContext(context: BrowserAutoLayoutPipelineContext): BrowserAutoLayoutResult {
+  const { request, config, graph: resolvedGraph } = context;
   const nodeById = getNodeById(resolvedGraph);
   const canvasNodeByKey = getCanvasNodeByKey(request.nodes);
 
@@ -518,7 +516,6 @@ export function runBrowserStructureAutoLayout(
   arranged = placeScopeNodes(request.nodes, arranged, request);
 
   let nextOriginY = getInitialEntityOrigin(arranged).y;
-  const config = getBrowserAutoLayoutConfig(request);
 
   for (const component of orderComponents(resolvedGraph, nodeById, request)) {
     const { arranged: nextArranged, nextOriginY: updatedOriginY } = placeComponentNodes(
@@ -544,4 +541,24 @@ export function runBrowserStructureAutoLayout(
       ? merged
       : cleanupArrangedCanvasNodes(merged, request.options, config.cleanupIntensity),
   };
+}
+
+
+export const runBrowserStructureAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
+  mode: 'structure',
+  run: runBrowserStructureAutoLayoutWithContext,
+};
+
+export function runBrowserStructureAutoLayout(
+  request: BrowserAutoLayoutRequest,
+  graph?: BrowserAutoLayoutGraph,
+): BrowserAutoLayoutResult {
+  const config = getBrowserAutoLayoutConfig(request);
+  const resolvedGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+  return runBrowserStructureAutoLayoutWithContext({
+    request,
+    config,
+    graph: resolvedGraph,
+    mode: 'structure',
+  });
 }

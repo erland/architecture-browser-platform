@@ -1,7 +1,7 @@
 package info.isaksson.erland.architecturebrowser.platform.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotImportResponse;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotImportDtos.SnapshotImportResponse;
 import info.isaksson.erland.architecturebrowser.platform.service.SnapshotImportService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;

@@ -1,8 +1,8 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.DiagnosticSummary;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.KindCount;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.NameCount;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.DiagnosticSummary;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.KindCount;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.NameCount;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
 import info.isaksson.erland.architecturebrowser.platform.domain.ImportedFactEntity;

@@ -8,6 +8,7 @@ import {
   createSavedCanvasRelationshipReference,
   createSavedCanvasScopeReference,
   resolveSavedCanvasReferenceIdByStableKey,
+  resolveSavedCanvasReferenceWithFallback,
 } from '../saved-canvas/rebinding/stableReferences';
 
 const snapshotSummary: SnapshotSummary = {
@@ -105,5 +106,97 @@ describe('savedCanvasStableReferences', () => {
     expect(resolveSavedCanvasReferenceIdByStableKey(laterIndex, scopeReference)).toBe('scope:web:v2');
     expect(resolveSavedCanvasReferenceIdByStableKey(laterIndex, entityReference)).toBe('entity:browser:v2');
     expect(resolveSavedCanvasReferenceIdByStableKey(laterIndex, relationshipReference)).toBe('rel:browser-search:v2');
+  });
+
+
+  test('prefers qualified-name fallback before broader entity fallback rules', () => {
+    const originalIndex = getOrBuildBrowserSnapshotIndex(createPayload());
+    const laterIndex = getOrBuildBrowserSnapshotIndex({
+      ...createPayload({
+        scopeWebId: 'scope:web:v2',
+        browserEntityId: 'entity:browser:v2',
+        searchEntityId: 'entity:search:v2',
+      }),
+      entities: [
+        {
+          externalId: 'entity:browser:wrong',
+          kind: 'COMPONENT',
+          origin: 'react',
+          name: 'BrowserView',
+          displayName: 'BrowserView',
+          scopeId: 'scope:web:v2',
+          sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 100, snippet: null, metadata: {} }],
+          metadata: { qualifiedName: 'apps/web/OtherBrowserView' },
+        },
+        {
+          externalId: 'entity:browser:v2',
+          kind: 'COMPONENT',
+          origin: 'react',
+          name: 'BrowserView',
+          displayName: 'BrowserView',
+          scopeId: 'scope:web:v2',
+          sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 1, endLine: 100, snippet: null, metadata: {} }],
+          metadata: { qualifiedName: 'apps/web/BrowserView' },
+        },
+        {
+          externalId: 'entity:search:v2',
+          kind: 'COMPONENT',
+          origin: 'react',
+          name: 'SearchTab',
+          displayName: 'SearchTab',
+          scopeId: 'scope:web:v2',
+          sourceRefs: [{ path: 'apps/web/src/components/SearchTab.tsx', startLine: 1, endLine: 80, snippet: null, metadata: {} }],
+          metadata: { qualifiedName: 'apps/web/SearchTab' },
+        },
+      ],
+      relationships: [],
+    });
+
+    const entityReference = createSavedCanvasEntityReference(originalIndex, 'entity:browser');
+    const resolution = resolveSavedCanvasReferenceWithFallback(laterIndex, {
+      ...entityReference,
+      stableKey: 'entity:missing',
+      originalSnapshotLocalId: 'entity:missing',
+    });
+
+    expect(resolution).toEqual({
+      resolvedId: 'entity:browser:v2',
+      strategy: 'FALLBACK_ENTITY_QUALIFIED_NAME',
+    });
+  });
+
+  test('uses relationship endpoint fallback before broader kind and label matching', () => {
+    const originalIndex = getOrBuildBrowserSnapshotIndex(createPayload());
+    const laterPayload = createPayload({
+      scopeWebId: 'scope:web:v2',
+      browserEntityId: 'entity:browser:v2',
+      searchEntityId: 'entity:search:v2',
+      relationshipId: 'rel:browser-search:v2',
+    });
+    laterPayload.relationships = [
+      {
+        externalId: 'rel:wrong',
+        kind: 'USES',
+        fromEntityId: 'entity:search:v2',
+        toEntityId: 'entity:browser:v2',
+        label: 'uses',
+        sourceRefs: [{ path: 'apps/web/src/views/BrowserView.tsx', startLine: 10, endLine: 12, snippet: null, metadata: {} }],
+        metadata: {},
+      },
+      laterPayload.relationships[0],
+    ];
+    const laterIndex = getOrBuildBrowserSnapshotIndex(laterPayload);
+
+    const relationshipReference = createSavedCanvasRelationshipReference(originalIndex, 'rel:browser-search');
+    const resolution = resolveSavedCanvasReferenceWithFallback(laterIndex, {
+      ...relationshipReference,
+      stableKey: 'rel:missing',
+      originalSnapshotLocalId: 'rel:missing',
+    });
+
+    expect(resolution).toEqual({
+      resolvedId: 'rel:browser-search:v2',
+      strategy: 'FALLBACK_RELATIONSHIP_ENDPOINTS',
+    });
   });
 });

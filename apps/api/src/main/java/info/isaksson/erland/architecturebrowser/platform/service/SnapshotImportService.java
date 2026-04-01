@@ -1,7 +1,7 @@
 package info.isaksson.erland.architecturebrowser.platform.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotImportResponse;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotImportDtos.SnapshotImportResponse;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import info.isaksson.erland.architecturebrowser.platform.domain.IndexRunEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegistrationEntity;

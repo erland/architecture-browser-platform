@@ -1,43 +1,51 @@
-import type { BrowserSessionState } from '../browserSessionStore';
-import type { BrowserFactsPanelModel } from './BrowserFactsPanel.types';
+import type {
+  BrowserFactsPanelActionsModel,
+  BrowserFactsPanelDiagnosticsSectionModel,
+  BrowserFactsPanelEntitySectionModel,
+  BrowserFactsPanelHeaderModel,
+  BrowserFactsPanelRelationshipSectionModel,
+  BrowserFactsPanelScopeSectionModel,
+  BrowserFactsPanelSourceRefsSectionModel,
+  BrowserFactsPanelViewpointSectionModel,
+} from './BrowserFactsPanel.types';
 import type { BrowserFactsPanelProps } from './BrowserFactsPanel';
-import { displayScopeName, renderDiagnostic, renderEntityButtonLabel, renderSourceRef, renderViewpointList } from './BrowserFactsPanel.utils';
+import { renderDiagnostic, renderEntityButtonLabel, renderSourceRef, renderViewpointList } from './BrowserFactsPanel.utils';
 
-export function FactsPanelHeader({ model, onClose }: Pick<BrowserFactsPanelProps, 'onClose'> & { model: BrowserFactsPanelModel }) {
+export function FactsPanelHeader({ header, onClose }: Pick<BrowserFactsPanelProps, 'onClose'> & { header: BrowserFactsPanelHeaderModel }) {
   return (
     <>
       <div className="browser-facts-panel__header">
         <div>
           <p className="eyebrow">Facts panel</p>
-          <h3>{model.title}</h3>
-          <p className="muted">{model.subtitle}</p>
+          <h3>{header.title}</h3>
+          <p className="muted">{header.subtitle}</p>
         </div>
         <button type="button" className="button-secondary" onClick={onClose}>Hide</button>
       </div>
 
       <div className="browser-facts-panel__badges">
-        {model.badges.map((badge) => <span key={badge} className="badge">{badge}</span>)}
+        {header.badges.map((badge) => <span key={badge} className="badge">{badge}</span>)}
       </div>
 
       <div className="browser-facts-panel__summary">
-        {model.summary.map((line) => <p key={line} className="muted">{line}</p>)}
+        {header.summary.map((line) => <p key={line} className="muted">{line}</p>)}
       </div>
     </>
   );
 }
 
-export function FactsPanelActions({ model, state, onTogglePinNode, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onTogglePinNode' | 'onIsolateSelection' | 'onRemoveSelection'> & { model: BrowserFactsPanelModel; state: BrowserSessionState }) {
+export function FactsPanelActions({ actions, onTogglePinNode, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onTogglePinNode' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
   return (
     <div className="browser-facts-panel__actions">
-      {model.mode === 'entity' && model.entityFacts ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: model.entityFacts!.entity.externalId })}>{state.canvasNodes.find((node) => node.kind === 'entity' && node.id === model.entityFacts!.entity.externalId)?.pinned ? 'Unpin entity' : 'Pin entity'}</button> : null}
-      {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
-      {(state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope') ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}
+      {actions.pinEntityAction ? <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: actions.pinEntityAction!.entityId })}>{actions.pinEntityAction.label}</button> : null}
+      {actions.canIsolateSelection ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
+      {actions.canRemoveSelection ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}
     </div>
   );
 }
 
-export function ViewpointSection({ model, onFocusEntity }: Pick<BrowserFactsPanelProps, 'onFocusEntity'> & { model: BrowserFactsPanelModel }) {
-  if (!model.viewpointExplanation) {
+export function ViewpointSection({ section, onFocusEntity }: Pick<BrowserFactsPanelProps, 'onFocusEntity'> & { section: BrowserFactsPanelViewpointSectionModel | null }) {
+  if (!section) {
     return null;
   }
   return (
@@ -46,26 +54,23 @@ export function ViewpointSection({ model, onFocusEntity }: Pick<BrowserFactsPane
         <h4>Applied viewpoint</h4>
       </div>
       <div className="browser-count-grid browser-count-grid--facts">
-        <div><strong>{model.viewpointExplanation.availability}</strong><span>Availability</span></div>
-        <div><strong>{model.viewpointExplanation.confidenceLabel}</strong><span>Confidence</span></div>
-        <div><strong>{model.viewpointExplanation.confidenceBand}</strong><span>Confidence band</span></div>
-        <div><strong>{model.viewpointExplanation.variantLabel}</strong><span>Variant</span></div>
-        <div><strong>{model.viewpointExplanation.entityCount}</strong><span>Entities</span></div>
-        <div><strong>{model.viewpointExplanation.relationshipCount}</strong><span>Relationships</span></div>
+        {section.metrics.map((metric) => (
+          <div key={metric.label}><strong>{metric.value}</strong><span>{metric.label}</span></div>
+        ))}
       </div>
       <div className="browser-facts-panel__summary">
-        <p className="muted">{model.viewpointExplanation.title} ({model.viewpointExplanation.viewpointId})</p>
-        <p className="muted">{model.viewpointExplanation.description}</p>
-        <p className="muted">Applied to {model.viewpointExplanation.scopeModeLabel}: {model.viewpointExplanation.scopeLabel}</p>
-        <p className="muted">Recommended layout {model.viewpointExplanation.recommendedLayout}</p>
+        <p className="muted">{section.title} ({section.viewpointId})</p>
+        <p className="muted">{section.description}</p>
+        <p className="muted">Applied to {section.scopeModeLabel}: {section.scopeLabel}</p>
+        <p className="muted">Recommended layout {section.recommendedLayout}</p>
       </div>
 
       <div className="browser-facts-panel__split">
         <div>
           <h5>Seed entities</h5>
-          {model.viewpointExplanation.seedEntities.length > 0 ? (
+          {section.seedEntities.length > 0 ? (
             <ul className="browser-facts-panel__list">
-              {model.viewpointExplanation.seedEntities.slice(0, 8).map((entity) => (
+              {section.seedEntities.slice(0, 8).map((entity) => (
                 <li key={entity.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                   <button type="button" className="button-secondary" onClick={() => onFocusEntity(entity.id)}>{entity.name}</button>
                   <span>{entity.kind}</span>
@@ -76,60 +81,58 @@ export function ViewpointSection({ model, onFocusEntity }: Pick<BrowserFactsPane
         </div>
         <div>
           <h5>Seed roles</h5>
-          {renderViewpointList(model.viewpointExplanation.seedRoleIds, 'No seed roles defined for the applied viewpoint.')}
+          {renderViewpointList(section.seedRoleIds, 'No seed roles defined for the applied viewpoint.')}
           <h5>Expansion semantics</h5>
-          {renderViewpointList(model.viewpointExplanation.expandViaSemantics, 'No expansion semantics defined for the applied viewpoint.')}
+          {renderViewpointList(section.expandViaSemantics, 'No expansion semantics defined for the applied viewpoint.')}
         </div>
       </div>
 
       <div className="browser-facts-panel__split">
         <div>
           <h5>Preferred dependency views</h5>
-          {renderViewpointList(model.viewpointExplanation.preferredDependencyViews, 'No preferred dependency views exported for the applied viewpoint.')}
+          {renderViewpointList(section.preferredDependencyViews, 'No preferred dependency views exported for the applied viewpoint.')}
         </div>
         <div>
           <h5>Evidence sources</h5>
-          {renderViewpointList(model.viewpointExplanation.evidenceSources, 'No evidence sources exported for the applied viewpoint.')}
+          {renderViewpointList(section.evidenceSources, 'No evidence sources exported for the applied viewpoint.')}
         </div>
       </div>
     </section>
   );
 }
 
-export function ScopeSections({ model, onSelectScope, onFocusEntity, onAddEntities }: Pick<BrowserFactsPanelProps, 'onSelectScope' | 'onFocusEntity' | 'onAddEntities'> & { model: BrowserFactsPanelModel }) {
-  if (!model.scopeFacts || !model.scopeBridge) {
+export function ScopeSections({ section, onSelectScope, onFocusEntity, onAddEntities }: Pick<BrowserFactsPanelProps, 'onSelectScope' | 'onFocusEntity' | 'onAddEntities'> & { section: BrowserFactsPanelScopeSectionModel | null }) {
+  if (!section) {
     return null;
   }
+  const { scopeFacts, bridge } = section;
   return (
     <>
       <section className="browser-facts-panel__section">
         <div className="browser-facts-panel__section-header">
           <h4>Scope</h4>
-          <button type="button" className="button-secondary" onClick={() => onSelectScope(model.scopeFacts?.scope.externalId ?? null)}>Select scope</button>
+          <button type="button" className="button-secondary" onClick={() => onSelectScope(scopeFacts.scope.externalId ?? null)}>Select scope</button>
         </div>
         <div className="browser-count-grid browser-count-grid--facts">
-          <div><strong>{model.scopeFacts.scope.kind}</strong><span>Kind</span></div>
-          <div><strong>{model.scopeBridge.parentScope ? 'Yes' : 'No'}</strong><span>Has parent</span></div>
-          <div><strong>{model.scopeBridge.childScopes.length}</strong><span>Child scopes</span></div>
-          <div><strong>{model.scopeFacts.descendantScopeCount}</strong><span>Descendant scopes</span></div>
+          {section.metrics.map((metric) => (
+            <div key={metric.label}><strong>{metric.value}</strong><span>{metric.label}</span></div>
+          ))}
         </div>
         <div className="browser-facts-panel__summary">
-          <p className="muted">Display {displayScopeName(model.scopeFacts.scope)}</p>
-          <p className="muted">Path {model.scopeFacts.path}</p>
-          <p className="muted">Parent {model.scopeBridge.parentScope?.path ?? 'Root scope'}</p>
+          {section.summary.map((line) => <p key={line} className="muted">{line}</p>)}
         </div>
       </section>
 
       <section className="browser-facts-panel__section">
         <div className="browser-facts-panel__section-header">
           <h4>Primary entities</h4>
-          {model.scopeBridge.primaryEntities.length > 0 ? (
-            <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.primaryEntities.map((entity) => entity.id))}>Add primary</button>
+          {bridge.primaryEntities.length > 0 ? (
+            <button type="button" className="button-secondary" onClick={() => onAddEntities(bridge.primaryEntities.map((entity) => entity.id))}>Add primary</button>
           ) : null}
         </div>
-        {model.scopeBridge.primaryEntities.length > 0 ? (
+        {bridge.primaryEntities.length > 0 ? (
           <ul className="browser-facts-panel__list">
-            {model.scopeBridge.primaryEntities.map((entity) => (
+            {bridge.primaryEntities.map((entity) => (
               <li key={entity.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onFocusEntity(entity.id)}>{entity.name}</button>
                 <span>{entity.kind}</span>
@@ -142,13 +145,13 @@ export function ScopeSections({ model, onSelectScope, onFocusEntity, onAddEntiti
       <section className="browser-facts-panel__section">
         <div className="browser-facts-panel__section-header">
           <h4>Direct entities by kind</h4>
-          {model.scopeBridge.directEntities.length > 0 ? (
-            <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.directEntities.map((entity) => entity.id))}>Add all direct</button>
+          {bridge.directEntities.length > 0 ? (
+            <button type="button" className="button-secondary" onClick={() => onAddEntities(bridge.directEntities.map((entity) => entity.id))}>Add all direct</button>
           ) : null}
         </div>
-        {model.scopeBridge.directEntityGroups.length > 0 ? (
+        {bridge.directEntityGroups.length > 0 ? (
           <ul className="browser-facts-panel__list">
-            {model.scopeBridge.directEntityGroups.map((group) => (
+            {bridge.directEntityGroups.map((group) => (
               <li key={`direct:${group.kind}`} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onAddEntities(group.entityIds)}>{renderEntityButtonLabel(group, 'direct')}</button>
                 <span>{group.kind} ({group.count})</span>
@@ -161,13 +164,13 @@ export function ScopeSections({ model, onSelectScope, onFocusEntity, onAddEntiti
       <section className="browser-facts-panel__section">
         <div className="browser-facts-panel__section-header">
           <h4>Subtree entities by kind</h4>
-          {model.scopeBridge.subtreeEntities.length > 0 ? (
-            <button type="button" className="button-secondary" onClick={() => onAddEntities(model.scopeBridge!.subtreeEntities.map((entity) => entity.id))}>Add all subtree</button>
+          {bridge.subtreeEntities.length > 0 ? (
+            <button type="button" className="button-secondary" onClick={() => onAddEntities(bridge.subtreeEntities.map((entity) => entity.id))}>Add all subtree</button>
           ) : null}
         </div>
-        {model.scopeBridge.subtreeEntityGroups.length > 0 ? (
+        {bridge.subtreeEntityGroups.length > 0 ? (
           <ul className="browser-facts-panel__list">
-            {model.scopeBridge.subtreeEntityGroups.map((group) => (
+            {bridge.subtreeEntityGroups.map((group) => (
               <li key={`subtree:${group.kind}`} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onAddEntities(group.entityIds)}>{renderEntityButtonLabel(group, 'subtree')}</button>
                 <span>{group.kind} ({group.count})</span>
@@ -181,9 +184,9 @@ export function ScopeSections({ model, onSelectScope, onFocusEntity, onAddEntiti
         <div className="browser-facts-panel__section-header">
           <h4>Child scopes</h4>
         </div>
-        {model.scopeBridge.childScopes.length > 0 ? (
+        {bridge.childScopes.length > 0 ? (
           <ul className="browser-facts-panel__list">
-            {model.scopeBridge.childScopes.slice(0, 8).map((scope) => (
+            {bridge.childScopes.slice(0, 8).map((scope) => (
               <li key={scope.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onSelectScope(scope.id)}>{scope.name}</button>
                 <span>{scope.kind}</span>
@@ -196,39 +199,39 @@ export function ScopeSections({ model, onSelectScope, onFocusEntity, onAddEntiti
   );
 }
 
-export function EntitySections({ model, onSelectScope, onFocusRelationship }: Pick<BrowserFactsPanelProps, 'onSelectScope' | 'onFocusRelationship'> & { model: BrowserFactsPanelModel }) {
-  if (!model.entityFacts) {
+export function EntitySections({ section, onSelectScope, onFocusRelationship }: Pick<BrowserFactsPanelProps, 'onSelectScope' | 'onFocusRelationship'> & { section: BrowserFactsPanelEntitySectionModel | null }) {
+  if (!section) {
     return null;
   }
   return (
     <section className="browser-facts-panel__section">
       <div className="browser-facts-panel__section-header">
         <h4>Relationship context</h4>
-        {model.entityFacts.scope ? <button type="button" className="button-secondary" onClick={() => onSelectScope(model.entityFacts?.scope?.externalId ?? null)}>Open scope</button> : null}
+        {section.scopeId ? <button type="button" className="button-secondary" onClick={() => onSelectScope(section.scopeId)}>Open scope</button> : null}
       </div>
       <div className="browser-facts-panel__split">
         <div>
           <h5>Inbound</h5>
           <ul className="browser-facts-panel__list">
-            {model.entityFacts.inboundRelationships.slice(0, 8).map((relationship) => (
+            {section.inboundRelationships.map((relationship) => (
               <li key={relationship.externalId} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onFocusRelationship(relationship.externalId)}>{relationship.label?.trim() || relationship.kind}</button>
                 <span>{relationship.fromEntityId} → {relationship.toEntityId}</span>
               </li>
             ))}
-            {model.entityFacts.inboundRelationships.length === 0 ? <li className="muted">No inbound relationships.</li> : null}
+            {section.entityFacts.inboundRelationships.length === 0 ? <li className="muted">No inbound relationships.</li> : null}
           </ul>
         </div>
         <div>
           <h5>Outbound</h5>
           <ul className="browser-facts-panel__list">
-            {model.entityFacts.outboundRelationships.slice(0, 8).map((relationship) => (
+            {section.outboundRelationships.map((relationship) => (
               <li key={relationship.externalId} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
                 <button type="button" className="button-secondary" onClick={() => onFocusRelationship(relationship.externalId)}>{relationship.label?.trim() || relationship.kind}</button>
                 <span>{relationship.fromEntityId} → {relationship.toEntityId}</span>
               </li>
             ))}
-            {model.entityFacts.outboundRelationships.length === 0 ? <li className="muted">No outbound relationships.</li> : null}
+            {section.entityFacts.outboundRelationships.length === 0 ? <li className="muted">No outbound relationships.</li> : null}
           </ul>
         </div>
       </div>
@@ -236,8 +239,8 @@ export function EntitySections({ model, onSelectScope, onFocusRelationship }: Pi
   );
 }
 
-export function RelationshipSections({ model, state, onFocusEntity }: Pick<BrowserFactsPanelProps, 'onFocusEntity'> & { model: BrowserFactsPanelModel; state: BrowserSessionState }) {
-  if (!model.relationship) {
+export function RelationshipSections({ section, onFocusEntity }: Pick<BrowserFactsPanelProps, 'onFocusEntity'> & { section: BrowserFactsPanelRelationshipSectionModel | null }) {
+  if (!section) {
     return null;
   }
   return (
@@ -247,19 +250,16 @@ export function RelationshipSections({ model, state, onFocusEntity }: Pick<Brows
           <h4>Connected entities</h4>
         </div>
         <ul className="browser-facts-panel__list">
-          {[model.relationship.fromEntityId, model.relationship.toEntityId].map((entityId) => {
-            const entity = state.index?.entitiesById.get(entityId);
-            return (
-              <li key={entityId} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
-                <button type="button" className="button-secondary" onClick={() => onFocusEntity(entityId)}>{entity?.displayName?.trim() || entity?.name || entityId}</button>
-                <span>{entity?.kind ?? 'ENTITY'}</span>
-              </li>
-            );
-          })}
+          {section.connectedEntities.map((entity) => (
+            <li key={entity.id} className="browser-facts-panel__list-item browser-facts-panel__list-item--actionable">
+              <button type="button" className="button-secondary" onClick={() => onFocusEntity(entity.id)}>{entity.label}</button>
+              <span>{entity.kind}</span>
+            </li>
+          ))}
         </ul>
       </section>
 
-      {model.relationshipMetadata ? (
+      {section.metadata ? (
         <section className="browser-facts-panel__section">
           <div className="browser-facts-panel__section-header">
             <h4>Relationship semantics</h4>
@@ -267,9 +267,9 @@ export function RelationshipSections({ model, state, onFocusEntity }: Pick<Brows
           <div className="browser-facts-panel__split">
             <div>
               <h5>Normalized</h5>
-              {model.relationshipMetadata.normalized.length > 0 ? (
+              {section.metadata.normalized.length > 0 ? (
                 <ul className="browser-facts-panel__list">
-                  {model.relationshipMetadata.normalized.map((entry) => (
+                  {section.metadata.normalized.map((entry) => (
                     <li key={`normalized:${entry.key}`} className="browser-facts-panel__list-item">
                       <strong>{entry.label}</strong>
                       <span>{entry.value}</span>
@@ -280,9 +280,9 @@ export function RelationshipSections({ model, state, onFocusEntity }: Pick<Brows
             </div>
             <div>
               <h5>Framework evidence</h5>
-              {model.relationshipMetadata.evidence.length > 0 ? (
+              {section.metadata.evidence.length > 0 ? (
                 <ul className="browser-facts-panel__list">
-                  {model.relationshipMetadata.evidence.map((entry) => (
+                  {section.metadata.evidence.map((entry) => (
                     <li key={`evidence:${entry.key}`} className="browser-facts-panel__list-item">
                       <strong>{entry.label}</strong>
                       <span>{entry.value}</span>
@@ -298,24 +298,24 @@ export function RelationshipSections({ model, state, onFocusEntity }: Pick<Brows
   );
 }
 
-export function DiagnosticsSection({ model }: { model: BrowserFactsPanelModel }) {
+export function DiagnosticsSection({ section }: { section: BrowserFactsPanelDiagnosticsSectionModel }) {
   return (
     <section className="browser-facts-panel__section">
       <div className="browser-facts-panel__section-header">
         <h4>Diagnostics</h4>
       </div>
-      {model.diagnostics.length > 0 ? <ul className="browser-facts-panel__list">{model.diagnostics.slice(0, 8).map(renderDiagnostic)}</ul> : <p className="muted">No local diagnostics for the current selection.</p>}
+      {section.diagnostics.length > 0 ? <ul className="browser-facts-panel__list">{section.diagnostics.map(renderDiagnostic)}</ul> : <p className="muted">No local diagnostics for the current selection.</p>}
     </section>
   );
 }
 
-export function SourceRefsSection({ model }: { model: BrowserFactsPanelModel }) {
+export function SourceRefsSection({ section }: { section: BrowserFactsPanelSourceRefsSectionModel }) {
   return (
     <section className="browser-facts-panel__section">
       <div className="browser-facts-panel__section-header">
         <h4>Source refs</h4>
       </div>
-      {model.sourceRefs.length > 0 ? <ul className="browser-facts-panel__list">{model.sourceRefs.slice(0, 8).map(renderSourceRef)}</ul> : <p className="muted">No source references attached to the current selection.</p>}
+      {section.sourceRefs.length > 0 ? <ul className="browser-facts-panel__list">{section.sourceRefs.map(renderSourceRef)}</ul> : <p className="muted">No source references attached to the current selection.</p>}
     </section>
   );
 }

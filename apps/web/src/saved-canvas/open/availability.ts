@@ -1,6 +1,6 @@
 import type { SnapshotSummary } from '../../appModel.api';
 import type { SnapshotCache } from '../../snapshotCache';
-import type { SavedCanvasLocalRecord, SavedCanvasLocalRecord as _SavedCanvasLocalRecord } from '../storage/localStore';
+import type { SavedCanvasLocalRecord } from '../storage/localStore';
 
 export type SavedCanvasSnapshotOfflineStatus = {
   snapshotId: string;

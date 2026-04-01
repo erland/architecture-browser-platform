@@ -78,3 +78,83 @@ export type BrowserFactsPanelModel = {
   scopeBridge: BrowserFactsPanelScopeBridge | null;
   viewpointExplanation: BrowserFactsPanelViewpointExplanation | null;
 };
+
+
+export type BrowserFactsPanelMetric = {
+  value: string;
+  label: string;
+};
+
+export type BrowserFactsPanelActionsModel = {
+  pinEntityAction: { entityId: string; label: string } | null;
+  canIsolateSelection: boolean;
+  canRemoveSelection: boolean;
+};
+
+export type BrowserFactsPanelHeaderModel = {
+  title: string;
+  subtitle: string;
+  badges: string[];
+  summary: string[];
+  actions: BrowserFactsPanelActionsModel;
+};
+
+export type BrowserFactsPanelViewpointSectionModel = {
+  title: string;
+  viewpointId: string;
+  description: string;
+  scopeModeLabel: string;
+  scopeLabel: string;
+  recommendedLayout: string;
+  metrics: BrowserFactsPanelMetric[];
+  seedEntities: BrowserFactsPanelEntitySummary[];
+  seedRoleIds: string[];
+  expandViaSemantics: string[];
+  preferredDependencyViews: string[];
+  evidenceSources: string[];
+};
+
+export type BrowserFactsPanelScopeSectionModel = {
+  scopeFacts: BrowserScopeFacts;
+  bridge: BrowserFactsPanelScopeBridge;
+  summary: string[];
+  metrics: BrowserFactsPanelMetric[];
+};
+
+export type BrowserFactsPanelEntitySectionModel = {
+  entityFacts: BrowserEntityFacts;
+  inboundRelationships: FullSnapshotRelationship[];
+  outboundRelationships: FullSnapshotRelationship[];
+  scopeId: string | null;
+};
+
+export type BrowserFactsPanelRelationshipConnectedEntity = {
+  id: string;
+  label: string;
+  kind: string;
+};
+
+export type BrowserFactsPanelRelationshipSectionModel = {
+  relationship: FullSnapshotRelationship;
+  connectedEntities: BrowserFactsPanelRelationshipConnectedEntity[];
+  metadata: BrowserFactsPanelRelationshipMetadata | null;
+};
+
+export type BrowserFactsPanelDiagnosticsSectionModel = {
+  diagnostics: FullSnapshotDiagnostic[];
+};
+
+export type BrowserFactsPanelSourceRefsSectionModel = {
+  sourceRefs: SnapshotSourceRef[];
+};
+
+export type BrowserFactsPanelPresentationModel = {
+  model: BrowserFactsPanelModel;
+  header: BrowserFactsPanelHeaderModel;
+  viewpoint: BrowserFactsPanelViewpointSectionModel | null;
+  scope: BrowserFactsPanelScopeSectionModel | null;
+  entity: BrowserFactsPanelEntitySectionModel | null;
+  relationship: BrowserFactsPanelRelationshipSectionModel | null;
+  diagnostics: BrowserFactsPanelDiagnosticsSectionModel;
+  sourceRefs: BrowserFactsPanelSourceRefsSectionModel;
+};

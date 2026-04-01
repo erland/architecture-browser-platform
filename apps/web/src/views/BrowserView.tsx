@@ -59,12 +59,12 @@ export function BrowserView(props: BrowserViewProps) {
           <div className="browser-workspace__search-slot">
             <BrowserTopSearch
               query={browserSession.state.searchQuery}
-              onQueryChange={(query) => browserSession.setSearch(query, browserActions.effectiveTopSearchScopeId)}
+              onQueryChange={(query) => browserSession.navigation.setSearch(query, browserActions.effectiveTopSearchScopeId)}
               scopeMode={browserLayout.topSearchScopeMode}
               onScopeModeChange={(mode) => {
                 browserLayout.setTopSearchScopeMode(mode);
                 const nextScopeId = mode === 'selected-scope' ? browserSession.state.selectedScopeId : null;
-                browserSession.setSearch(browserSession.state.searchQuery, nextScopeId);
+                browserSession.navigation.setSearch(browserSession.state.searchQuery, nextScopeId);
               }}
               results={browserSession.state.searchResults}
               onActivateResult={browserActions.handleTopSearchResult}
@@ -86,12 +86,12 @@ export function BrowserView(props: BrowserViewProps) {
         selection={browserSession.state.viewpointSelection}
         appliedViewpoint={browserSession.state.appliedViewpoint}
         presentationPreference={browserSession.state.viewpointPresentationPreference}
-        onSelectViewpoint={browserSession.setSelectedViewpoint}
-        onSelectScopeMode={browserSession.setViewpointScopeMode}
-        onSelectApplyMode={browserSession.setViewpointApplyMode}
-        onSelectVariant={browserSession.setViewpointVariant}
-        onSelectPresentationPreference={browserSession.setViewpointPresentationPreference}
-        onApplyViewpoint={browserSession.applySelectedViewpoint}
+        onSelectViewpoint={browserSession.viewpoint.setSelectedViewpoint}
+        onSelectScopeMode={browserSession.viewpoint.setScopeMode}
+        onSelectApplyMode={browserSession.viewpoint.setApplyMode}
+        onSelectVariant={browserSession.viewpoint.setVariant}
+        onSelectPresentationPreference={browserSession.viewpoint.setPresentationPreference}
+        onApplyViewpoint={browserSession.viewpoint.applySelectedViewpoint}
         onClose={() => dialogs.setIsViewpointDialogOpen(false)}
       />
 

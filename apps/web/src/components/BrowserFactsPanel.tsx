@@ -1,5 +1,5 @@
 import type { BrowserSessionState } from '../browserSessionStore';
-import { buildBrowserFactsPanelModel } from './BrowserFactsPanel.model';
+import { buildBrowserFactsPanelPresentation } from './BrowserFactsPanel.presentation';
 import {
   DiagnosticsSection,
   EntitySections,
@@ -23,6 +23,7 @@ export type {
 } from './BrowserFactsPanel.types';
 
 export { buildBrowserFactsPanelModel } from './BrowserFactsPanel.model';
+export { buildBrowserFactsPanelPresentation } from './BrowserFactsPanel.presentation';
 
 export type BrowserFactsPanelProps = {
   state: BrowserSessionState;
@@ -38,9 +39,9 @@ export type BrowserFactsPanelProps = {
 
 export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
   const { state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onIsolateSelection, onRemoveSelection, onClose } = props;
-  const model = buildBrowserFactsPanelModel(state);
+  const presentation = buildBrowserFactsPanelPresentation(state);
 
-  if (!model) {
+  if (!presentation) {
     return (
       <section className="card browser-facts-panel browser-facts-panel--empty">
         <p className="eyebrow">Facts</p>
@@ -52,20 +53,19 @@ export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
 
   return (
     <section className="card browser-facts-panel" aria-label="Browser facts and details panel">
-      <FactsPanelHeader model={model} onClose={onClose} />
+      <FactsPanelHeader header={presentation.header} onClose={onClose} />
       <FactsPanelActions
-        model={model}
-        state={state}
+        actions={presentation.header.actions}
         onTogglePinNode={onTogglePinNode}
         onIsolateSelection={onIsolateSelection}
         onRemoveSelection={onRemoveSelection}
       />
-      <ViewpointSection model={model} onFocusEntity={onFocusEntity} />
-      <ScopeSections model={model} onSelectScope={onSelectScope} onFocusEntity={onFocusEntity} onAddEntities={onAddEntities} />
-      <EntitySections model={model} onSelectScope={onSelectScope} onFocusRelationship={onFocusRelationship} />
-      <RelationshipSections model={model} state={state} onFocusEntity={onFocusEntity} />
-      <DiagnosticsSection model={model} />
-      <SourceRefsSection model={model} />
+      <ViewpointSection section={presentation.viewpoint} onFocusEntity={onFocusEntity} />
+      <ScopeSections section={presentation.scope} onSelectScope={onSelectScope} onFocusEntity={onFocusEntity} onAddEntities={onAddEntities} />
+      <EntitySections section={presentation.entity} onSelectScope={onSelectScope} onFocusRelationship={onFocusRelationship} />
+      <RelationshipSections section={presentation.relationship} onFocusEntity={onFocusEntity} />
+      <DiagnosticsSection section={presentation.diagnostics} />
+      <SourceRefsSection section={presentation.sourceRefs} />
     </section>
   );
 }

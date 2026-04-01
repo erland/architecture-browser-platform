@@ -1,6 +1,6 @@
 package info.isaksson.erland.architecturebrowser.platform.service;
 
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotDtos.SnapshotImportResponse;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotImportDtos.SnapshotImportResponse;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 

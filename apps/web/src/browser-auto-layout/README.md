@@ -49,3 +49,15 @@ The subsystem now has an internal configuration layer with conservative defaults
 After the Step 13 regression fixtures were added, the recommended decision is to keep the current browser-native auto-layout stack as the default and not add ELK now.
 
 ELK should only be reconsidered later as an optional backend if realistic imported snapshots expose dense-graph readability problems that the current `structure`, `flow`, and `hierarchy` strategies cannot solve well enough.
+
+
+## Step 5 status
+
+The auto-layout subsystem now has an explicit pipeline contract:
+
+- pipeline context creation (`request` → `config` + `graph` + resolved `mode`)
+- strategy selection by layout mode
+- strategy execution against a shared pipeline context
+- final node application back onto the browser canvas
+
+This keeps `engine.ts` as a small coordinator and gives the three layout modes a common execution contract without changing their current placement behavior.

@@ -22,7 +22,7 @@ export async function bootstrapPreparedBrowserSession(options: {
   repositoryId: string | null;
   snapshot: SnapshotSummary | null;
   currentState: Pick<BrowserSessionContextValue['state'], 'activeSnapshot' | 'index' | 'payload'>;
-  openSnapshotSession: BrowserSessionContextValue['openSnapshotSession'];
+  openSnapshotSession: BrowserSessionContextValue['lifecycle']['openSnapshotSession'];
 }): Promise<BrowserSessionBootstrapOutcome> {
   const { cache, workspaceId, repositoryId, snapshot, currentState, openSnapshotSession } = options;
 
@@ -77,9 +77,9 @@ export function useBrowserSessionBootstrap(options: {
   const [message, setMessage] = useState<string | null>(null);
 
   const currentStateRef = useRef(browserSession.state);
-  const openSnapshotSessionRef = useRef(browserSession.openSnapshotSession);
+  const openSnapshotSessionRef = useRef(browserSession.lifecycle.openSnapshotSession);
   currentStateRef.current = browserSession.state;
-  openSnapshotSessionRef.current = browserSession.openSnapshotSession;
+  openSnapshotSessionRef.current = browserSession.lifecycle.openSnapshotSession;
 
   const activeSnapshotId = browserSession.state.activeSnapshot?.snapshotId ?? null;
   const hasIndex = Boolean(browserSession.state.index);

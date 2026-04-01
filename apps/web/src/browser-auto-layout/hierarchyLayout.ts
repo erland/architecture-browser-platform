@@ -13,6 +13,7 @@ import { compareNodePriority, compareRootPriority, orderComponentsForLayout } fr
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from './config';
 import { extractBrowserAutoLayoutGraph } from './graph';
 import { placeBrowserAutoLayoutNode } from './placement';
+import type { BrowserAutoLayoutPipelineContext, BrowserAutoLayoutStrategy } from './pipeline';
 
 function compareIds(left: string, right: string) {
   return left.localeCompare(right);
@@ -542,12 +543,8 @@ function placeAnchoredComponentNodes(
   };
 }
 
-export function runBrowserHierarchyAutoLayout(
-  request: BrowserAutoLayoutRequest,
-  graph?: BrowserAutoLayoutGraph,
-): BrowserAutoLayoutResult {
-  const config = getBrowserAutoLayoutConfig(request);
-  const effectiveGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+export function runBrowserHierarchyAutoLayoutWithContext(context: BrowserAutoLayoutPipelineContext): BrowserAutoLayoutResult {
+  const { request, config, graph: effectiveGraph } = context;
   const nodeById = getNodeById(effectiveGraph);
   const canvasNodeByKey = getCanvasNodeByKey(request.nodes);
 
@@ -613,4 +610,24 @@ export function runBrowserHierarchyAutoLayout(
       ? cleanupArrangedCanvasNodes(arranged, request.options, config.cleanupIntensity)
       : arranged.map((node) => ({ ...node })),
   };
+}
+
+
+export const runBrowserHierarchyAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
+  mode: 'hierarchy',
+  run: runBrowserHierarchyAutoLayoutWithContext,
+};
+
+export function runBrowserHierarchyAutoLayout(
+  request: BrowserAutoLayoutRequest,
+  graph?: BrowserAutoLayoutGraph,
+): BrowserAutoLayoutResult {
+  const config = getBrowserAutoLayoutConfig(request);
+  const effectiveGraph = graph ?? extractBrowserAutoLayoutGraph(request);
+  return runBrowserHierarchyAutoLayoutWithContext({
+    request,
+    config,
+    graph: effectiveGraph,
+    mode: 'hierarchy',
+  });
 }
