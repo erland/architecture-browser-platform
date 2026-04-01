@@ -80,6 +80,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
 
       <BrowserGraphWorkspaceMenu label="Arrange" enabled={canOpenArrangeMenu}>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeAllCanvasNodes)} disabled={!canArrangeAll}>Arrange all (Structure)</button>
+        <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onArrangeCanvasWithMode('balanced'))} disabled={!canArrangeAll}>Balanced layout</button>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onArrangeCanvasWithMode('flow'))} disabled={!canArrangeAll}>Flow layout</button>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onArrangeCanvasWithMode('hierarchy'))} disabled={!canArrangeAll}>Hierarchy layout</button>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onArrangeCanvasAroundFocus)} disabled={!canArrangeAroundFocus}>Arrange around focus</button>

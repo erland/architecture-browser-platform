@@ -94,3 +94,6 @@ The mode files remain responsible for strategy-specific root selection, level as
 
 The public `flowLayout.ts`, `hierarchyLayout.ts`, and `structureLayout.ts` files are intentionally thin entrypoints.
 Algorithm-heavy mode internals live in the matching `*LayoutSupport.ts` files so the exported mode modules stay focused on strategy registration and request/context wiring.
+
+- `balancedLayout.ts`
+  - diagram-friendly layout that wraps structure levels into compact rows to use width better while preserving local ordering.

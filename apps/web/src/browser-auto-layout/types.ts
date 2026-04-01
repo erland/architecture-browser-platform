@@ -7,7 +7,7 @@ import type {
 } from '../browserSessionStore.types';
 import type { BrowserCanvasPlacementOptions } from '../browser-canvas-placement';
 
-export type BrowserAutoLayoutMode = 'structure' | 'flow' | 'hierarchy';
+export type BrowserAutoLayoutMode = 'structure' | 'balanced' | 'flow' | 'hierarchy';
 
 export type BrowserAutoLayoutCleanupIntensity = 'none' | 'basic' | 'compact';
 

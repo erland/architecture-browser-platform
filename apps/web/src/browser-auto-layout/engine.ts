@@ -1,4 +1,5 @@
 import { runBrowserFlowAutoLayoutStrategy } from './flowLayout';
+import { runBrowserBalancedAutoLayoutStrategy } from './balancedLayout';
 import { runBrowserHierarchyAutoLayoutStrategy } from './hierarchyLayout';
 import { runBrowserAutoLayoutPipeline } from './pipeline';
 import { runBrowserStructureAutoLayoutStrategy } from './structureLayout';
@@ -7,6 +8,7 @@ import type { BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from './types'
 
 const BROWSER_AUTO_LAYOUT_STRATEGIES = [
   runBrowserStructureAutoLayoutStrategy,
+  runBrowserBalancedAutoLayoutStrategy,
   runBrowserFlowAutoLayoutStrategy,
   runBrowserHierarchyAutoLayoutStrategy,
 ] as const;

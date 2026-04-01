@@ -68,6 +68,44 @@ export function sortBandNodesByBarycenter(
   });
 }
 
+
+export function reduceLayerCrossings(
+  bands: Array<{ level: number; nodes: BrowserAutoLayoutNode[] }>,
+  inbound: Map<string, Set<string>>,
+  outbound: Map<string, Set<string>>,
+  fallbackCompare = compareNodePriority,
+) {
+  if (bands.length <= 2) {
+    return bands.map((band) => ({ level: band.level, nodes: [...band.nodes] }));
+  }
+
+  const ordered = bands.map((band) => ({ level: band.level, nodes: [...band.nodes] }));
+
+  const rebuildOrder = (nodes: BrowserAutoLayoutNode[]) => new Map(nodes.map((node, index) => [node.id, index]));
+
+  for (let sweep = 0; sweep < 2; sweep += 1) {
+    let previousOrder = rebuildOrder(ordered[0]?.nodes ?? []);
+    for (let index = 1; index < ordered.length; index += 1) {
+      ordered[index] = {
+        ...ordered[index],
+        nodes: sortBandNodesByBarycenter(ordered[index].nodes, inbound, previousOrder, fallbackCompare),
+      };
+      previousOrder = rebuildOrder(ordered[index].nodes);
+    }
+
+    let nextOrder = rebuildOrder(ordered[ordered.length - 1]?.nodes ?? []);
+    for (let index = ordered.length - 2; index >= 0; index -= 1) {
+      ordered[index] = {
+        ...ordered[index],
+        nodes: sortBandNodesByBarycenter(ordered[index].nodes, outbound, nextOrder, fallbackCompare),
+      };
+      nextOrder = rebuildOrder(ordered[index].nodes);
+    }
+  }
+
+  return ordered;
+}
+
 export function orderComponentsForLayout(graph: BrowserAutoLayoutGraph, nodeById: Map<string, BrowserAutoLayoutNode>) {
   const focusedComponentId = graph.focusedNodeId ? graph.nodeToComponentId[graph.focusedNodeId] : null;
   const selectedComponentIds = new Set(graph.selectedNodeIds.map((nodeId) => graph.nodeToComponentId[nodeId]).filter(Boolean));

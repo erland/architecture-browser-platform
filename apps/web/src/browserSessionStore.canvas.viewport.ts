@@ -110,5 +110,5 @@ export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSes
 }
 
 export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
-  return arrangeCanvasNodesInteractivelyWithMode(state, state.canvasLayoutMode === 'flow' || state.canvasLayoutMode === 'hierarchy' ? state.canvasLayoutMode : 'structure');
+  return arrangeCanvasNodesInteractivelyWithMode(state, state.canvasLayoutMode === 'flow' || state.canvasLayoutMode === 'hierarchy' || state.canvasLayoutMode === 'balanced' ? state.canvasLayoutMode : 'structure');
 }

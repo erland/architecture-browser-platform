@@ -7,7 +7,7 @@ import type {
   BrowserAutoLayoutNode,
   BrowserAutoLayoutResult,
 } from './types';
-import { buildUndirectedAdjacency, compareNodePriority, sortBandNodesByBarycenter } from './ordering';
+import { buildUndirectedAdjacency, compareNodePriority, reduceLayerCrossings, sortBandNodesByBarycenter } from './ordering';
 import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNode } from './config';
 import {
   assignNodesToAnchors,
@@ -18,6 +18,7 @@ import {
 } from './layoutAnchoredPlacement';
 import { placeBandBasedFreeComponentNodes } from './layoutFreePlacement';
 import {
+  buildDirectedAdjacency,
   compareIds,
   getCanvasNodeByKey,
   getComponentEdges,
@@ -74,30 +75,28 @@ function assignLevels(
   edges: BrowserAutoLayoutEdge[],
   root: BrowserAutoLayoutNode,
 ): Map<string, number> {
-  const levels = new Map<string, number>([[root.id, 0]]);
-  const outbound = new Map<string, Set<string>>();
-  const inbound = new Map<string, Set<string>>();
-  for (const node of componentNodes) {
-    outbound.set(node.id, new Set());
-    inbound.set(node.id, new Set());
-  }
-  for (const edge of edges) {
-    if (!outbound.has(edge.fromEntityId) || !outbound.has(edge.toEntityId)) {
+  const levels = new Map<string, number>();
+  const { outbound, indegree } = buildDirectedAdjacency(componentNodes, edges);
+
+  const sourceRoots = componentNodes
+    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
+    .sort(compareNodePriority);
+  const seededRoots = [root, ...sourceRoots.filter((node) => node.id !== root.id)];
+  const queue: string[] = [];
+
+  let nextSeedLevel = 0;
+  for (const seed of seededRoots) {
+    if (levels.has(seed.id)) {
       continue;
     }
-    outbound.get(edge.fromEntityId)?.add(edge.toEntityId);
-    inbound.get(edge.toEntityId)?.add(edge.fromEntityId);
+    levels.set(seed.id, nextSeedLevel);
+    queue.push(seed.id);
+    nextSeedLevel += 1;
   }
 
-  const zeroIndegreeRoots = componentNodes
-    .filter((node) => (inbound.get(node.id)?.size ?? 0) === 0)
-    .sort(compareNodePriority);
-  const queue = [root.id];
-  for (const candidate of zeroIndegreeRoots) {
-    if (!levels.has(candidate.id)) {
-      levels.set(candidate.id, 0);
-      queue.push(candidate.id);
-    }
+  if (queue.length === 0) {
+    levels.set(root.id, 0);
+    queue.push(root.id);
   }
 
   while (queue.length > 0) {
@@ -118,7 +117,7 @@ function assignLevels(
   }
 
   const adjacency = buildUndirectedAdjacency(componentNodes, edges);
-  const visited = new Set<string>(levels.keys());
+  const fallbackVisited = new Set<string>(levels.keys());
   const fallbackQueue = [...levels.keys()];
   while (fallbackQueue.length > 0) {
     const currentId = fallbackQueue.shift();
@@ -128,10 +127,10 @@ function assignLevels(
     const currentLevel = levels.get(currentId) ?? 0;
     const neighbors = [...(adjacency.get(currentId) ?? [])].sort(compareIds);
     for (const neighborId of neighbors) {
-      if (visited.has(neighborId)) {
+      if (fallbackVisited.has(neighborId)) {
         continue;
       }
-      visited.add(neighborId);
+      fallbackVisited.add(neighborId);
       levels.set(neighborId, currentLevel + 1);
       fallbackQueue.push(neighborId);
     }
@@ -139,7 +138,8 @@ function assignLevels(
 
   for (const node of componentNodes) {
     if (!levels.has(node.id)) {
-      levels.set(node.id, Number.MAX_SAFE_INTEGER);
+      levels.set(node.id, nextSeedLevel);
+      nextSeedLevel += 1;
     }
   }
 
@@ -153,6 +153,7 @@ function getComponentBands(
 ) {
   const levels = assignLevels(componentNodes, edges, root);
   const adjacency = buildUndirectedAdjacency(componentNodes, edges);
+  const { outbound, inbound } = buildDirectedAdjacency(componentNodes, edges);
   const grouped = new Map<number, BrowserAutoLayoutNode[]>();
   for (const node of componentNodes) {
     const level = levels.get(node.id) ?? 0;
@@ -161,7 +162,7 @@ function getComponentBands(
   }
 
   const fixedOrder = new Map<string, number>([[root.id, 0]]);
-  return [...grouped.entries()]
+  const initialBands = [...grouped.entries()]
     .sort((left, right) => left[0] - right[0])
     .map(([level, nodes]) => {
       const orderedNodes = level === 0
@@ -170,6 +171,8 @@ function getComponentBands(
       orderedNodes.forEach((node, index) => fixedOrder.set(node.id, index));
       return { level, nodes: orderedNodes };
     });
+
+  return reduceLayerCrossings(initialBands, inbound, outbound, compareNodePriority);
 }
 
 function placeAnchoredComponentNodes(

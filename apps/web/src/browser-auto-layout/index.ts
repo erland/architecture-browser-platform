@@ -32,6 +32,7 @@ export {
   runBrowserAutoLayoutPipeline,
 } from './pipeline';
 export { extractBrowserAutoLayoutGraph } from './graph';
+export { runBrowserBalancedAutoLayout, runBrowserBalancedAutoLayoutStrategy } from './balancedLayout';
 export { runBrowserFlowAutoLayout, runBrowserFlowAutoLayoutStrategy } from './flowLayout';
 export { runBrowserHierarchyAutoLayout, runBrowserHierarchyAutoLayoutStrategy } from './hierarchyLayout';
 export { runBrowserStructureAutoLayout, runBrowserStructureAutoLayoutStrategy } from './structureLayout';

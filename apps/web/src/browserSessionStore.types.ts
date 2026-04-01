@@ -26,7 +26,7 @@ export type BrowserCanvasNode = {
   manuallyPlaced?: boolean;
 };
 
-export type BrowserCanvasLayoutMode = 'grid' | 'radial' | 'structure' | 'flow' | 'hierarchy';
+export type BrowserCanvasLayoutMode = 'grid' | 'radial' | 'structure' | 'balanced' | 'flow' | 'hierarchy';
 
 export type BrowserCanvasViewport = {
   zoom: number;
