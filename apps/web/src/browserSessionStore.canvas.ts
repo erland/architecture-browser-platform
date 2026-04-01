@@ -10,6 +10,7 @@ export {
   focusBrowserElement,
   isolateCanvasSelection,
   moveCanvasNode,
+  reconcileCanvasNodePositions,
   openFactsPanel,
   removeCanvasSelection,
   removeEntityFromCanvas,

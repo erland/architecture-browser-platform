@@ -1,4 +1,5 @@
 import { getBrowserCanvasBounds } from '../browser-canvas-placement/collision';
+import { enforceVerticalColumnClearance } from './layoutFootprint';
 import type { BrowserCanvasNode } from '../browserSessionStore.types';
 import { getBrowserAutoLayoutConfig } from './config';
 import { buildUndirectedAdjacency, compareNodePriority } from './ordering';
@@ -118,6 +119,38 @@ export function prepareAnchoredComponentPlacement(
     anchorNodes,
     arrangedWithAnchors,
   };
+}
+
+
+export type AnchoredPlacementSide = 'above' | 'below' | 'neutral';
+
+export function enforceAnchoredPlacementClearance(
+  arranged: BrowserCanvasNode[],
+  movableNodeIds: string[],
+  request: BrowserAutoLayoutRequest,
+  sideByNodeId?: Map<string, AnchoredPlacementSide>,
+) {
+  if (movableNodeIds.length === 0) {
+    return arranged;
+  }
+
+  const movableIds = new Set(movableNodeIds);
+  const fixedNodes = arranged
+    .filter((node) => !(node.kind === 'entity' && movableIds.has(node.id)))
+    .map((node) => ({ kind: node.kind, id: node.id, x: node.x, y: node.y }));
+  const movableNodes = arranged
+    .filter((node) => node.kind === 'entity' && movableIds.has(node.id))
+    .map((node) => ({ ...node }));
+
+  if (movableNodes.length === 0) {
+    return arranged;
+  }
+
+  const adjustedMovableNodes = enforceVerticalColumnClearance(fixedNodes, movableNodes, request.options, sideByNodeId);
+  const adjustedById = new Map(adjustedMovableNodes.map((node) => [node.id, node]));
+  return arranged.map((node) => (node.kind === 'entity' && movableIds.has(node.id)
+    ? (adjustedById.get(node.id) ?? node)
+    : node));
 }
 
 export function finalizeComponentPlacement(

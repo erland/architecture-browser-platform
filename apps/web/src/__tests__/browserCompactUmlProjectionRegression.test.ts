@@ -205,6 +205,7 @@ describe('browser compact UML regression coverage', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 

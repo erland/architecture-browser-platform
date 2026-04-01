@@ -62,6 +62,7 @@ export {
   relayoutCanvas,
   removeCanvasSelection,
   removeEntityFromCanvas,
+  reconcileCanvasNodePositions,
   requestFitCanvasView,
   selectCanvasEntity,
   setCanvasViewport,

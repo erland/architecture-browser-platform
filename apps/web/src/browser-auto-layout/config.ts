@@ -1,4 +1,5 @@
-import { APPEND_CLUSTER_GAP, PEER_SPACING_X, PEER_SPACING_Y } from '../browserCanvasPlacement.policy';
+import { APPEND_CLUSTER_GAP, COLLISION_MARGIN, PEER_SPACING_X, PEER_SPACING_Y } from '../browserCanvasPlacement.policy';
+import { BROWSER_ENTITY_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browserCanvasSizing';
 import type { BrowserCanvasNode } from '../browserSessionStore.types';
 import type { BrowserAutoLayoutMode, BrowserAutoLayoutRequest } from './types';
 
@@ -50,7 +51,17 @@ function sanitizePositiveInteger(value: number | undefined, fallback: number) {
 }
 
 export function getBrowserAutoLayoutConfig(request: BrowserAutoLayoutRequest): BrowserAutoLayoutConfig {
-  return resolveBrowserAutoLayoutConfig(request.config);
+  const resolved = resolveBrowserAutoLayoutConfig(request.config);
+  const sizingState = request.state ?? request.options?.state ?? null;
+  const maxNodeWidth = request.nodes.reduce<number>((current, node) => Math.max(
+    current,
+    getProjectionAwareCanvasNodeSize(sizingState, { kind: node.kind, id: node.id }).width,
+  ), BROWSER_ENTITY_NODE_SIZE.width);
+  const baselineHorizontalGap = Math.max(COLLISION_MARGIN, resolved.horizontalSpacing - BROWSER_ENTITY_NODE_SIZE.width);
+  return {
+    ...resolved,
+    horizontalSpacing: Math.max(resolved.horizontalSpacing, maxNodeWidth + baselineHorizontalGap),
+  };
 }
 
 export function isHardAnchorCanvasNode(node: Pick<BrowserCanvasNode, 'pinned' | 'manuallyPlaced'>, config: BrowserAutoLayoutConfig) {

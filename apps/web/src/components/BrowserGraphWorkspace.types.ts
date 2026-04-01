@@ -24,6 +24,7 @@ export type BrowserGraphWorkspaceProps = {
   onIsolateSelection: () => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
+  onReconcileCanvasNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onArrangeAllCanvasNodes: () => void;
   onArrangeCanvasWithMode?: (mode: BrowserAutoLayoutMode) => void;

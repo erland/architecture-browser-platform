@@ -1,3 +1,4 @@
+import { getProjectionAwareCanvasNodeSize } from '../browserCanvasSizing';
 import { createEmptyBrowserSessionState } from '../browserSessionStore.state';
 import { arrangeCanvasNodesInGrid, planEntityInsertion } from '../browser-canvas-placement';
 import {
@@ -29,7 +30,7 @@ describe('browser auto-layout subsystem skeleton', () => {
     state.focusedElement = { kind: 'entity', id: 'entity-a' };
 
     const graph = extractBrowserAutoLayoutGraph({
-      mode: 'structure',
+      mode: 'flow',
       state,
       nodes: [
         { kind: 'scope', id: 'scope-a', x: 10, y: 20 },
@@ -562,6 +563,77 @@ describe('browser auto-layout configuration', () => {
     expect(byId.get('b')?.x).toBe((byId.get('a')?.x ?? 0) + 320);
     expect(byId.get('c')?.x).toBe((byId.get('b')?.x ?? 0) + 320);
     expect(result.nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y))).toBe(true);
+  });
+
+
+  it('adds extra clearance for compact UML classifier nodes so tall classes do not overlap', () => {
+    const state = createEmptyBrowserSessionState();
+    state.viewpointPresentationPreference = 'compact-uml';
+    state.appliedViewpoint = {
+      viewpoint: { id: 'persistence-model' } as any,
+      selectedScopeId: null,
+      scopeIds: [],
+      entityIds: [],
+      relationshipIds: [],
+      diagnostics: [],
+    } as any;
+    const entities = new Map<string, any>([
+      ['aggregate-root', { externalId: 'aggregate-root', kind: 'CLASS', origin: null, name: 'AggregateRoot', displayName: 'AggregateRoot', scopeId: 'scope-a', sourceRefs: [], metadata: {} }],
+      ['child-a', { externalId: 'child-a', kind: 'CLASS', origin: null, name: 'ChildA', displayName: 'ChildA', scopeId: 'scope-a', sourceRefs: [], metadata: {} }],
+      ['child-b', { externalId: 'child-b', kind: 'CLASS', origin: null, name: 'ChildB', displayName: 'ChildB', scopeId: 'scope-a', sourceRefs: [], metadata: {} }],
+    ]);
+    for (const ownerId of ['aggregate-root', 'child-a', 'child-b']) {
+      for (let index = 0; index < 10; index += 1) {
+        entities.set(`${ownerId}-field-${index}`, { externalId: `${ownerId}-field-${index}`, kind: 'FIELD', origin: null, name: `field${index}`, displayName: `field${index}`, scopeId: 'scope-a', sourceRefs: [], metadata: {} });
+        entities.set(`${ownerId}-method-${index}`, { externalId: `${ownerId}-method-${index}`, kind: 'METHOD', origin: null, name: `method${index}`, displayName: `method${index}`, scopeId: 'scope-a', sourceRefs: [], metadata: {} });
+      }
+    }
+    state.index = {
+      ...state.index,
+      entitiesById: entities,
+      containedEntityIdsByEntityId: new Map([
+        ['aggregate-root', [...Array.from({ length: 10 }, (_, index) => `aggregate-root-field-${index}`), ...Array.from({ length: 10 }, (_, index) => `aggregate-root-method-${index}`)]],
+        ['child-a', [...Array.from({ length: 10 }, (_, index) => `child-a-field-${index}`), ...Array.from({ length: 10 }, (_, index) => `child-a-method-${index}`)]],
+        ['child-b', [...Array.from({ length: 10 }, (_, index) => `child-b-field-${index}`), ...Array.from({ length: 10 }, (_, index) => `child-b-method-${index}`)]],
+      ]),
+      relationshipsById: new Map([
+        ['rel-root-a', { externalId: 'rel-root-a', kind: 'CONTAINS', fromEntityId: 'aggregate-root', toEntityId: 'child-a', label: 'contains', sourceRefs: [], metadata: {} }],
+        ['rel-root-b', { externalId: 'rel-root-b', kind: 'CONTAINS', fromEntityId: 'aggregate-root', toEntityId: 'child-b', label: 'contains', sourceRefs: [], metadata: {} }],
+      ]),
+    } as any;
+
+    const result = runBrowserAutoLayout({
+      mode: 'flow',
+      state,
+      nodes: [
+        { kind: 'entity', id: 'aggregate-root', x: 0, y: 0 },
+        { kind: 'entity', id: 'child-a', x: 0, y: 0 },
+        { kind: 'entity', id: 'child-b', x: 0, y: 0 },
+      ],
+      edges: [
+        { relationshipId: 'rel-root-a', fromEntityId: 'aggregate-root', toEntityId: 'child-a' },
+        { relationshipId: 'rel-root-b', fromEntityId: 'aggregate-root', toEntityId: 'child-b' },
+      ],
+      config: { cleanupIntensity: 'none' },
+      options: { state },
+    });
+
+    const byId = new Map(result.nodes.map((node) => [node.id, node]));
+    const rootNode = byId.get('aggregate-root')!;
+    const childA = byId.get('child-a')!;
+    const childB = byId.get('child-b')!;
+    const rootSize = getProjectionAwareCanvasNodeSize(state, { kind: 'entity', id: 'aggregate-root' });
+    const childASize = getProjectionAwareCanvasNodeSize(state, { kind: 'entity', id: 'child-a' });
+    const childBSize = getProjectionAwareCanvasNodeSize(state, { kind: 'entity', id: 'child-b' });
+
+    expect(rootNode.x + rootSize.width + 24).toBeLessThanOrEqual(Math.min(childA.x, childB.x));
+    const overlaps = !(
+      childA.x + childASize.width + 24 <= childB.x ||
+      childB.x + childBSize.width + 24 <= childA.x ||
+      childA.y + childASize.height + 24 <= childB.y ||
+      childB.y + childBSize.height + 24 <= childA.y
+    );
+    expect(overlaps).toBe(false);
   });
 
   it('can soften manually placed nodes while keeping pinned nodes fixed', () => {

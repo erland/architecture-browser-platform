@@ -131,6 +131,46 @@ export function moveCanvasNode(
   };
 }
 
+export function reconcileCanvasNodePositions(
+  state: BrowserSessionState,
+  updates: Array<{ kind: BrowserCanvasNode['kind']; id: string; x?: number; y?: number }>,
+): BrowserSessionState {
+  if (updates.length === 0) {
+    return state;
+  }
+
+  let canvasNodes = state.canvasNodes;
+  let changed = false;
+  for (const update of updates) {
+    const existing = canvasNodes.find((node) => node.kind === update.kind && node.id === update.id);
+    if (!existing) {
+      continue;
+    }
+    const nextX = update.x ?? existing.x;
+    const nextY = update.y ?? existing.y;
+    if (nextX === existing.x && nextY === existing.y) {
+      continue;
+    }
+    canvasNodes = upsertCanvasNode(canvasNodes, {
+      kind: update.kind,
+      id: update.id,
+      x: nextX,
+      y: nextY,
+      manuallyPlaced: existing.manuallyPlaced,
+      pinned: existing.pinned,
+    });
+    changed = true;
+  }
+
+  return changed
+    ? {
+        ...state,
+        canvasNodes,
+        appliedViewpoint: null,
+      }
+    : state;
+}
+
 export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: BrowserCanvasNode['kind']; id: string }): BrowserSessionState {
   const existing = state.canvasNodes.find((current) => current.kind === node.kind && current.id === node.id);
   const nextPinned = !existing?.pinned;

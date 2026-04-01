@@ -7,7 +7,6 @@ export const BROWSER_ENTITY_NODE_SIZE = { width: 196, height: 84 } as const;
 export const UML_CLASS_MIN_WIDTH = 240;
 export const UML_CLASS_BASE_HEIGHT = 92;
 export const UML_CLASS_ROW_HEIGHT = 20;
-export const UML_CLASS_MAX_VISIBLE_ROWS_PER_COMPARTMENT = 8;
 
 const CLASSIFIER_KINDS = new Set(['CLASS', 'INTERFACE', 'ENUM', 'TYPE']);
 const ATTRIBUTE_MEMBER_KINDS = new Set(['FIELD', 'PROPERTY']);
@@ -40,8 +39,8 @@ function getCompactUmlVisibleRowCount(state: BrowserSessionState, entity: FullSn
   }
 
   return {
-    attributes: Math.min(attributeCount, UML_CLASS_MAX_VISIBLE_ROWS_PER_COMPARTMENT),
-    operations: Math.min(operationCount, UML_CLASS_MAX_VISIBLE_ROWS_PER_COMPARTMENT),
+    attributes: attributeCount,
+    operations: operationCount,
     compartmentCount: (attributeCount > 0 ? 1 : 0) + (operationCount > 0 ? 1 : 0),
   };
 }

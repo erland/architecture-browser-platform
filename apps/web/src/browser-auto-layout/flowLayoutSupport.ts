@@ -13,6 +13,7 @@ import { placeScopeNodes } from './layoutScopePlacement';
 import {
   assignNodesToAnchors,
   buildFallbackFreeNodeOrigin,
+  enforceAnchoredPlacementClearance,
   finalizeComponentPlacement,
   prepareAnchoredComponentPlacement,
 } from './layoutAnchoredPlacement';
@@ -27,6 +28,7 @@ import {
   getNodeById,
   orderLayoutComponents,
 } from './layoutShared';
+import { buildCenteredVerticalTopPositions, buildSequentialBandLeftPositions } from './layoutFootprint';
 import { assignSignedLevelsFromAnchor } from './layoutSignedLevels';
 import type { BrowserAutoLayoutPipelineContext } from './pipeline';
 
@@ -227,19 +229,24 @@ function placeAnchoredComponentNodes(
       grouped.set(signedLevel, [...(grouped.get(signedLevel) ?? []), node]);
     }
 
+    const bands = [...grouped.entries()].sort((left, right) => left[0] - right[0]).map(([level, nodes]) => ({
+      level,
+      nodes: [...nodes].sort(compareNodePriority),
+    }));
     nextArranged = placeBandBasedFreeComponentNodes(
       nextArranged,
       request,
       canvasNodeByKey,
-      [...grouped.entries()].sort((left, right) => left[0] - right[0]).map(([level, nodes]) => ({
-        level,
-        nodes: [...nodes].sort(compareNodePriority),
-      })),
+      bands,
       ({ band, index, config }) => {
-        const centeredStartY = anchorCanvasNode.y - Math.max(0, (band.nodes.length - 1) * config.verticalSpacing) / 2;
+        const topPositions = buildCenteredVerticalTopPositions(
+          band.nodes,
+          anchorCanvasNode.y + anchorNode.height / 2,
+          config,
+        );
         return {
           x: anchorCanvasNode.x + band.level * config.horizontalSpacing,
-          y: centeredStartY + index * config.verticalSpacing,
+          y: topPositions[index] ?? anchorCanvasNode.y,
         };
       },
     );
@@ -255,12 +262,17 @@ function placeAnchoredComponentNodes(
       request,
       canvasNodeByKey,
       [{ level: 0, nodes: unassignedNodes }],
-      ({ index, config }) => ({
-        x: fallbackOrigin.x,
-        y: fallbackOrigin.y + index * config.verticalSpacing,
-      }),
+      ({ band, index, config }) => {
+        const topPositions = buildCenteredVerticalTopPositions(band.nodes, fallbackOrigin.y, config);
+        return {
+          x: fallbackOrigin.x,
+          y: topPositions[index] ?? fallbackOrigin.y,
+        };
+      },
     );
   }
+
+  nextArranged = enforceAnchoredPlacementClearance(nextArranged, freeNodes.map((node) => node.id), request);
 
   return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
 }
@@ -274,6 +286,7 @@ function placeFreeComponentNodes(
   fallbackOriginY: number,
 ) {
   const { request, graph } = context;
+  const config = getBrowserAutoLayoutConfig(request);
   const componentNodes = getEntityComponentNodes(component, nodeById);
   if (componentNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
@@ -285,20 +298,22 @@ function placeFreeComponentNodes(
     y: fallbackOriginY,
   };
 
+  const bands = getFlowBands(componentNodes, componentEdges, graph);
+  const bandLeftByLevel = buildSequentialBandLeftPositions(bands, componentOrigin.x, config);
   const nextArranged = placeBandBasedFreeComponentNodes(
     arranged,
     request,
     canvasNodeByKey,
-    getFlowBands(componentNodes, componentEdges, graph),
+    bands,
     ({ band, index, config }) => {
-      const bandHeight = Math.max(0, (band.nodes.length - 1) * config.verticalSpacing);
-      const centeredStartY = componentOrigin.y - bandHeight / 2;
+      const topPositions = buildCenteredVerticalTopPositions(band.nodes, componentOrigin.y, config);
       return {
-        x: componentOrigin.x + band.level * config.horizontalSpacing,
-        y: centeredStartY + index * config.verticalSpacing,
+        x: bandLeftByLevel.get(band.level) ?? componentOrigin.x,
+        y: topPositions[index] ?? componentOrigin.y,
       };
     },
   );
+
 
   return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
 }

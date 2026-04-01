@@ -116,6 +116,7 @@ export function BrowserViewCenterContent({
         onIsolateSelection={browserSession.canvas.isolateSelection}
         onTogglePinNode={browserSession.canvas.toggleNodePin}
         onMoveCanvasNode={browserSession.canvas.moveNode}
+        onReconcileCanvasNodePositions={browserSession.canvas.reconcileNodePositions}
         onSetCanvasViewport={browserSession.canvas.setViewport}
         onArrangeAllCanvasNodes={browserSession.canvas.arrangeAllNodes}
         onArrangeCanvasWithMode={browserSession.canvas.arrangeWithMode}

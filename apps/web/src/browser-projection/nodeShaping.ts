@@ -3,7 +3,6 @@ import {
   BROWSER_ENTITY_NODE_SIZE,
   BROWSER_SCOPE_NODE_SIZE,
   UML_CLASS_BASE_HEIGHT,
-  UML_CLASS_MAX_VISIBLE_ROWS_PER_COMPARTMENT,
   UML_CLASS_MIN_WIDTH,
   UML_CLASS_ROW_HEIGHT,
 } from '../browserCanvasSizing';
@@ -103,7 +102,7 @@ function getCompactUmlNodeFrame(
   compartments: BrowserProjectionCompartment[],
 ): BrowserNodeFrame {
   const visibleRowCount = compartments.reduce(
-    (sum, compartment) => sum + Math.min(compartment.items.length, UML_CLASS_MAX_VISIBLE_ROWS_PER_COMPARTMENT),
+    (sum, compartment) => sum + compartment.items.length,
     0,
   );
   const compartmentDividerCount = compartments.length;

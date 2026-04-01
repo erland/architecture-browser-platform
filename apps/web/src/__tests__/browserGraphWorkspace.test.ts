@@ -161,6 +161,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -208,6 +209,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -258,6 +260,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -356,6 +359,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -402,6 +406,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -452,6 +457,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 
@@ -485,6 +491,7 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onClearCanvas: () => {},
       onFitView: () => {},
       onMoveCanvasNode: () => {},
+      onReconcileCanvasNodePositions: () => {},
       onSetCanvasViewport: () => {},
     }));
 

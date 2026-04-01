@@ -49,6 +49,7 @@ export type BrowserSessionActionGroups = {
     removeSelection: () => void;
     toggleNodePin: (node: { kind: 'scope' | 'entity'; id: string }) => void;
     moveNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
+    reconcileNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
     setViewport: (viewport: Partial<BrowserCanvasViewport>) => void;
     panViewport: (delta: { x: number; y: number }) => void;
     arrangeAllNodes: () => void;

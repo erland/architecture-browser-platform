@@ -1,6 +1,7 @@
 import type { BrowserCanvasNode } from '../browserSessionStore.types';
 import { getBrowserAutoLayoutConfig } from './config';
 import { placeBrowserAutoLayoutNode } from './placement';
+import { enforceVerticalColumnClearance } from './layoutFootprint';
 import type { BrowserAutoLayoutNode, BrowserAutoLayoutRequest } from './types';
 
 export type LayoutBand<TNode extends BrowserAutoLayoutNode = BrowserAutoLayoutNode> = {
@@ -24,23 +25,26 @@ export function placeBandBasedFreeComponentNodes(
   let nextArranged = [...arranged];
 
   for (const band of bands) {
+    const bandPlaced: BrowserCanvasNode[] = [];
     for (const [index, layoutNode] of band.nodes.entries()) {
       const original = canvasNodeByKey.get(layoutNode.key);
       if (!original) {
         continue;
       }
       const placement = placeBrowserAutoLayoutNode(
-        nextArranged,
+        [...nextArranged, ...bandPlaced],
         original,
         placeDesired({ band, index, node: layoutNode, config }),
         request.options,
       );
-      nextArranged = [...nextArranged, {
+      bandPlaced.push({
         ...original,
         ...placement,
         manuallyPlaced: false,
-      }];
+      });
     }
+    const adjustedBandPlaced = enforceVerticalColumnClearance(nextArranged, bandPlaced, request.options);
+    nextArranged = [...nextArranged, ...adjustedBandPlaced];
   }
 
   return nextArranged;

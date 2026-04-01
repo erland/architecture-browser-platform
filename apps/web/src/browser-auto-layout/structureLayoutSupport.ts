@@ -12,6 +12,7 @@ import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNod
 import {
   assignNodesToAnchors,
   buildFallbackFreeNodeOrigin,
+  enforceAnchoredPlacementClearance,
   finalizeComponentPlacement,
   prepareAnchoredComponentPlacement,
 } from './layoutAnchoredPlacement';
@@ -25,6 +26,7 @@ import {
   getNodeById,
   orderLayoutComponents,
 } from './layoutShared';
+import { buildCenteredVerticalTopPositions, buildSequentialBandLeftPositions } from './layoutFootprint';
 import { placeScopeNodes } from './layoutScopePlacement';
 import type { BrowserAutoLayoutPipelineContext } from './pipeline';
 
@@ -212,20 +214,22 @@ function placeAnchoredComponentNodes(
       groupedByDistance.set(distance, [...(groupedByDistance.get(distance) ?? []), node]);
     }
 
+    const bands = [...groupedByDistance.entries()].sort((left, right) => left[0] - right[0]).map(([level, nodes]) => ({
+      level,
+      nodes: [...nodes].sort(compareNodePriority),
+    }));
     nextArranged = placeBandBasedFreeComponentNodes(
       nextArranged,
       request,
       canvasNodeByKey,
-      [...groupedByDistance.entries()].sort((left, right) => left[0] - right[0]).map(([level, nodes]) => ({
-        level,
-        nodes: [...nodes].sort(compareNodePriority),
-      })),
+      bands,
       ({ band, index, config }) => {
-        const centeredStartY = anchorCanvasNode.y - Math.max(0, (Math.min(band.nodes.length, config.maxBreadth) - 1) * config.verticalSpacing) / 2;
         const wrapped = getWrappedBandOffset(index, config);
+        const visibleNodes = band.nodes.slice(wrapped.wrapGroup * config.maxBreadth, (wrapped.wrapGroup + 1) * config.maxBreadth);
+        const visiblePositions = buildCenteredVerticalTopPositions(visibleNodes, anchorCanvasNode.y + anchorNode.height / 2, config);
         return {
           x: anchorCanvasNode.x + (band.level + wrapped.wrapGroup) * config.horizontalSpacing,
-          y: centeredStartY + wrapped.indexInGroup * config.verticalSpacing,
+          y: visiblePositions[wrapped.indexInGroup] ?? anchorCanvasNode.y,
         };
       },
     );
@@ -250,6 +254,8 @@ function placeAnchoredComponentNodes(
       },
     );
   }
+
+  nextArranged = enforceAnchoredPlacementClearance(nextArranged, freeNodes.map((node) => node.id), request);
 
   return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
 }
@@ -281,8 +287,8 @@ function placeFreeComponentNodes(
   };
 
   const bands = getComponentBands(componentNodes, componentEdges, root);
-  const maxBandSize = Math.max(1, ...bands.map((band) => Math.min(band.nodes.length, config.maxBreadth)));
-  const baseCenterY = componentOrigin.y + Math.max(0, (maxBandSize - 1) * config.verticalSpacing) / 2;
+  const baseBands = bands.map((band) => ({ level: band.level, nodes: band.nodes.slice(0, config.maxBreadth) }));
+  const bandLeftByLevel = buildSequentialBandLeftPositions(baseBands, componentOrigin.x, config);
 
   const nextArranged = placeBandBasedFreeComponentNodes(
     arranged,
@@ -290,15 +296,20 @@ function placeFreeComponentNodes(
     canvasNodeByKey,
     bands,
     ({ band, index, config }) => {
-      const visibleBandSize = Math.max(1, Math.min(band.nodes.length, config.maxBreadth));
-      const centeredStartY = baseCenterY - Math.max(0, (visibleBandSize - 1) * config.verticalSpacing) / 2;
       const wrapped = getWrappedBandOffset(index, config);
+      const visibleNodes = band.nodes.slice(wrapped.wrapGroup * config.maxBreadth, (wrapped.wrapGroup + 1) * config.maxBreadth);
+      const topPositions = buildCenteredVerticalTopPositions(
+        visibleNodes,
+        componentOrigin.y + wrapped.wrapGroup * Math.round(config.componentSpacing / 2),
+        config,
+      );
       return {
-        x: componentOrigin.x + (band.level + wrapped.wrapGroup) * config.horizontalSpacing,
-        y: centeredStartY + wrapped.indexInGroup * config.verticalSpacing + wrapped.wrapGroup * Math.round(config.componentSpacing / 2),
+        x: (bandLeftByLevel.get(band.level) ?? componentOrigin.x) + wrapped.wrapGroup * config.horizontalSpacing,
+        y: topPositions[wrapped.indexInGroup] ?? componentOrigin.y,
       };
     },
   );
+
 
   return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
 }

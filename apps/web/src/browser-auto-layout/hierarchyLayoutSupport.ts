@@ -11,7 +11,7 @@ import type {
 import { compareNodePriority, compareRootPriority } from './ordering';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from './config';
 import { placeScopeNodes } from './layoutScopePlacement';
-import { buildFallbackFreeNodeOrigin, prepareAnchoredComponentPlacement } from './layoutAnchoredPlacement';
+import { buildFallbackFreeNodeOrigin, enforceAnchoredPlacementClearance, prepareAnchoredComponentPlacement } from './layoutAnchoredPlacement';
 import {
   buildDirectedAdjacency,
   compareIds,
@@ -23,6 +23,7 @@ import {
   orderLayoutComponents,
 } from './layoutShared';
 import { assignSignedLevelsFromAnchor } from './layoutSignedLevels';
+import { buildCenteredHorizontalLeftPositions, buildSequentialLevelTopPositions } from './layoutFootprint';
 import { placeBrowserAutoLayoutNode } from './placement';
 import type { BrowserAutoLayoutPipelineContext } from './pipeline';
 
@@ -215,7 +216,8 @@ function placeHierarchyTree(
   config = getBrowserAutoLayoutConfig(request),
 ) {
   const nextArranged: BrowserCanvasNode[] = [...arranged];
-  const placements = new Map<string, { x: number; y: number }>();
+  const placements = new Map<string, { x: number; y: number; depth: number }>();
+  const levelNodes = new Map<number, BrowserAutoLayoutNode[]>();
 
   const placeNodeRecursive = (nodeId: string, baseX: number, depth: number) => {
     const node = nodeById.get(nodeId);
@@ -224,9 +226,11 @@ function placeHierarchyTree(
     }
     const subtreeColumns = computeSubtreeColumns(nodeId, forest.childrenByNode, subtreeMemo);
     const centerX = baseX + ((subtreeColumns - 1) * config.horizontalSpacing) / 2;
+    levelNodes.set(depth, [...(levelNodes.get(depth) ?? []), node]);
     placements.set(nodeId, {
       x: centerX,
-      y: originY + depth * config.verticalSpacing,
+      y: originY,
+      depth,
     });
 
     let childColumnX = baseX;
@@ -238,6 +242,11 @@ function placeHierarchyTree(
   };
 
   placeNodeRecursive(rootId, originX, 0);
+  const levelTopByDepth = buildSequentialLevelTopPositions(
+    [...levelNodes.entries()].map(([level, nodes]) => ({ level, nodes })),
+    originY,
+    config,
+  );
 
   for (const [nodeId, placement] of [...placements.entries()].sort((left, right) => {
     const leftNode = nodeById.get(left[0]);
@@ -257,9 +266,13 @@ function placeHierarchyTree(
     if (!layoutNode || !original) {
       continue;
     }
+    const desiredPlacement = {
+      x: placement.x,
+      y: levelTopByDepth.get(placement.depth) ?? placement.y,
+    };
     const desired = layoutNode.pinned || layoutNode.manuallyPlaced
       ? { x: original.x, y: original.y }
-      : placement;
+      : desiredPlacement;
     const finalPlacement = layoutNode.pinned || layoutNode.manuallyPlaced
       ? desired
       : placeBrowserAutoLayoutNode(nextArranged, original, desired, request.options);
@@ -281,10 +294,14 @@ function placeHierarchyTree(
   collect(rootId);
   const maxDepth = Math.max(...[...treeNodeIds].map((nodeId) => forest.levels.get(nodeId) ?? 0));
 
+
   return {
     arranged: nextArranged,
     nextOriginX: originX + Math.max(1, treeColumns) * config.horizontalSpacing + config.componentSpacing,
-    nextOriginY: originY + Math.max(1, maxDepth + 1) * config.verticalSpacing + config.componentSpacing,
+    nextOriginY: Math.max(
+      originY + Math.max(1, maxDepth + 1) * config.verticalSpacing + config.componentSpacing,
+      (getBrowserCanvasBounds(nextArranged, request.options)?.maxY ?? originY) + config.componentSpacing,
+    ),
   };
 }
 
@@ -327,17 +344,57 @@ function placeAnchoredComponentNodes(
       grouped.set(signedLevel, [...(grouped.get(signedLevel) ?? []), node]);
     }
 
-    for (const [signedLevel, bandNodes] of [...grouped.entries()].sort((left, right) => left[0] - right[0])) {
+    const orderedGroups = [...grouped.entries()].sort((left, right) => left[0] - right[0]);
+    const levelTopBySignedLevel = new Map<number, number>();
+    const sideByNodeId = new Map<string, 'above' | 'below' | 'neutral'>();
+    sideByNodeId.set(anchorNode.id, 'neutral');
+    for (const [level, nodes] of orderedGroups) {
+      const side = level < 0 ? 'above' : level > 0 ? 'below' : 'neutral';
+      for (const node of nodes) {
+        sideByNodeId.set(node.id, side);
+      }
+    }
+    const negativeGroups = orderedGroups
+      .filter(([level]) => level < 0)
+      .sort((left, right) => right[0] - left[0]);
+    const positiveGroups = orderedGroups
+      .filter(([level]) => level > 0)
+      .sort((left, right) => left[0] - right[0]);
+    const gapY = Math.max(24, config.verticalSpacing - 84);
+    let upwardCursor = anchorCanvasNode.y - Math.max(24, Math.round(config.componentSpacing / 3));
+    for (const [level, nodes] of negativeGroups) {
+      const maxHeight = Math.max(84, ...nodes.map((node) => node.height));
+      const top = nodes.some((node) => node.height > 84)
+        ? upwardCursor - maxHeight
+        : anchorCanvasNode.y + level * config.verticalSpacing;
+      levelTopBySignedLevel.set(level, Math.round(top));
+      upwardCursor = Math.min(upwardCursor, top) - gapY;
+    }
+    let downwardCursor = anchorCanvasNode.y + anchorNode.height + Math.max(24, Math.round(config.componentSpacing / 3));
+    for (const [level, nodes] of positiveGroups) {
+      const maxHeight = Math.max(84, ...nodes.map((node) => node.height));
+      const top = nodes.some((node) => node.height > 84)
+        ? downwardCursor
+        : anchorCanvasNode.y + level * config.verticalSpacing;
+      levelTopBySignedLevel.set(level, Math.round(top));
+      downwardCursor = Math.max(downwardCursor, top + maxHeight + gapY);
+    }
+
+    for (const [signedLevel, bandNodes] of orderedGroups) {
       const orderedBandNodes = [...bandNodes].sort(compareNodePriority);
-      const centeredStartX = anchorCanvasNode.x - Math.max(0, (orderedBandNodes.length - 1) * config.horizontalSpacing) / 2;
+      const xPositions = buildCenteredHorizontalLeftPositions(
+        orderedBandNodes,
+        anchorCanvasNode.x + anchorNode.width / 2,
+        config,
+      );
       for (const [index, layoutNode] of orderedBandNodes.entries()) {
         const original = canvasNodeByKey.get(layoutNode.key);
         if (!original) {
           continue;
         }
         const desired = {
-          x: centeredStartX + index * config.horizontalSpacing,
-          y: anchorCanvasNode.y + signedLevel * config.verticalSpacing,
+          x: xPositions[index] ?? anchorCanvasNode.x,
+          y: levelTopBySignedLevel.get(signedLevel) ?? (anchorCanvasNode.y + signedLevel * config.verticalSpacing),
         };
         const placement = placeBrowserAutoLayoutNode(nextArranged, original, desired, request.options);
         nextArranged = [...nextArranged, {
@@ -355,13 +412,18 @@ function placeAnchoredComponentNodes(
     .sort(compareNodePriority);
   if (unassignedNodes.length > 0) {
     const fallbackOrigin = buildFallbackFreeNodeOrigin(nextArranged, Math.max(fallbackOriginY, componentBottom + config.componentSpacing));
+    const fallbackXPositions = buildCenteredHorizontalLeftPositions(
+      unassignedNodes,
+      fallbackOrigin.x + (unassignedNodes.length * config.horizontalSpacing) / 2,
+      config,
+    );
     for (const [index, layoutNode] of unassignedNodes.entries()) {
       const original = canvasNodeByKey.get(layoutNode.key);
       if (!original) {
         continue;
       }
       const placement = placeBrowserAutoLayoutNode(nextArranged, original, {
-        x: fallbackOrigin.x + index * config.horizontalSpacing,
+        x: fallbackXPositions[index] ?? fallbackOrigin.x,
         y: fallbackOrigin.y,
       }, request.options);
       nextArranged = [...nextArranged, {
@@ -372,6 +434,20 @@ function placeAnchoredComponentNodes(
       componentBottom = Math.max(componentBottom, placement.y);
     }
   }
+
+
+  const anchoredSideByNodeId = new Map<string, 'above' | 'below' | 'neutral'>(anchorNodes.map((node) => [node.id, 'neutral']));
+  for (const anchorNode of anchorNodes) {
+    const signedLevels = assignSignedLevelsFromAnchor(componentNodes, componentEdges, anchorNode.id);
+    for (const node of freeNodes) {
+      const signedLevel = signedLevels.get(node.id);
+      if (signedLevel === undefined) {
+        continue;
+      }
+      anchoredSideByNodeId.set(node.id, signedLevel < 0 ? 'above' : signedLevel > 0 ? 'below' : 'neutral');
+    }
+  }
+  nextArranged = enforceAnchoredPlacementClearance(nextArranged, freeNodes.map((node) => node.id), request, anchoredSideByNodeId);
 
   return {
     arranged: nextArranged,

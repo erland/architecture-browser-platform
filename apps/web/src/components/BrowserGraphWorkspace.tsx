@@ -28,6 +28,7 @@ export function BrowserGraphWorkspace({
   onIsolateSelection,
   onTogglePinNode,
   onMoveCanvasNode,
+  onReconcileCanvasNodePositions,
   onSetCanvasViewport,
   onArrangeAllCanvasNodes,
   onArrangeCanvasWithMode = () => {
@@ -140,6 +141,7 @@ export function BrowserGraphWorkspace({
         model={model}
         state={state}
         focusedEntity={focusedEntity}
+        onReconcileCanvasNodePositions={onReconcileCanvasNodePositions}
         viewportHandlers={{ beginNodeDrag, beginViewportPan, handleViewportWheel }}
         suppressClickRef={suppressClickRef}
         viewportRef={viewportRef}

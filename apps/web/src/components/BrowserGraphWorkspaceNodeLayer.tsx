@@ -23,6 +23,12 @@ function BrowserGraphWorkspaceNode({
   return (
     <article
       key={`${node.kind}:${node.id}`}
+      data-browser-node-id={node.id}
+      data-browser-node-kind={node.kind}
+      data-layout-x={node.x}
+      data-layout-y={node.y}
+      data-layout-width={node.width}
+      data-layout-height={node.height}
       className={[
         'browser-canvas__node',
         `browser-canvas__node--${node.kind}`,
