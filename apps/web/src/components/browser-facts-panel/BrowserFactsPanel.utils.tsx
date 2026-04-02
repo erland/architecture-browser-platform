@@ -1,5 +1,5 @@
 import type { FullSnapshotDiagnostic, FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotScope, SnapshotSourceRef } from '../../app-model';
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import type { BrowserFactsPanelEntityGroup } from './BrowserFactsPanel.types';
 
 export function uniqueSourceRefs(sourceRefs: SnapshotSourceRef[]) {

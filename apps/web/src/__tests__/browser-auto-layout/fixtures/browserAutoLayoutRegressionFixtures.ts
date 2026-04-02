@@ -1,4 +1,4 @@
-import type { BrowserCanvasEdge, BrowserCanvasNode } from '../../../browserSessionStore.types';
+import type { BrowserCanvasEdge, BrowserCanvasNode } from '../../../browser-session';
 
 export type BrowserAutoLayoutRegressionFixture = {
   name: string;

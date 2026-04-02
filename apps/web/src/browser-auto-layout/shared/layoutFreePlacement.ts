@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../../browserSessionStore.types';
+import type { BrowserCanvasNode } from '../../browser-session';
 import { getBrowserAutoLayoutConfig } from '../core/config';
 import { placeBrowserAutoLayoutNode } from './placement';
 import { enforceVerticalColumnClearance } from './layoutFootprint';

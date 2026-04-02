@@ -1,7 +1,8 @@
 import { getBrowserSnapshotCache } from '../../api/snapshotCache';
-import { restoreSavedCanvasToBrowserSession } from '../../saved-canvas/browserState';
-import { buildAcceptedSavedCanvasRebindingDocument, buildSavedCanvasRebindingStatusMessage, rebindSavedCanvasToTargetSnapshot, toSavedCanvasRebindingUiSummary } from '../../saved-canvas/rebinding';
-import { getSavedCanvasOfflineAvailability, loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../../saved-canvas/opening';
+import { restoreSavedCanvasToBrowserSession } from '../../saved-canvas/application';
+import { getSavedCanvasOfflineAvailability, loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../../saved-canvas/application';
+import { buildAcceptedSavedCanvasRebindingDocument, rebindSavedCanvasToTargetSnapshot } from '../../saved-canvas/domain';
+import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas';
 import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runOpenSavedCanvasWorkflow(
@@ -39,7 +40,7 @@ export async function runOpenSavedCanvasWorkflow(
     payload: openedSnapshot.payload,
     preparedAt: openedSnapshot.preparedAt,
   });
-  ports.browserSession.lifecycle.replaceState(restored.state);
+  ports.browserSession.lifecycle.replaceState(restored.state as any);
   const snapshotRef = openedSnapshot.snapshotRef;
   ports.selection.setSelectedWorkspaceId(snapshotRef.workspaceId);
   ports.selection.setSelectedRepositoryId(snapshotRef.repositoryRegistrationId);
@@ -87,7 +88,7 @@ export async function runOpenSavedCanvasOnSelectedSnapshotWorkflow(
     payload: openedSnapshot.payload,
     preparedAt: openedSnapshot.preparedAt,
   });
-  ports.browserSession.lifecycle.replaceState(restored.state);
+  ports.browserSession.lifecycle.replaceState(restored.state as any);
   ports.selection.setSelectedWorkspaceId(ports.selectedSnapshot.workspaceId);
   ports.selection.setSelectedRepositoryId(ports.selectedSnapshot.repositoryRegistrationId);
   ports.selection.setSelectedSnapshotId(ports.selectedSnapshot.id);

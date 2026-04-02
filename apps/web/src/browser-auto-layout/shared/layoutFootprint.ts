@@ -1,7 +1,7 @@
-import { BROWSER_ENTITY_NODE_SIZE } from '../../browserCanvasSizing';
-import { COLLISION_MARGIN, GRID_Y, roundToGrid } from '../../browserCanvasPlacement.policy';
+import { BROWSER_ENTITY_NODE_SIZE } from '../../browser-graph';
+import { COLLISION_MARGIN, GRID_Y, roundToGrid } from '../../browser-graph/canvas';
 import { getNodeSize } from '../../browser-canvas-placement/collision';
-import type { BrowserCanvasNode } from '../../browserSessionStore.types';
+import type { BrowserCanvasNode } from '../../browser-session';
 import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement/types';
 import type { BrowserAutoLayoutConfig } from '../core/config';
 import type { BrowserAutoLayoutNode } from '../core/types';

@@ -1,5 +1,5 @@
 import type { FullSnapshotDiagnostic, FullSnapshotRelationship, SnapshotSourceRef } from '../../app-model';
-import type { BrowserEntityFacts, BrowserScopeFacts } from '../../browserSnapshotIndex';
+import type { BrowserEntityFacts, BrowserScopeFacts } from '../../browser-snapshot';
 
 export type BrowserFactsPanelScopeSummary = {
   id: string;

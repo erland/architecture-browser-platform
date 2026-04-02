@@ -1,4 +1,4 @@
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import type { SavedCanvasItemReference } from '../model/document';
 import { resolveSavedCanvasReferenceIdByStableKey } from './stableReferenceLookup';
 import type { StableReferenceResolutionRule } from './stableReferenceResolution.rules';

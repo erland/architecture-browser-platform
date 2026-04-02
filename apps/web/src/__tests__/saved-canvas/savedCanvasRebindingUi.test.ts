@@ -1,6 +1,6 @@
-import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas/rebinding';
+import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas';
 import { createSavedCanvasDocument, type SavedCanvasDocument } from '../../saved-canvas';
-import type { SavedCanvasRebindResult } from '../../saved-canvas/rebinding';
+import type { SavedCanvasRebindResult } from '../../saved-canvas';
 
 function createDocument(): SavedCanvasDocument {
   return createSavedCanvasDocument({

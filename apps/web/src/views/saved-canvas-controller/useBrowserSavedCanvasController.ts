@@ -3,6 +3,7 @@
  * record/sync orchestration, and action-driven open/save/rebinding flows.
  */
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
+import { createBrowserSessionSavedCanvasPort } from '../../browser-session/ports/savedCanvas';
 import type { AppSelectionState } from '../../routing/appSelectionState';
 import type { SnapshotSummary } from '../../app-model';
 import type { useWorkspaceData } from '../../hooks/useWorkspaceData';
@@ -62,8 +63,10 @@ export function useBrowserSavedCanvasController({
 
   useLoadSavedCanvasRecordsOnMount({ loadSavedCanvasRecords });
 
+  const browserSessionPort = createBrowserSessionSavedCanvasPort(browserSession);
+
   const openAndManage = useSavedCanvasOpenAndManage({
-    browserSession,
+    browserSession: browserSessionPort,
     selection,
     selectedSnapshot,
     selectedSnapshotLabel,

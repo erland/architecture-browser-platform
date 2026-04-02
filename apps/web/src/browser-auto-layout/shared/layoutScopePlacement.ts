@@ -1,5 +1,5 @@
 import { avoidBrowserCanvasCollisions } from '../../browser-canvas-placement/collision';
-import type { BrowserCanvasNode } from '../../browserSessionStore.types';
+import type { BrowserCanvasNode } from '../../browser-session';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../core/config';
 import type { BrowserAutoLayoutRequest } from '../core/types';
 

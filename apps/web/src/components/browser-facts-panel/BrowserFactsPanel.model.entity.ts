@@ -1,5 +1,5 @@
-import { getEntityFacts } from '../../browserSnapshotIndex';
-import type { BrowserSessionState } from '../../browserSessionStore';
+import { getEntityFacts } from '../../browser-snapshot';
+import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserFactsPanelModel, BrowserFactsPanelViewpointExplanation } from './BrowserFactsPanel.types';
 import { displayEntityName } from './BrowserFactsPanel.utils';
 

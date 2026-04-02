@@ -1,4 +1,4 @@
-import { getScopeTreeNodesForMode, type BrowserSnapshotIndex, type BrowserScopeTreeNode, type BrowserTreeMode } from '../../browserSnapshotIndex';
+import { getScopeTreeNodesForMode, type BrowserSnapshotIndex, type BrowserScopeTreeNode, type BrowserTreeMode } from '../../browser-snapshot';
 import { TREE_MODE_META, buildScopeCategoryGroups, collectAncestorScopeIds, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from './browserNavigationTree.model';
 import { useBrowserNavigationTreeState } from './browserNavigationTree.state';
 

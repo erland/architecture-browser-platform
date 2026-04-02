@@ -1,1 +1,1 @@
-export * from "./browserRoutingLayoutConfig";
+export * from './browser-graph';

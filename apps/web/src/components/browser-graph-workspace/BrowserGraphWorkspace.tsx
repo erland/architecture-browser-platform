@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { getPrimaryEntitiesForScope } from '../../browserSnapshotIndex';
-import { buildBrowserGraphWorkspaceModel } from '../../browserGraphWorkspaceModel';
+import { getPrimaryEntitiesForScope } from '../../browser-snapshot';
+import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
 import { buildEntitySelectionActions } from './BrowserGraphWorkspace.actions';
 import { BrowserGraphWorkspaceCanvas, BrowserGraphWorkspaceToolbar } from './BrowserGraphWorkspace.sections';
 import type { BrowserGraphWorkspaceProps } from './BrowserGraphWorkspace.types';

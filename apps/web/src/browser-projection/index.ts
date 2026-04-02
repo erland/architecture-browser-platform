@@ -1,3 +1,7 @@
+/**
+ * Canonical public entrypoint for browser projection surfaces.
+ */
+
 export { buildBrowserProjectionModel } from './build';
 export type {
   BrowserProjectionCompartment,

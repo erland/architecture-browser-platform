@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotViewpoint } from '../../app-model';
 import { formatViewpointAvailability, formatViewpointLabel, BrowserViewpointControls } from '../../components/browser-viewpoints/BrowserViewpointControls';
-import { buildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { buildBrowserSnapshotIndex } from '../../browser-snapshot';
 
 const viewpoint: FullSnapshotViewpoint = {
   id: 'request-handling',

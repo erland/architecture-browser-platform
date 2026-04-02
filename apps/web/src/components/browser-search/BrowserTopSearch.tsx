@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BrowserSearchResult } from '../../browserSnapshotIndex';
+import type { BrowserSearchResult } from '../../browser-snapshot';
 
 export type BrowserTopSearchScopeMode = 'selected-scope' | 'entire-snapshot';
 

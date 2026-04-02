@@ -1,2 +1,1 @@
-export * from "./browserRelationshipSemantics";
-export * from "./browserViewpointPresentation";
+export * from './browser-graph';

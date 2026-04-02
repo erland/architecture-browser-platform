@@ -1,11 +1,14 @@
 import type { FullSnapshotPayload } from '../../app-model';
-import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
-import type { BrowserCanvasLayoutMode, BrowserSessionState } from '../../browserSessionStore';
+import { getOrBuildBrowserSnapshotIndex } from '../../browser-snapshot';
+import type {
+  SavedCanvasBrowserCanvasLayoutMode,
+  SavedCanvasBrowserSessionState,
+} from '../ports/browserSession';
 import type { CreateSavedCanvasDocumentInput, SavedCanvasDocument, SavedCanvasItemReference } from '../model/document';
 import { resolveSavedCanvasReferenceWithFallback } from '../rebinding/stableReferences';
 
 export type CreateSavedCanvasFromBrowserSessionOptions = {
-  state: BrowserSessionState;
+  state: SavedCanvasBrowserSessionState;
   canvasId: string;
   name: string;
   syncState?: CreateSavedCanvasDocumentInput['syncState'];
@@ -25,7 +28,7 @@ export type RestoreSavedCanvasToBrowserSessionOptions = {
 };
 
 export type RestoreSavedCanvasToBrowserSessionResult = {
-  state: BrowserSessionState;
+  state: SavedCanvasBrowserSessionState;
   unresolvedNodeIds: string[];
   unresolvedEdgeIds: string[];
 };
@@ -39,7 +42,7 @@ export function resolveSavedCanvasReferenceId(
   return resolveSavedCanvasReferenceWithFallback(index, reference).resolvedId;
 }
 
-export function normalizeCanvasLayoutMode(layoutMode: string | null | undefined): BrowserCanvasLayoutMode {
+export function normalizeCanvasLayoutMode(layoutMode: string | null | undefined): SavedCanvasBrowserCanvasLayoutMode {
   return layoutMode === 'radial'
     ? 'radial'
     : layoutMode === 'structure'

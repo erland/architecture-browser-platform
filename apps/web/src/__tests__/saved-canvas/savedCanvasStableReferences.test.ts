@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import {
   buildStableEntityKey,
   buildStableRelationshipKey,
@@ -9,7 +9,7 @@ import {
   createSavedCanvasScopeReference,
   resolveSavedCanvasReferenceIdByStableKey,
   resolveSavedCanvasReferenceWithFallback,
-} from '../../saved-canvas/rebinding';
+} from '../../saved-canvas';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-stable-1',

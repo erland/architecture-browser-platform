@@ -1,9 +1,9 @@
-import type { BrowserSessionState } from '../../browserSessionStore';
+import type { SavedCanvasBrowserSessionState } from '../ports/browserSession';
 import type { SavedCanvasDocument } from '../model/document';
 import { createSavedCanvasDocumentFromBrowserSession } from './sessionMapping';
 
 export function buildSavedCanvasTrackedDocument(options: {
-  state: BrowserSessionState;
+  state: SavedCanvasBrowserSessionState;
   baseline: SavedCanvasDocument;
 }): SavedCanvasDocument {
   const mapped = createSavedCanvasDocumentFromBrowserSession({
@@ -53,7 +53,7 @@ export function hasSavedCanvasTrackedNameEdit(draftName: string, baseline: Saved
 }
 
 export function hasSavedCanvasTrackedContentEdits(options: {
-  state: BrowserSessionState;
+  state: SavedCanvasBrowserSessionState;
   baseline: SavedCanvasDocument | null | undefined;
 }): boolean {
   if (!options.baseline || !options.state.activeSnapshot || !options.state.payload || !options.state.index) {

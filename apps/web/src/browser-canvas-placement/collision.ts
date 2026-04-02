@@ -1,12 +1,12 @@
-import type { BrowserCanvasNode } from '../browserSessionStore';
-import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browserCanvasSizing';
+import type { BrowserCanvasNode } from '../browser-session';
+import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browser-graph';
 import {
   APPEND_CLUSTER_GAP,
   COLLISION_MARGIN,
   GRID_X,
   GRID_Y,
   roundToGrid,
-} from '../browserCanvasPlacement.policy';
+} from '../browser-graph/canvas';
 import type {
   BrowserCanvasBounds,
   BrowserCanvasNodeLike,

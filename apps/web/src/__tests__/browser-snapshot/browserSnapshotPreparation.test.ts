@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from "../../app-model";
-import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from "../../browserSnapshotIndex";
+import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from "../../browser-snapshot";
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../../api/snapshotCache";
 
 const snapshotSummary: SnapshotSummary = {

@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import {
   addDependenciesToCanvas,
   addEntityToCanvas,
@@ -9,11 +9,11 @@ import {
   setCanvasViewport,
   setSelectedViewpoint,
   arrangeAllCanvasNodes,
-} from '../../browserSessionStore';
+} from '../../browser-session';
 import {
   createSavedCanvasDocumentFromBrowserSession,
   restoreSavedCanvasToBrowserSession,
-} from '../../saved-canvas/browserState';
+} from '../../saved-canvas';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-save-1',

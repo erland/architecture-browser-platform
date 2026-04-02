@@ -6,7 +6,7 @@ import {
   type BrowserSnapshotIndex,
   type BrowserScopeTreeNode,
   type BrowserTreeMode,
-} from '../../browserSnapshotIndex';
+} from '../../browser-snapshot';
 
 export type BrowserScopeCategoryGroup = {
   kind: string;

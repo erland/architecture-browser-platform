@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserProjectionModel } from '../../browser-projection';
-import { clearBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { BrowserGraphWorkspace } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
 import {
   addEntityToCanvas,
@@ -10,7 +10,7 @@ import {
   openSnapshotSession,
   setSelectedViewpoint,
   setViewpointPresentationPreference,
-} from '../../browserSessionStore';
+} from '../../browser-session';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-compact-uml-regression-1',

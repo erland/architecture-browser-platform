@@ -4,7 +4,7 @@ import type {
   BrowserCanvasLayoutMode,
   BrowserFocusedElement,
   BrowserSessionState,
-} from '../../browserSessionStore.types';
+} from '../../browser-session';
 import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement';
 
 export type BrowserAutoLayoutMode = 'structure' | 'balanced' | 'flow' | 'hierarchy';

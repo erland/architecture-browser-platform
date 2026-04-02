@@ -1,5 +1,5 @@
 import { planEntityInsertion } from '../../browser-canvas-placement';
-import { createEmptyBrowserSessionState } from '../../browserSessionStore';
+import { createEmptyBrowserSessionState } from '../../browser-session';
 
 describe('browser incremental placement pipeline', () => {
   it('uses the graph-aware pipeline to place a newly added entity between related visible neighbors', () => {

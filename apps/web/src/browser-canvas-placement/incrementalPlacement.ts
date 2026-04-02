@@ -1,6 +1,6 @@
 import type { FullSnapshotEntity } from '../app-model';
-import type { BrowserSnapshotIndex } from '../browserSnapshotIndex';
-import type { BrowserCanvasNode } from '../browserSessionStore';
+import type { BrowserSnapshotIndex } from '../browser-snapshot';
+import type { BrowserCanvasNode } from '../browser-session';
 import type {
   BrowserCanvasPlacement,
   BrowserCanvasPlacementOptions,

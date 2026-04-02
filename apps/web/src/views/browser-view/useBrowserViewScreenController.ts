@@ -1,131 +1,52 @@
 /**
- * Coordinates browser-page orchestration for workspace loading, selection state,
- * startup gating, and view-level dialogs. Domain workflows such as saved-canvas
- * open/save/rebind stay behind dedicated controller modules.
+ * Coordinates BrowserView page composition by delegating to cohesive feature
+ * controllers. Workspace/startup, canvas/search, and dialog/saved-canvas wiring
+ * are grouped so this hook remains a thin composition boundary.
  */
-import { useState } from 'react';
-import { useAppSelectionContext } from '../../contexts/AppSelectionContext';
-import { useBrowserSession } from '../../contexts/BrowserSessionContext';
-import { useBrowserSessionBootstrap } from '../../hooks/useBrowserSessionBootstrap';
-import { useWorkspaceData } from '../../hooks/useWorkspaceData';
-import { useBrowserSavedCanvasController } from '../saved-canvas-controller/useBrowserSavedCanvasController';
-import { useBrowserViewDialogState } from './useBrowserViewDialogState';
 import { type BrowserViewProps } from './browserView.shared';
-import { useBrowserViewActions } from './useBrowserViewActions';
-import { useBrowserViewDerivedState } from './useBrowserViewDerivedState';
-import { useBrowserViewHandlers } from './useBrowserViewHandlers';
-import { useBrowserViewLayout } from './useBrowserViewLayout';
-import { useBrowserViewRepositoryActions } from './useBrowserViewRepositoryActions';
-import { useBrowserViewSourceTreeController } from './useBrowserViewSourceTreeController';
-import { useBrowserViewStartup } from './useBrowserViewStartup';
-import { useBrowserViewSearchController } from './useBrowserViewSearchController';
+import {
+  useBrowserViewCanvasController,
+  useBrowserViewDialogController,
+  useBrowserViewWorkspaceController,
+} from './controllers';
 
 export type BrowserViewScreenController = ReturnType<typeof useBrowserViewScreenController>;
 
 export function useBrowserViewScreenController(_: BrowserViewProps) {
-  const [, setBusyMessage] = useState<string | null>(null);
-  const [, setError] = useState<string | null>(null);
-
-  const selection = useAppSelectionContext();
-  const browserSession = useBrowserSession();
-  const browserLayout = useBrowserViewLayout();
-
-  const workspaceData = useWorkspaceData({
-    selectedWorkspaceId: selection.selectedWorkspaceId,
-    setSelectedWorkspaceId: selection.setSelectedWorkspaceId,
-    selectedRepositoryId: selection.selectedRepositoryId,
-    setSelectedRepositoryId: selection.setSelectedRepositoryId,
-    selectedSnapshotId: selection.selectedSnapshotId,
-    setBusyMessage,
-    setError,
+  const workspace = useBrowserViewWorkspaceController();
+  const canvas = useBrowserViewCanvasController({
+    browserSession: workspace.browserSession,
+    browserLayout: workspace.browserLayout,
   });
-
-  const derivedState = useBrowserViewDerivedState({
-    selection,
-    workspaceData,
-    browserSession,
-    browserLayout,
-  });
-
-  const browserBootstrap = useBrowserSessionBootstrap({
-    workspaceId: workspaceData.selectedWorkspaceId,
-    repositoryId: selection.selectedRepositoryId,
-    snapshot: derivedState.selectedSnapshot,
-  });
-
-  const startup = useBrowserViewStartup({
-    selection,
-    workspaceData,
-    browserBootstrap,
-    browserSession,
-    selectedSnapshot: derivedState.selectedSnapshot,
-  });
-
-  const sourceTreeController = useBrowserViewSourceTreeController({
-    selection,
-    workspaceData,
-  });
-
-  const repositoryActions = useBrowserViewRepositoryActions({
-    selection,
-    workspaceData,
-    setBusyMessage,
-    setError,
-  });
-
-  const browserActions = useBrowserViewActions({
-    browserSession,
-    setActiveTab: browserLayout.setActiveTab,
-    topSearchScopeMode: browserLayout.topSearchScopeMode,
-  });
-
-  const savedCanvas = useBrowserSavedCanvasController({
-    browserSession,
-    selection,
-    workspaceData,
-    selectedSnapshot: derivedState.selectedSnapshot,
-    selectedRepositoryId: derivedState.selectedRepository?.id ?? selection.selectedRepositoryId ?? null,
-    selectedSnapshotLabel: derivedState.selectedSnapshotLabel,
-  });
-
-  const handlers = useBrowserViewHandlers({
-    sourceTreeController,
-    repositoryActions,
-  });
-
-  const dialogs = useBrowserViewDialogState({ savedCanvas });
-  const search = useBrowserViewSearchController({
-    browserSession,
-    browserActions,
-    browserLayout,
+  const dialog = useBrowserViewDialogController({
+    browserSession: workspace.browserSession,
+    selection: workspace.selection,
+    workspaceData: workspace.workspaceData,
+    derivedState: workspace.derivedState,
+    sourceTreeController: workspace.sourceTreeController,
   });
 
   return {
-    browserActions,
-    browserLayout,
-    browserSession,
-    selection,
-    workspaceData,
-    selectedSnapshot: derivedState.selectedSnapshot,
-    selectedRepository: derivedState.selectedRepository,
-    sourceTreeLauncherItems: sourceTreeController.sourceTreeLauncherItems,
-    activeTabMeta: derivedState.activeTabMeta,
-    repositoryLabel: derivedState.repositoryLabel,
-    selectedScopeLabel: derivedState.selectedScopeLabel,
-    selectedSnapshotLabel: derivedState.selectedSnapshotLabel,
-    activeViewpointLabel: derivedState.activeViewpointLabel,
+    browserActions: canvas.browserActions,
+    browserLayout: workspace.browserLayout,
+    browserSession: workspace.browserSession,
+    selection: workspace.selection,
+    workspaceData: workspace.workspaceData,
+    selectedSnapshot: workspace.derivedState.selectedSnapshot,
+    selectedRepository: workspace.derivedState.selectedRepository,
+    sourceTreeLauncherItems: workspace.sourceTreeController.sourceTreeLauncherItems,
+    activeTabMeta: workspace.derivedState.activeTabMeta,
+    repositoryLabel: workspace.derivedState.repositoryLabel,
+    selectedScopeLabel: workspace.derivedState.selectedScopeLabel,
+    selectedSnapshotLabel: workspace.derivedState.selectedSnapshotLabel,
+    activeViewpointLabel: workspace.derivedState.activeViewpointLabel,
     startup: {
-      shouldShowGate: startup.shouldShowGate,
-      gateMessage: startup.gateMessage,
+      shouldShowGate: workspace.startup.shouldShowGate,
+      gateMessage: workspace.startup.gateMessage,
     },
-    dialogs: {
-      isSourceTreeSwitcherOpen: sourceTreeController.isSourceTreeSwitcherOpen,
-      setIsSourceTreeSwitcherOpen: sourceTreeController.setIsSourceTreeSwitcherOpen,
-      handleOpenSourceTreeDialog: sourceTreeController.handleOpenSourceTreeDialog,
-      ...dialogs,
-    },
-    search,
-    savedCanvas,
-    handlers,
+    dialogs: dialog.dialogs,
+    search: canvas.search,
+    savedCanvas: dialog.savedCanvas,
+    handlers: workspace.handlers,
   };
 }

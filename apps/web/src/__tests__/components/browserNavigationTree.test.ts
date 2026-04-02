@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browserSnapshotIndex';
+import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
 import { buildScopeCategoryGroups, collectAncestorScopeIds, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from '../../components/browser-navigation/BrowserNavigationTree';
 
 const snapshotSummary: SnapshotSummary = {

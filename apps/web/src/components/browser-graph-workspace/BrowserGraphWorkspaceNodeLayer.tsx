@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { BrowserWorkspaceNodeModel } from '../../browserGraphWorkspaceModel';
+import type { BrowserWorkspaceNodeModel } from '../../browser-graph';
 import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
 import type { ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 

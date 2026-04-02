@@ -4,7 +4,7 @@ import {
   computeFitViewCanvasViewport,
   computePannedCanvasViewport,
   computeZoomedCanvasViewportAroundPointer,
-} from '../../browserCanvasViewport';
+} from '../../browser-graph';
 
 describe('browserCanvasViewport', () => {
   test('clamps zoom to supported browser canvas bounds', () => {

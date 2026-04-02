@@ -1,6 +1,6 @@
-import { BROWSER_SCOPE_NODE_SIZE } from '../browserCanvasSizing';
-import { PEER_SPACING_X, PEER_SPACING_Y } from '../browserCanvasPlacement.policy';
-import type { BrowserCanvasEdge, BrowserCanvasNode } from '../browserSessionStore';
+import { BROWSER_SCOPE_NODE_SIZE } from '../browser-graph';
+import { PEER_SPACING_X, PEER_SPACING_Y } from '../browser-graph/canvas';
+import type { BrowserCanvasEdge, BrowserCanvasNode } from '../browser-session';
 import { type BrowserCanvasPlacementOptions } from './types';
 import { avoidBrowserCanvasCollisions, isAnchoredCanvasNode } from './collision';
 import { placeAppendedCanvasNode } from './initialPlacement';

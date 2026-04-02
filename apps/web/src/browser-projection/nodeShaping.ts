@@ -5,9 +5,9 @@ import {
   UML_CLASS_BASE_HEIGHT,
   UML_CLASS_MIN_WIDTH,
   UML_CLASS_ROW_HEIGHT,
-} from '../browserCanvasSizing';
-import { appliesCompactUmlPresentation, type BrowserViewpointPresentationPolicy } from '../browserViewpointPresentation';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
+} from '../browser-graph';
+import { appliesCompactUmlPresentation, type BrowserViewpointPresentationPolicy } from '../browser-graph';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
 import { compareProjectionStrings, displayProjectionName, formatProjectionKindBadgeLabel, resolveProjectionSourceForCanvasNode } from './sourceMapping';
 import type {
   BrowserNodeFrame,

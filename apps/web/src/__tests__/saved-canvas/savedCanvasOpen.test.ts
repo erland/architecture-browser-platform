@@ -1,6 +1,6 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from "../../saved-canvas";
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../../api/snapshotCache";
-import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen } from "../../saved-canvas/opening";
+import { loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen } from "../../saved-canvas";
 import { platformApi } from "../../api/platformApi";
 import type { FullSnapshotPayload } from "../../app-model";
 

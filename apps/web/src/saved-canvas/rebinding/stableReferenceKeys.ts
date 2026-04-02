@@ -3,7 +3,7 @@ import type {
   FullSnapshotRelationship,
   FullSnapshotScope,
 } from '../../app-model';
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import {
   classifyEntityCategory,
   classifyScopeCategory,

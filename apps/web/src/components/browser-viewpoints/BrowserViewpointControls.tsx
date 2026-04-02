@@ -1,7 +1,7 @@
 import type { FullSnapshotViewpoint } from '../../app-model';
-import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browserSnapshotIndex';
-import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browserSessionStore';
-import { getAvailableViewpoints } from '../../browserSnapshotIndex';
+import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browser-snapshot';
+import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browser-session';
+import { getAvailableViewpoints } from '../../browser-snapshot';
 
 const VIEWPOINT_SCOPE_MODE_META: Record<BrowserViewpointScopeMode, { label: string; description: string }> = {
   'selected-scope': { label: 'Current scope', description: 'Only entities inside the selected scope.' },

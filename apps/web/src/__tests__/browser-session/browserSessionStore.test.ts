@@ -28,8 +28,8 @@ import {
   setViewpointPresentationPreference,
   setViewpointScopeMode,
   toggleCanvasNodePin,
-} from '../../browserSessionStore';
-import { clearBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+} from '../../browser-session';
+import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-session-1',

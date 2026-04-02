@@ -1,4 +1,4 @@
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import type { SavedCanvasItemReference } from '../model/document';
 import { exactResolutionRules } from './stableReferenceExactRules';
 import { entityFallbackRules } from './stableReferenceEntityRules';

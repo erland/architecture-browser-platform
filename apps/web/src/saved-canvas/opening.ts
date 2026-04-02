@@ -1,16 +1,6 @@
-export {
-  buildSavedCanvasOfflineUnavailableMessage,
-  getSavedCanvasOfflineAvailability,
-} from './open/availability';
-export type {
-  SavedCanvasOfflineAvailabilitySummary,
-  SavedCanvasSnapshotOfflineStatus,
-} from './open/availability';
-export {
-  loadSavedCanvasSnapshotForOpen,
-  loadSelectedTargetSnapshotForSavedCanvasOpen,
-} from './open/load';
-export type {
-  SavedCanvasOpenMode,
-  SavedCanvasOpenSnapshotResult,
-} from './open/load';
+/**
+ * Legacy compatibility facade.
+ *
+ * Prefer importing opening workflows from `saved-canvas/application`.
+ */
+export * from './application/opening';

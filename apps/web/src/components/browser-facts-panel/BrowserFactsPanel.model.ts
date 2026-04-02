@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browserSessionStore';
+import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserFactsPanelModel } from './BrowserFactsPanel.types';
 import { buildEntityFactsPanelModel } from './BrowserFactsPanel.model.entity';
 import { buildRelationshipFactsPanelModel } from './BrowserFactsPanel.model.relationship';

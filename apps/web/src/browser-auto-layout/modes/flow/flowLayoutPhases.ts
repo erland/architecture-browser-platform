@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../../../browserSessionStore.types';
+import type { BrowserCanvasNode } from '../../../browser-session';
 import type {
   BrowserAutoLayoutComponent,
   BrowserAutoLayoutEdge,

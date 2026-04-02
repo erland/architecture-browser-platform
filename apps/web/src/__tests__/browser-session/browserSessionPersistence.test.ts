@@ -1,5 +1,5 @@
-import { createEmptyBrowserSessionState, addEntityToCanvas, openFactsPanel, openSnapshotSession, requestFitCanvasView } from '../../browserSessionStore';
-import { persistBrowserSession, readPersistedBrowserSession } from '../../browserSessionStore.persistence';
+import { createEmptyBrowserSessionState, addEntityToCanvas, openFactsPanel, openSnapshotSession, requestFitCanvasView } from '../../browser-session';
+import { persistBrowserSession, readPersistedBrowserSession } from '../../browser-session';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 
 const snapshotSummary: SnapshotSummary = {

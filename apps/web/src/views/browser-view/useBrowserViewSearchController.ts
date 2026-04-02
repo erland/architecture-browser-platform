@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { BrowserSearchResult } from '../../browserSnapshotIndex';
+import type { BrowserSearchResult } from '../../browser-snapshot';
 import type { BrowserTopSearchResultAction, BrowserTopSearchScopeMode } from '../../components/browser-search/BrowserTopSearch';
 
 type BrowserSessionSearchLike = {

@@ -1,4 +1,4 @@
-import type { BrowserWorkspaceEdgeModel } from '../../browserGraphWorkspaceModel';
+import type { BrowserWorkspaceEdgeModel } from '../../browser-graph';
 
 function isFinitePoint(point: { x: number; y: number } | undefined): point is { x: number; y: number } {
   return Number.isFinite(point?.x) && Number.isFinite(point?.y);

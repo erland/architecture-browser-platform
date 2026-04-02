@@ -1,12 +1,12 @@
-import { createSavedCanvasDocumentFromBrowserSession } from '../../saved-canvas/browserState';
-import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browserSessionStore';
-import type { BrowserSessionState } from '../../browserSessionStore';
+import { createSavedCanvasDocumentFromBrowserSession } from '../../saved-canvas';
+import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session';
 import type { FullSnapshotPayload } from '../../app-model';
 import {
   buildSavedCanvasTrackedDocument,
   hasSavedCanvasTrackedContentEdits,
   hasSavedCanvasTrackedNameEdit,
-} from '../../saved-canvas/browserState';
+} from '../../saved-canvas';
 
 function createPayload(): FullSnapshotPayload {
   return {

@@ -1,6 +1,6 @@
-import { COLLISION_MARGIN, GRID_X, GRID_Y, roundToGrid } from '../browserCanvasPlacement.policy';
+import { COLLISION_MARGIN, GRID_X, GRID_Y, roundToGrid } from '../browser-graph/canvas';
 import type { BrowserAutoLayoutCleanupIntensity } from '../browser-auto-layout';
-import type { BrowserCanvasNode } from '../browserSessionStore';
+import type { BrowserCanvasNode } from '../browser-session';
 import type { BrowserCanvasPlacementOptions } from './types';
 import { avoidBrowserCanvasCollisions, getNodeSize, isAnchoredCanvasNode } from './collision';
 

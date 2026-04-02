@@ -1,4 +1,4 @@
-import type { BrowserFactsPanelLocation, BrowserFactsPanelMode } from '../../browserSessionStore';
+import type { BrowserFactsPanelLocation, BrowserFactsPanelMode } from '../../browser-session';
 import {
   getContainedEntitiesForEntity,
   getContainingEntitiesForEntity,
@@ -6,7 +6,7 @@ import {
   getPrimaryEntitiesForScope,
   getSubtreeEntitiesForScopeByKind,
   type BrowserSnapshotIndex,
-} from '../../browserSnapshotIndex';
+} from '../../browser-snapshot';
 
 export type BrowserFocusPorts = {
   addEntitiesToCanvas: (entityIds: string[]) => void;

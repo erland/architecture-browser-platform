@@ -1,5 +1,5 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
-import { createSavedCanvasLocalStore, InMemorySavedCanvasLocalStorage } from '../../saved-canvas/storage';
+import { createSavedCanvasLocalStore, InMemorySavedCanvasLocalStorage } from '../../saved-canvas';
 import { runDeleteSavedCanvasWorkflow } from '../../views/saved-canvas-controller/savedCanvasPersistenceWorkflows';
 import { createEmptySavedCanvasSyncResult } from '../../saved-canvas/sync/model';
 import type { SnapshotSummary } from '../../app-model';

@@ -1,7 +1,7 @@
 import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { BrowserCanvasNode, BrowserSessionState } from '../../browserSessionStore';
+import type { BrowserCanvasNode, BrowserSessionState } from '../../browser-session';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
-import type { BrowserWorkspaceNodeModel } from '../../browserGraphWorkspaceModel';
+import type { BrowserWorkspaceNodeModel } from '../../browser-graph';
 
 export type ScopeAnalysisMode = 'primary' | 'direct' | 'subtree' | 'children-primary';
 

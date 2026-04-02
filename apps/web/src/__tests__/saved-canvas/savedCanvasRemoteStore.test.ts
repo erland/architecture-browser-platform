@@ -1,5 +1,5 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
-import { createSavedCanvasRemoteStore, type SavedCanvasBackendResponse } from '../../saved-canvas/storage';
+import { createSavedCanvasRemoteStore, type SavedCanvasBackendResponse } from '../../saved-canvas';
 
 const snapshotRef = toSavedCanvasSnapshotRef({
   id: 'snap-1',

@@ -1,10 +1,10 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
 import { resolveRenderedEdgeGeometry } from '../../components/browser-graph-workspace/BrowserGraphWorkspace.sections';
-import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browserSessionStore';
+import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-canvas-toolbar-1',

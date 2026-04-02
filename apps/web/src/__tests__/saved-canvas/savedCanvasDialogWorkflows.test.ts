@@ -1,6 +1,6 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
-import { createSavedCanvasLocalStore, InMemorySavedCanvasLocalStorage } from '../../saved-canvas/storage';
-import { defaultSavedCanvasName } from '../../saved-canvas/browserState';
+import { createSavedCanvasLocalStore, InMemorySavedCanvasLocalStorage } from '../../saved-canvas';
+import { defaultSavedCanvasName } from '../../saved-canvas';
 import { runOpenSavedCanvasDialogWorkflow } from '../../views/saved-canvas-controller/savedCanvasDialogWorkflows';
 import type { SnapshotSummary } from '../../app-model';
 

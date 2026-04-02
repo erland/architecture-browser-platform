@@ -1,14 +1,11 @@
-export {
-  buildSavedCanvasDocumentForSave,
-  createSavedCanvasId,
-  defaultSavedCanvasName,
-} from './browser-state/document';
-export {
-  buildSavedCanvasTrackedDocument,
-  hasSavedCanvasTrackedContentEdits,
-  hasSavedCanvasTrackedNameEdit,
-} from './browser-state/editTracking';
-export {
-  createSavedCanvasDocumentFromBrowserSession,
-  restoreSavedCanvasToBrowserSession,
-} from './browser-state/sessionMapping';
+/**
+ * Legacy compatibility facade.
+ *
+ * Prefer importing browser-state workflows from `saved-canvas/application`.
+ */
+export * from './application/browserState';
+export type {
+  SavedCanvasBrowserSessionState,
+  SavedCanvasBrowserSessionLifecyclePort,
+} from './ports/browserSession';
+export { browserSessionLifecycleAdapter } from './ports/browserSessionAdapter';

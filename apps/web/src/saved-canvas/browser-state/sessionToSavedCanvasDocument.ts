@@ -1,5 +1,8 @@
 import type { FullSnapshotRelationship } from '../../app-model';
-import type { BrowserCanvasEdge, BrowserCanvasNode } from '../../browserSessionStore';
+import type {
+  SavedCanvasBrowserCanvasEdge,
+  SavedCanvasBrowserCanvasNode,
+} from '../ports/browserSession';
 import {
   createSavedCanvasDocument,
   type SavedCanvasEdge,
@@ -70,7 +73,7 @@ export function createSavedCanvasDocumentFromBrowserSession(
 }
 
 function mapBrowserCanvasNodeToSavedCanvasNode(
-  node: BrowserCanvasNode,
+  node: SavedCanvasBrowserCanvasNode,
   index: NonNullable<CreateSavedCanvasFromBrowserSessionOptions['state']['index']>,
 ): SavedCanvasNode {
   const reference = node.kind === 'scope'
@@ -100,7 +103,7 @@ function mapBrowserCanvasNodeToSavedCanvasNode(
 }
 
 function mapBrowserCanvasEdgeToSavedCanvasEdge(
-  edge: BrowserCanvasEdge,
+  edge: SavedCanvasBrowserCanvasEdge,
   index: NonNullable<CreateSavedCanvasFromBrowserSessionOptions['state']['index']>,
 ): SavedCanvasEdge {
   const relationship = index.relationshipsById.get(edge.relationshipId);

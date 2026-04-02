@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browserSessionStore';
+import type { BrowserSessionState } from '../../browser-session';
 import { buildBrowserFactsPanelPresentation } from './BrowserFactsPanel.presentation';
 import {
   DiagnosticsSection,

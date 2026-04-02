@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { hydrateBrowserSessionState, persistBrowserSession, readPersistedBrowserSession, type BrowserSessionState } from '../browserSessionStore';
+import { hydrateBrowserSessionState, persistBrowserSession, readPersistedBrowserSession, type BrowserSessionState } from '../browser-session';
 import { createBrowserSessionActionGroups } from './browserSessionActions';
 import type { BrowserSessionContextValue } from './browserSession.types';
 

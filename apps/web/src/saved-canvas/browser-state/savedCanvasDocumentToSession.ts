@@ -1,5 +1,9 @@
-import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
-import { createEmptyBrowserSessionState, openSnapshotSession, type BrowserCanvasEdge, type BrowserCanvasNode } from '../../browserSessionStore';
+import { getOrBuildBrowserSnapshotIndex } from '../../browser-snapshot';
+import { browserSessionLifecycleAdapter } from '../ports/browserSessionAdapter';
+import type {
+  SavedCanvasBrowserCanvasEdge,
+  SavedCanvasBrowserCanvasNode,
+} from '../ports/browserSession';
 import type { SavedCanvasEdge, SavedCanvasNode } from '../model/document';
 import {
   normalizeCanvasLayoutMode,
@@ -14,7 +18,7 @@ export function restoreSavedCanvasToBrowserSession(
 ): RestoreSavedCanvasToBrowserSessionResult {
   const { document, payload, preparedAt } = options;
   const index = getOrBuildBrowserSnapshotIndex(payload);
-  let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+  let state = browserSessionLifecycleAdapter.openSnapshotSession(browserSessionLifecycleAdapter.createEmptyState(), {
     workspaceId: document.bindings.currentTargetSnapshot?.workspaceId ?? document.bindings.originSnapshot.workspaceId,
     repositoryId: payload.source.repositoryId,
     payload,
@@ -26,7 +30,7 @@ export function restoreSavedCanvasToBrowserSession(
   const unresolvedEdgeIds: string[] = [];
   const nodeIdsOnCanvas = new Set<string>();
 
-  const canvasNodes: BrowserCanvasNode[] = [];
+  const canvasNodes: SavedCanvasBrowserCanvasNode[] = [];
   for (const node of document.content.nodes) {
     const restoredNode = restoreSavedCanvasNode(node, index);
     if (!restoredNode || node.presentation.hidden || document.presentation.filters.hiddenNodeIds.includes(node.canvasNodeId)) {
@@ -39,7 +43,7 @@ export function restoreSavedCanvasToBrowserSession(
     nodeIdsOnCanvas.add(`${restoredNode.kind}:${restoredNode.id}`);
   }
 
-  const canvasEdges: BrowserCanvasEdge[] = [];
+  const canvasEdges: SavedCanvasBrowserCanvasEdge[] = [];
   for (const edge of document.content.edges) {
     const restoredEdge = restoreSavedCanvasEdge(edge, index, nodeIdsOnCanvas);
     if (!restoredEdge || edge.presentation.hidden || document.presentation.filters.hiddenEdgeIds.includes(edge.canvasEdgeId)) {
@@ -81,7 +85,7 @@ export function restoreSavedCanvasToBrowserSession(
 function restoreSavedCanvasNode(
   node: SavedCanvasNode,
   index: BrowserSnapshotIndex,
-): BrowserCanvasNode | null {
+): SavedCanvasBrowserCanvasNode | null {
   const resolvedId = resolveSavedCanvasReferenceId(node.reference, index);
   if (!resolvedId) {
     return null;
@@ -103,7 +107,7 @@ function restoreSavedCanvasEdge(
   edge: SavedCanvasEdge,
   index: BrowserSnapshotIndex,
   nodeIdsOnCanvas: Set<string>,
-): BrowserCanvasEdge | null {
+): SavedCanvasBrowserCanvasEdge | null {
   const relationshipId = resolveSavedCanvasReferenceId(edge.reference, index);
   if (!relationshipId) {
     return null;

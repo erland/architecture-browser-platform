@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBrowserSnapshotCache } from '../../api/snapshotCache';
-import { getBrowserSavedCanvasLocalStore, type SavedCanvasLocalRecord } from '../../saved-canvas/storage';
-import { createSavedCanvasRemoteStore } from '../../saved-canvas/storage';
-import { createSavedCanvasSyncService } from '../../saved-canvas/syncing';
-import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability, type SavedCanvasOfflineAvailabilitySummary } from '../../saved-canvas/opening';
-import type { SavedCanvasRebindingUiSummary } from '../../saved-canvas/rebinding';
-import { defaultSavedCanvasName } from '../../saved-canvas/browserState';
-import { hasSavedCanvasTrackedContentEdits, hasSavedCanvasTrackedNameEdit } from '../../saved-canvas/browserState';
-import type { SavedCanvasDocument } from '../../saved-canvas';
+import { type SavedCanvasDocument, type SavedCanvasRebindingUiSummary } from '../../saved-canvas/domain';
+import {
+  buildSavedCanvasOfflineUnavailableMessage,
+  createSavedCanvasSyncService,
+  defaultSavedCanvasName,
+  getSavedCanvasOfflineAvailability,
+  hasSavedCanvasTrackedContentEdits,
+  hasSavedCanvasTrackedNameEdit,
+  type SavedCanvasOfflineAvailabilitySummary,
+} from '../../saved-canvas/application';
+import {
+  createSavedCanvasRemoteStore,
+  getBrowserSavedCanvasLocalStore,
+  type SavedCanvasLocalRecord,
+} from '../../saved-canvas/adapters';
 import type { SnapshotSummary } from '../../app-model';
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
 

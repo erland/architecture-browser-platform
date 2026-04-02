@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { BrowserSnapshotIndex, BrowserScopeTreeNode, BrowserTreeMode } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex, BrowserScopeTreeNode, BrowserTreeMode } from '../../browser-snapshot';
 import {
   buildNavigationTreeSummary,
   collectAllVisibleScopeIds,

@@ -6,7 +6,7 @@ import {
   browserSessionNavigationCommands,
   browserSessionViewpointCommands,
   type BrowserSessionState,
-} from '../browserSessionStore';
+} from '../browser-session';
 import type { BrowserSessionActionGroups } from './browserSession.types';
 
 export function createBrowserSessionActionGroups(

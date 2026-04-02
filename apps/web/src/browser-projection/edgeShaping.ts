@@ -1,5 +1,5 @@
-import { formatAssociationEdgeLabel } from '../browserRelationshipSemantics';
-import type { BrowserCanvasEdge, BrowserSessionState } from '../browserSessionStore';
+import { formatAssociationEdgeLabel } from '../browser-graph';
+import type { BrowserCanvasEdge, BrowserSessionState } from '../browser-session';
 import type { BrowserProjectionEdge, BrowserProjectionNode } from './types';
 
 export function buildProjectionSourceEntityNodeMap(nodes: BrowserProjectionNode[]): Map<string, BrowserProjectionNode> {

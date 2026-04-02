@@ -1,5 +1,5 @@
 import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
-import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex';
+import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browser-snapshot';
 import type { FullSnapshotPayload } from '../app-model';
 import type {
   BrowserCanvasViewport,
@@ -9,7 +9,7 @@ import type {
   BrowserSessionState,
   BrowserViewpointApplyMode,
   BrowserViewpointPresentationPreference,
-} from '../browserSessionStore';
+} from '../browser-session';
 
 export type OpenBrowserSessionOptions = {
   workspaceId: string;

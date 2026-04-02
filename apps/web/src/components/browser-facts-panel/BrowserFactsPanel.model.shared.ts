@@ -2,8 +2,8 @@ import type { FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotScope } 
 import type {
   BrowserResolvedViewpointGraph,
   BrowserSnapshotIndex,
-} from '../../browserSnapshotIndex';
-import type { BrowserSessionState } from '../../browserSessionStore';
+} from '../../browser-snapshot';
+import type { BrowserSessionState } from '../../browser-session';
 import type {
   BrowserFactsPanelEntityGroup,
   BrowserFactsPanelEntitySummary,

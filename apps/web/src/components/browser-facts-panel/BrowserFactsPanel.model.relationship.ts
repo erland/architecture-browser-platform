@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browserSessionStore';
+import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserFactsPanelModel, BrowserFactsPanelViewpointExplanation } from './BrowserFactsPanel.types';
 import { buildRelationshipMetadata } from './BrowserFactsPanel.model.shared';
 import { formatRelationshipLabel, uniqueSourceRefs } from './BrowserFactsPanel.utils';

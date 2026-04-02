@@ -3,7 +3,7 @@ import type {
   FullSnapshotScope,
   SnapshotSourceRef,
 } from '../../app-model';
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 
 export type SavedCanvasStableReferenceLookup = {
   scopeIdByStableKey: Map<string, string>;

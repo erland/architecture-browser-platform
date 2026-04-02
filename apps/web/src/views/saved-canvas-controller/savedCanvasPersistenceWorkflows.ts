@@ -1,4 +1,4 @@
-import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../../saved-canvas/browserState';
+import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../../saved-canvas/application';
 import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runSaveCurrentCanvasWorkflow(ports: Pick<SavedCanvasCommandPorts,

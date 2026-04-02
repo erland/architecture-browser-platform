@@ -1,6 +1,6 @@
-import { APPEND_CLUSTER_GAP, COLLISION_MARGIN, PEER_SPACING_X, PEER_SPACING_Y } from '../../browserCanvasPlacement.policy';
-import { BROWSER_ENTITY_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../../browserCanvasSizing';
-import type { BrowserCanvasNode } from '../../browserSessionStore.types';
+import { APPEND_CLUSTER_GAP, COLLISION_MARGIN, PEER_SPACING_X, PEER_SPACING_Y } from '../../browser-graph/canvas';
+import { BROWSER_ENTITY_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../../browser-graph';
+import type { BrowserCanvasNode } from '../../browser-session';
 import type { BrowserAutoLayoutMode, BrowserAutoLayoutRequest } from './types';
 
 export type BrowserAutoLayoutCleanupIntensity = 'none' | 'basic' | 'compact';

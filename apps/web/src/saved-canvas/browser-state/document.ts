@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browserSessionStore';
+import type { SavedCanvasBrowserSessionState } from '../ports/browserSession';
 import type { SavedCanvasDocument } from '../model/document';
 import { createSavedCanvasDocumentFromBrowserSession } from './sessionMapping';
 
@@ -15,7 +15,7 @@ export function defaultSavedCanvasName(snapshotKey: string | null | undefined) {
 }
 
 export function buildSavedCanvasDocumentForSave(options: {
-  state: BrowserSessionState;
+  state: SavedCanvasBrowserSessionState;
   name: string;
   existing?: SavedCanvasDocument | null;
   now?: string;

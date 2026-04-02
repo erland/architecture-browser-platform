@@ -4,9 +4,9 @@ import {
   type BrowserAutoLayoutGraph,
   type BrowserAutoLayoutNode,
 } from '../browser-auto-layout';
-import type { BrowserSnapshotIndex } from '../browserSnapshotIndex';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
-import { syncMeaningfulCanvasEdges } from '../browserSessionStore.canvas.relationships';
+import type { BrowserSnapshotIndex } from '../browser-snapshot';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
+import { syncMeaningfulCanvasEdges } from '../browser-session/canvas/relationships';
 import type { BrowserCanvasPlacementOptions } from './types';
 import { getCanvasNodeById, placeCanvasNodeNearAnchor, placeContainedCanvasNode, placePeerCanvasNode } from './incrementalPlacement';
 import { placeAppendedCanvasNode, placeFirstCanvasNode } from './initialPlacement';

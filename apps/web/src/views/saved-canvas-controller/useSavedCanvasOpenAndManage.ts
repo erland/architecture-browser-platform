@@ -1,18 +1,15 @@
 import { useCallback } from 'react';
-import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
+import type { BrowserSessionSavedCanvasPort } from '../../browser-session/ports/savedCanvas';
 import type { AppSelectionState } from '../../routing/appSelectionState';
-import { type SavedCanvasRebindingUiSummary } from '../../saved-canvas/rebinding';
-import { type SavedCanvasOfflineAvailabilitySummary } from '../../saved-canvas/opening';
-import type { SavedCanvasOpenMode } from '../../saved-canvas/opening';
+import type { SavedCanvasRebindingUiSummary, SavedCanvasDocument } from '../../saved-canvas/domain';
+import type { SavedCanvasOfflineAvailabilitySummary, SavedCanvasOpenMode, SavedCanvasSyncService } from '../../saved-canvas/application';
 import type { SnapshotSummary } from '../../app-model';
-import type { SavedCanvasDocument } from '../../saved-canvas';
-import type { SavedCanvasLocalStore } from '../../saved-canvas/storage';
-import type { SavedCanvasSyncService } from '../../saved-canvas/syncing';
+import type { SavedCanvasLocalStore } from '../../saved-canvas/adapters';
 import { createSavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 import { deleteSavedCanvas, openSavedCanvas, openSavedCanvasDialog, openSavedCanvasOnSelectedSnapshot, runSavedCanvasBusyControllerAction, runSavedCanvasPassiveControllerAction, saveCurrentSavedCanvas } from './savedCanvasControllerActions';
 
 export type SavedCanvasOpenAndManageArgs = {
-  browserSession: BrowserSessionContextValue;
+  browserSession: BrowserSessionSavedCanvasPort;
   selection: AppSelectionState & {
     setSelectedWorkspaceId: (value: string | null) => void;
     setSelectedRepositoryId: (value: string | null) => void;

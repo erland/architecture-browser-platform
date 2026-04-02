@@ -22,7 +22,7 @@ import {
   resolveViewpointExpansionRelationships,
   resolveViewpointSeedEntityIds,
   searchBrowserSnapshotIndex,
-} from "../../browserSnapshotIndex";
+} from "../../browser-snapshot";
 
 const snapshotSummary: SnapshotSummary = {
   id: "snap-local-1",

@@ -4,7 +4,7 @@ import {
   browserSessionLifecycleCommands,
   browserSessionNavigationCommands,
   browserSessionViewpointCommands,
-} from '../../browserSessionStore';
+} from '../../browser-session';
 
 describe('browserSessionStore command groups', () => {
   it('exposes lifecycle commands separately from state helpers', () => {

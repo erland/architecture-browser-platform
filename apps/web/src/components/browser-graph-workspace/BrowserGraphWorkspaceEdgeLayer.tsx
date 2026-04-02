@@ -1,4 +1,4 @@
-import type { BrowserWorkspaceEdgeModel } from '../../browserGraphWorkspaceModel';
+import type { BrowserWorkspaceEdgeModel } from '../../browser-graph';
 import { resolveRenderedEdgeGeometry } from './BrowserGraphWorkspace.edgeGeometry';
 
 function BrowserWorkspaceEdge({

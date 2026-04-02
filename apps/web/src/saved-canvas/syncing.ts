@@ -1,9 +1,6 @@
-export {
-  createSavedCanvasSyncService,
-  markSavedCanvasConflicted,
-  markSavedCanvasDeletedPendingSync,
-  markSavedCanvasPendingSync,
-  markSavedCanvasSyncFailed,
-  markSavedCanvasSynchronized,
-} from './sync/service';
-export type { SavedCanvasSyncFilter, SavedCanvasSyncResult, SavedCanvasSyncService } from './sync/service';
+/**
+ * Legacy compatibility facade.
+ *
+ * Prefer importing sync workflows from `saved-canvas/application`.
+ */
+export * from './application/sync';

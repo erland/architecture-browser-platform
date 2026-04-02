@@ -1,8 +1,8 @@
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshotCache';
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
 import type { SnapshotSummary } from '../../app-model/appModel.api';
-import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability } from '../../saved-canvas/opening';
-import type { SavedCanvasLocalRecord } from '../../saved-canvas/storage';
+import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability } from '../../saved-canvas';
+import type { SavedCanvasLocalRecord } from '../../saved-canvas';
 
 const originSnapshot: SnapshotSummary = {
   id: 'snap-a',

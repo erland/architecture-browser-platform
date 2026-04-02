@@ -1,4 +1,4 @@
-import type { BrowserSearchResult } from '../../browserSnapshotIndex';
+import type { BrowserSearchResult } from '../../browser-snapshot';
 import { toBrowserTopSearchAction, toBrowserTopSearchAddAction } from '../../components/browser-search/BrowserTopSearch';
 
 function createResult(kind: BrowserSearchResult['kind'], id: string, scopeId: string | null = 'scope:web'): BrowserSearchResult {

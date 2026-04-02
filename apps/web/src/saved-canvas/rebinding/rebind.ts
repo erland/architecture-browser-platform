@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import { getOrBuildBrowserSnapshotIndex } from '../../browser-snapshot';
 import { restoreSavedCanvasToBrowserSession } from '../browser-state/sessionMapping';
 import { toSavedCanvasSnapshotRef, type SavedCanvasDocument } from '../model/document';
 import { resolveSavedCanvasReferenceWithFallback } from './stableReferences';

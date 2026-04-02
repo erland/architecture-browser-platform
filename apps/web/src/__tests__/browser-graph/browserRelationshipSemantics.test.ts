@@ -6,7 +6,7 @@ import {
   getAssociationKind,
   hasAssociationDisplayMetadata,
   hasAssociationSemantics,
-} from '../../browserRelationshipSemantics';
+} from '../../browser-graph';
 
 const relationship = {
   externalId: 'rel:1',

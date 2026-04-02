@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { SnapshotSummary } from '../../app-model';
 import type { SourceTreeLauncherItem } from '../../app-model/appModel.sourceTree';
-import { createEmptyBrowserSessionState } from '../../browserSessionStore';
+import { createEmptyBrowserSessionState } from '../../browser-session';
 
 let mockSelection: any;
 let mockBrowserSession: any;

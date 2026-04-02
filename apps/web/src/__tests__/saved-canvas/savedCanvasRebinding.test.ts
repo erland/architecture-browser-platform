@@ -1,12 +1,12 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { createSavedCanvasDocumentFromBrowserSession, restoreSavedCanvasToBrowserSession } from '../../saved-canvas/browserState';
-import { rebindSavedCanvasToTargetSnapshot } from '../../saved-canvas/rebinding';
+import { createSavedCanvasDocumentFromBrowserSession, restoreSavedCanvasToBrowserSession } from '../../saved-canvas';
+import { rebindSavedCanvasToTargetSnapshot } from '../../saved-canvas';
 import {
   addDependenciesToCanvas,
   addEntityToCanvas,
   createEmptyBrowserSessionState,
   openSnapshotSession,
-} from '../../browserSessionStore';
+} from '../../browser-session';
 
 const originSnapshot: SnapshotSummary = {
   id: 'snap-a',

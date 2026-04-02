@@ -1,4 +1,4 @@
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import { createSavedCanvasItemReference, type SavedCanvasItemReference } from '../model/document';
 import {
   classifyEntityCategory,

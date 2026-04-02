@@ -1,10 +1,14 @@
+/**
+ * Explicit ports consumed by saved-canvas controller workflows.
+ *
+ * Browser session access is intentionally narrowed to the saved-canvas port so
+ * controller actions do not depend on the full BrowserSessionContext surface.
+ */
 import type { SnapshotSummary } from '../../app-model';
-import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
-import type { SavedCanvasDocument } from '../../saved-canvas';
-import type { SavedCanvasOfflineAvailabilitySummary } from '../../saved-canvas/opening';
-import type { SavedCanvasRebindingUiSummary } from '../../saved-canvas/rebinding';
-import type { SavedCanvasLocalStore } from '../../saved-canvas/storage';
-import type { SavedCanvasSyncService } from '../../saved-canvas/syncing';
+import type { BrowserSessionSavedCanvasPort } from '../../browser-session/ports/savedCanvas';
+import type { SavedCanvasDocument, SavedCanvasRebindingUiSummary } from '../../saved-canvas/domain';
+import type { SavedCanvasOfflineAvailabilitySummary, SavedCanvasSyncService } from '../../saved-canvas/application';
+import type { SavedCanvasLocalStore } from '../../saved-canvas/adapters';
 import type { SavedCanvasOpenMode } from './savedCanvasOpeningWorkflows';
 
 export type SavedCanvasSelectionPorts = {
@@ -14,7 +18,7 @@ export type SavedCanvasSelectionPorts = {
 };
 
 export type SavedCanvasCommandPorts = {
-  browserSession: Pick<BrowserSessionContextValue, 'state' | 'lifecycle'>;
+  browserSession: BrowserSessionSavedCanvasPort;
   selection: SavedCanvasSelectionPorts;
   selectedSnapshot: SnapshotSummary | null;
   selectedSnapshotLabel: string;

@@ -6,8 +6,8 @@ import {
   getSubtreeEntitiesForScope,
   type BrowserScopeFacts,
   type BrowserSnapshotIndex,
-} from '../../browserSnapshotIndex';
-import type { BrowserSessionState } from '../../browserSessionStore';
+} from '../../browser-snapshot';
+import type { BrowserSessionState } from '../../browser-session';
 import type {
   BrowserFactsPanelModel,
   BrowserFactsPanelScopeBridge,

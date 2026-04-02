@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity } from '../../app-model';
-import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
+import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import type { SavedCanvasItemReference } from '../model/document';
 import { buildStableScopeKey } from './stableReferenceKeys';
 import {

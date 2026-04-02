@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
-import { addEntityToCanvas, applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browserSessionStore';
+import { addEntityToCanvas, applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-facts-1',

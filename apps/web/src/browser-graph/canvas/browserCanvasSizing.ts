@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity } from '../../app-model';
-import { resolveBrowserStateViewpointPresentationPolicy } from '../presentation/browserViewpointPresentation';
+import { resolveBrowserStateViewpointPresentationPolicy } from '../presentation';
 import type { BrowserCanvasNode, BrowserSessionState } from '../../browser-session';
 
 export const BROWSER_SCOPE_NODE_SIZE = { width: 204, height: 82 } as const;

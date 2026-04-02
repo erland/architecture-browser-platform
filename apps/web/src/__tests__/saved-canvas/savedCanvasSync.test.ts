@@ -1,7 +1,7 @@
 import { HttpError } from '../../api/httpClient';
-import { createSavedCanvasLocalStore } from '../../saved-canvas/storage';
+import { createSavedCanvasLocalStore } from '../../saved-canvas';
 import { createSavedCanvasDocument } from '../../saved-canvas';
-import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../../saved-canvas/syncing';
+import { createSavedCanvasSyncService, markSavedCanvasPendingSync } from '../../saved-canvas';
 
 function createInMemoryLocalStore() {
   const records = new Map<string, ReturnType<typeof createSavedCanvasDocument>>();

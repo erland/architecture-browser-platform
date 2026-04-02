@@ -5,7 +5,7 @@ import {
   getPrimaryEntitiesForScope,
   getSubtreeEntitiesForScopeByKind,
   type BrowserSnapshotIndex,
-} from '../../browserSnapshotIndex';
+} from '../../browser-snapshot';
 import type { BrowserEntitySelectionAction } from './BrowserGraphWorkspace.types';
 
 function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[]) {
