@@ -1,7 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import type { BrowserTopSearchResultAction, BrowserTopSearchScopeMode } from '../components/BrowserTopSearch';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
-import { runContainedEntitiesCommand, runPeerEntitiesCommand, runScopeAnalysisCommand, runTopSearchActionCommand, type BrowserFocusPorts } from './browserViewWorkflows';
+import { runContainedEntitiesWorkflow as runContainedEntitiesCommand, runPeerEntitiesWorkflow as runPeerEntitiesCommand, runScopeAnalysisWorkflow as runScopeAnalysisCommand, type BrowserFocusPorts } from './browserViewFocusWorkflows';
+import { runTopSearchActionWorkflow as runTopSearchActionCommand } from './browserTopSearchWorkflows';
 
 export type BrowserViewActions = {
   effectiveTopSearchScopeId: string | null;

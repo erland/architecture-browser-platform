@@ -39,13 +39,6 @@ export type SavedCanvasCommandPorts = {
   buildOfflineUnavailableMessage: (availability: SavedCanvasOfflineAvailabilitySummary, mode: SavedCanvasOpenMode | 'selected') => string;
 };
 
-export { runOpenSavedCanvasDialogWorkflow as runOpenSavedCanvasDialogCommand } from './savedCanvasDialogWorkflows';
-export {
-  runOpenSavedCanvasWorkflow as runOpenSavedCanvasCommand,
-  runOpenSavedCanvasOnSelectedSnapshotWorkflow as runOpenSavedCanvasOnSelectedSnapshotCommand,
-  type SavedCanvasOpenMode,
-} from './savedCanvasOpeningWorkflows';
-export {
-  runDeleteSavedCanvasWorkflow as runDeleteSavedCanvasCommand,
-  runSaveCurrentCanvasWorkflow as runSaveCurrentCanvasCommand,
-} from './savedCanvasPersistenceWorkflows';
+export function createSavedCanvasCommandPorts<T extends SavedCanvasCommandPorts>(ports: T): T {
+  return ports;
+}

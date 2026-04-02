@@ -10,39 +10,32 @@ import {
   upsertPinnedCanvasNode,
   upsertSelectedEntityIds,
 } from './browserSessionStore.canvas.nodes';
+import { deriveFactsPanelModeFromFocus, normalizeFocusedBrowserContext } from './browserSessionStore.invariants';
 
 export function removeEntityFromCanvas(state: BrowserSessionState, entityId: string): BrowserSessionState {
   const canvasNodes = state.canvasNodes.filter((node) => !(node.kind === 'entity' && node.id === entityId));
   const canvasEdges = state.canvasEdges.filter((edge) => edge.fromEntityId !== entityId && edge.toEntityId !== entityId);
-  const selectedEntityIds = state.selectedEntityIds.filter((current) => current !== entityId);
-  const focusedElement = state.focusedElement?.kind === 'entity' && state.focusedElement.id === entityId ? null : state.focusedElement;
-  const factsPanelMode = focusedElement ? state.factsPanelMode : 'hidden';
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     canvasNodes,
     canvasEdges,
-    selectedEntityIds,
-    focusedElement,
-    factsPanelMode,
     appliedViewpoint: null,
+  };
+  return {
+    ...nextState,
+    ...normalizeFocusedBrowserContext(nextState, {
+      selectedEntityIds: state.selectedEntityIds.filter((current) => current !== entityId),
+      focusedElement: state.focusedElement?.kind === 'entity' && state.focusedElement.id === entityId ? null : state.focusedElement,
+      canvasEdges,
+    }),
   };
 }
 
 export function focusBrowserElement(state: BrowserSessionState, focusedElement: BrowserFocusedElement): BrowserSessionState {
-  let factsPanelMode = state.factsPanelMode;
-  if (!focusedElement) {
-    factsPanelMode = 'hidden';
-  } else if (focusedElement.kind === 'scope') {
-    factsPanelMode = 'scope';
-  } else if (focusedElement.kind === 'entity') {
-    factsPanelMode = 'entity';
-  } else {
-    factsPanelMode = 'relationship';
-  }
   return {
     ...state,
     focusedElement,
-    factsPanelMode,
+    factsPanelMode: deriveFactsPanelModeFromFocus(focusedElement, state.factsPanelMode),
   };
 }
 
@@ -80,16 +73,18 @@ export function isolateCanvasSelection(state: BrowserSessionState): BrowserSessi
   }
   const canvasNodes = state.canvasNodes.filter((node) => node.kind === 'entity' ? allowedEntityIds.has(node.id) : allowedScopeIds.has(node.id));
   const canvasEdges = state.canvasEdges.filter((edge) => allowedEntityIds.has(edge.fromEntityId) && allowedEntityIds.has(edge.toEntityId));
-  const focusedElement = state.focusedElement && ((state.focusedElement.kind === 'entity' && allowedEntityIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'scope' && allowedScopeIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'relationship' && canvasEdges.some((edge) => edge.relationshipId === state.focusedElement?.id)))
-    ? state.focusedElement
-    : (selectedEntityIds[0] ? { kind: 'entity' as const, id: selectedEntityIds[0] } : focusedScopeId ? { kind: 'scope' as const, id: focusedScopeId } : null);
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     canvasNodes,
     canvasEdges,
-    selectedEntityIds,
-    focusedElement,
-    factsPanelMode: focusedElement ? focusedElement.kind === 'relationship' ? 'relationship' : focusedElement.kind : 'hidden',
+  };
+  return {
+    ...nextState,
+    ...normalizeFocusedBrowserContext(nextState, {
+      selectedEntityIds,
+      canvasEdges,
+      fallbackScopeId: focusedScopeId,
+    }),
   };
 }
 
@@ -98,14 +93,18 @@ export function removeCanvasSelection(state: BrowserSessionState): BrowserSessio
   const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
   const canvasNodes = state.canvasNodes.filter((node) => node.kind === 'entity' ? !selectedEntityIds.has(node.id) : node.id !== focusedScopeId);
   const canvasEdges = state.canvasEdges.filter((edge) => !selectedEntityIds.has(edge.fromEntityId) && !selectedEntityIds.has(edge.toEntityId));
-  const focusedElement = state.focusedElement && ((state.focusedElement.kind === 'entity' && selectedEntityIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'scope' && state.focusedElement.id === focusedScopeId)) ? null : state.focusedElement;
-  return {
+  const nextState: BrowserSessionState = {
     ...state,
     canvasNodes,
     canvasEdges,
-    selectedEntityIds: [],
-    focusedElement,
-    factsPanelMode: focusedElement ? state.factsPanelMode : 'hidden',
+  };
+  return {
+    ...nextState,
+    ...normalizeFocusedBrowserContext(nextState, {
+      selectedEntityIds: [],
+      focusedElement: state.focusedElement && ((state.focusedElement.kind === 'entity' && selectedEntityIds.has(state.focusedElement.id)) || (state.focusedElement.kind === 'scope' && state.focusedElement.id === focusedScopeId)) ? null : state.focusedElement,
+      canvasEdges,
+    }),
   };
 }
 

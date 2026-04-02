@@ -1,32 +1,23 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
-import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.CompletenessInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullDiagnostic;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullEntity;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullRelationship;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullScope;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayloadDtos.FullViewpoint;
+import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.CompletenessInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.RunInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.SourceInfo;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.SourceRef;
-import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @ApplicationScoped
 class SnapshotCatalogDocumentMapper {
-    @Inject
-    SnapshotCatalogMetadataSanitizer metadataSanitizer;
-
-    SourceInfo toSourceInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.RepositorySource source = document.source();
-        if (source == null) {
-            return new SourceInfo(null, null, null, null, null, null, null);
-        }
+    SourceInfo toSourceInfo(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        SnapshotCatalogCanonicalDocument.SourceData source = canonicalDocument.source();
         return new SourceInfo(
             source.repositoryId(),
             source.acquisitionType(),
@@ -38,36 +29,30 @@ class SnapshotCatalogDocumentMapper {
         );
     }
 
-    RunInfo toRunInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.RunMetadata runMetadata = document.runMetadata();
-        if (runMetadata == null) {
-            return new RunInfo(null, null, null, List.of());
-        }
+    RunInfo toRunInfo(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        SnapshotCatalogCanonicalDocument.RunData run = canonicalDocument.run();
         return new RunInfo(
-            runMetadata.startedAt(),
-            runMetadata.completedAt(),
-            runMetadata.outcome(),
-            Optional.ofNullable(runMetadata.detectedTechnologies()).orElse(List.of())
+            run.startedAt(),
+            run.completedAt(),
+            run.outcome(),
+            run.detectedTechnologies()
         );
     }
 
-    CompletenessInfo toCompletenessInfo(ArchitectureIndexDocument document) {
-        ArchitectureIndexDocument.CompletenessMetadata completeness = document.completeness();
-        if (completeness == null) {
-            return new CompletenessInfo(null, 0, 0, 0, List.of(), List.of());
-        }
+    CompletenessInfo toCompletenessInfo(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        SnapshotCatalogCanonicalDocument.CompletenessData completeness = canonicalDocument.completeness();
         return new CompletenessInfo(
             completeness.status(),
             completeness.indexedFileCount(),
             completeness.totalFileCount(),
             completeness.degradedFileCount(),
-            Optional.ofNullable(completeness.omittedPaths()).orElse(List.of()),
-            Optional.ofNullable(completeness.notes()).orElse(List.of())
+            completeness.omittedPaths(),
+            completeness.notes()
         );
     }
 
-    List<FullScope> mapScopes(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.scopes()).orElse(List.of()).stream()
+    List<FullScope> mapScopes(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.scopes().stream()
             .map(scope -> new FullScope(
                 scope.id(),
                 scope.kind(),
@@ -75,13 +60,13 @@ class SnapshotCatalogDocumentMapper {
                 scope.displayName(),
                 scope.parentScopeId(),
                 mapSourceRefs(scope.sourceRefs()),
-                metadataSanitizer.defaultMap(scope.metadata())
+                scope.metadata()
             ))
             .toList();
     }
 
-    List<FullEntity> mapEntities(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.entities()).orElse(List.of()).stream()
+    List<FullEntity> mapEntities(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.entities().stream()
             .map(entity -> new FullEntity(
                 entity.id(),
                 entity.kind(),
@@ -90,13 +75,13 @@ class SnapshotCatalogDocumentMapper {
                 entity.displayName(),
                 entity.scopeId(),
                 mapSourceRefs(entity.sourceRefs()),
-                metadataSanitizer.defaultMap(entity.metadata())
+                entity.metadata()
             ))
             .toList();
     }
 
-    List<FullRelationship> mapRelationships(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.relationships()).orElse(List.of()).stream()
+    List<FullRelationship> mapRelationships(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.relationships().stream()
             .map(relationship -> new FullRelationship(
                 relationship.id(),
                 relationship.kind(),
@@ -104,30 +89,30 @@ class SnapshotCatalogDocumentMapper {
                 relationship.toEntityId(),
                 relationship.label(),
                 mapSourceRefs(relationship.sourceRefs()),
-                metadataSanitizer.defaultMap(relationship.metadata())
+                relationship.metadata()
             ))
             .toList();
     }
 
-    List<FullViewpoint> mapViewpoints(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.viewpoints()).orElse(List.of()).stream()
+    List<FullViewpoint> mapViewpoints(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.viewpoints().stream()
             .map(viewpoint -> new FullViewpoint(
                 viewpoint.id(),
                 viewpoint.title(),
                 viewpoint.description(),
                 viewpoint.availability(),
-                viewpoint.confidence() != null ? viewpoint.confidence() : 0.0d,
-                defaultList(viewpoint.seedEntityIds()),
-                defaultList(viewpoint.seedRoleIds()),
-                defaultList(viewpoint.expandViaSemantics()),
-                defaultList(viewpoint.preferredDependencyViews()),
-                defaultList(viewpoint.evidenceSources())
+                viewpoint.confidence(),
+                viewpoint.seedEntityIds(),
+                viewpoint.seedRoleIds(),
+                viewpoint.expandViaSemantics(),
+                viewpoint.preferredDependencyViews(),
+                viewpoint.evidenceSources()
             ))
             .toList();
     }
 
-    List<FullDiagnostic> mapDiagnostics(ArchitectureIndexDocument document) {
-        return Optional.ofNullable(document.diagnostics()).orElse(List.of()).stream()
+    List<FullDiagnostic> mapDiagnostics(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.diagnostics().stream()
             .map(diagnostic -> new FullDiagnostic(
                 diagnostic.id(),
                 diagnostic.severity(),
@@ -139,31 +124,24 @@ class SnapshotCatalogDocumentMapper {
                 diagnostic.scopeId(),
                 diagnostic.entityId(),
                 mapSourceRefs(diagnostic.sourceRefs()),
-                metadataSanitizer.defaultMap(diagnostic.metadata())
+                diagnostic.metadata()
             ))
             .toList();
     }
 
-    List<SourceRef> mapSourceRefs(List<ArchitectureIndexDocument.SourceReference> sourceRefs) {
-        return Optional.ofNullable(sourceRefs).orElse(List.of()).stream()
+    Map<String, Object> metadataEnvelope(SnapshotCatalogCanonicalDocument canonicalDocument) {
+        return canonicalDocument.metadata();
+    }
+
+    private List<SourceRef> mapSourceRefs(List<SnapshotCatalogCanonicalDocument.SourceRefData> sourceRefs) {
+        return sourceRefs.stream()
             .map(sourceRef -> new SourceRef(
                 sourceRef.path(),
                 sourceRef.startLine(),
                 sourceRef.endLine(),
                 sourceRef.snippet(),
-                metadataSanitizer.defaultMap(sourceRef.metadata())
+                sourceRef.metadata()
             ))
             .toList();
-    }
-
-    Map<String, Object> metadataEnvelope(ArchitectureIndexDocument document) {
-        return metadataSanitizer.defaultMap(document.metadata());
-    }
-
-    private List<String> defaultList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        return List.copyOf(values);
     }
 }

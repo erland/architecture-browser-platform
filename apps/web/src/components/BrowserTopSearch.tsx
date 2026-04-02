@@ -10,7 +10,7 @@ export type BrowserTopSearchResultAction = {
   kind: BrowserSearchResult['kind'];
 };
 
-type BrowserTopSearchProps = {
+export type BrowserTopSearchProps = {
   query: string;
   onQueryChange: (query: string) => void;
   scopeMode: BrowserTopSearchScopeMode;

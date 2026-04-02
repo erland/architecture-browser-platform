@@ -1,5 +1,5 @@
 import { buildSavedCanvasDocumentForSave, defaultSavedCanvasName } from '../saved-canvas/browserState';
-import type { SavedCanvasCommandPorts } from './savedCanvasWorkflows';
+import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runSaveCurrentCanvasWorkflow(ports: Pick<SavedCanvasCommandPorts,
   'browserSession' | 'currentSavedCanvasId' | 'currentSavedCanvasBaseline' | 'savedCanvasDraftName' | 'savedCanvasStore' | 'savedCanvasSyncService' | 'setCurrentSavedCanvasId' | 'setCurrentSavedCanvasBaseline' | 'setSavedCanvasDraftName' | 'setRebindingCanvasId' | 'setRebindingSummary' | 'setSavedCanvasStatusMessage' | 'loadSavedCanvasRecords' | 'applySavedCanvasSyncResult' | 'runSavedCanvasSync'>,

@@ -9,6 +9,7 @@ import { useBrowserSession } from '../contexts/BrowserSessionContext';
 import { useBrowserSessionBootstrap } from '../hooks/useBrowserSessionBootstrap';
 import { useWorkspaceData } from '../hooks/useWorkspaceData';
 import { useBrowserSavedCanvasController } from './useBrowserSavedCanvasController';
+import { useBrowserViewDialogState } from './useBrowserViewDialogState';
 import { type BrowserViewProps } from './browserView.shared';
 import { useBrowserViewActions } from './useBrowserViewActions';
 import { useBrowserViewDerivedState } from './useBrowserViewDerivedState';
@@ -17,13 +18,13 @@ import { useBrowserViewLayout } from './useBrowserViewLayout';
 import { useBrowserViewRepositoryActions } from './useBrowserViewRepositoryActions';
 import { useBrowserViewSourceTreeController } from './useBrowserViewSourceTreeController';
 import { useBrowserViewStartup } from './useBrowserViewStartup';
+import { useBrowserViewSearchController } from './useBrowserViewSearchController';
 
 export type BrowserViewScreenController = ReturnType<typeof useBrowserViewScreenController>;
 
 export function useBrowserViewScreenController(_: BrowserViewProps) {
   const [, setBusyMessage] = useState<string | null>(null);
   const [, setError] = useState<string | null>(null);
-  const [isViewpointDialogOpen, setIsViewpointDialogOpen] = useState(false);
 
   const selection = useAppSelectionContext();
   const browserSession = useBrowserSession();
@@ -92,6 +93,13 @@ export function useBrowserViewScreenController(_: BrowserViewProps) {
     repositoryActions,
   });
 
+  const dialogs = useBrowserViewDialogState({ savedCanvas });
+  const search = useBrowserViewSearchController({
+    browserSession,
+    browserActions,
+    browserLayout,
+  });
+
   return {
     browserActions,
     browserLayout,
@@ -113,12 +121,10 @@ export function useBrowserViewScreenController(_: BrowserViewProps) {
     dialogs: {
       isSourceTreeSwitcherOpen: sourceTreeController.isSourceTreeSwitcherOpen,
       setIsSourceTreeSwitcherOpen: sourceTreeController.setIsSourceTreeSwitcherOpen,
-      isViewpointDialogOpen,
-      setIsViewpointDialogOpen,
-      isSavedCanvasDialogOpen: savedCanvas.isSavedCanvasDialogOpen,
-      setIsSavedCanvasDialogOpen: savedCanvas.setIsSavedCanvasDialogOpen,
       handleOpenSourceTreeDialog: sourceTreeController.handleOpenSourceTreeDialog,
+      ...dialogs,
     },
+    search,
     savedCanvas,
     handlers,
   };

@@ -3,7 +3,6 @@ package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.DiagnosticSummary;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.KindCount;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotSharedDtos.NameCount;
-import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
 import info.isaksson.erland.architecturebrowser.platform.domain.FactType;
 import info.isaksson.erland.architecturebrowser.platform.domain.ImportedFactEntity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,7 +12,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -28,9 +26,9 @@ class SnapshotCatalogOverviewBuilder {
             .toList();
     }
 
-    List<NameCount> buildTopScopes(ArchitectureIndexDocument document, List<ImportedFactEntity> facts) {
+    List<NameCount> buildTopScopes(SnapshotCatalogCanonicalDocument canonicalDocument, List<ImportedFactEntity> facts) {
         Map<String, String> scopeNames = new LinkedHashMap<>();
-        for (ArchitectureIndexDocument.LogicalScope scope : Optional.ofNullable(document.scopes()).orElse(List.of())) {
+        for (SnapshotCatalogCanonicalDocument.ScopeData scope : canonicalDocument.scopes()) {
             scopeNames.put(scope.id(), firstNonBlank(scope.displayName(), scope.name(), scope.id()));
         }
 
@@ -50,9 +48,9 @@ class SnapshotCatalogOverviewBuilder {
             .toList();
     }
 
-    List<DiagnosticSummary> buildRecentDiagnostics(ArchitectureIndexDocument document) {
+    List<DiagnosticSummary> buildRecentDiagnostics(SnapshotCatalogCanonicalDocument canonicalDocument) {
         List<DiagnosticSummary> results = new ArrayList<>();
-        for (ArchitectureIndexDocument.Diagnostic diagnostic : Optional.ofNullable(document.diagnostics()).orElse(List.of())) {
+        for (SnapshotCatalogCanonicalDocument.DiagnosticData diagnostic : canonicalDocument.diagnostics()) {
             results.add(new DiagnosticSummary(
                 diagnostic.id(),
                 diagnostic.code(),
@@ -70,13 +68,13 @@ class SnapshotCatalogOverviewBuilder {
             .toList();
     }
 
-    List<String> collectWarnings(ArchitectureIndexDocument document) {
+    List<String> collectWarnings(SnapshotCatalogCanonicalDocument canonicalDocument) {
         List<String> warnings = new ArrayList<>();
-        if (document.completeness() != null && "PARTIAL".equalsIgnoreCase(document.completeness().status())) {
+        if (canonicalDocument.completeness() != null && "PARTIAL".equalsIgnoreCase(canonicalDocument.completeness().status())) {
             warnings.add("Snapshot is partial: browse data is available, but some files were omitted or degraded during indexing.");
         }
-        if (document.completeness() != null && document.completeness().notes() != null) {
-            warnings.addAll(document.completeness().notes());
+        if (canonicalDocument.completeness() != null && canonicalDocument.completeness().notes() != null) {
+            warnings.addAll(canonicalDocument.completeness().notes());
         }
         return List.copyOf(warnings);
     }

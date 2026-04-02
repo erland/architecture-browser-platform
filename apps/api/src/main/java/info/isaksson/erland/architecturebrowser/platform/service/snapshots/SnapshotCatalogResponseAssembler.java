@@ -55,41 +55,41 @@ public class SnapshotCatalogResponseAssembler {
     public SnapshotDetailResponse toDetail(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new SnapshotDetailResponse(
             toSummary(context.summary()),
-            documentMapper.toSourceInfo(context.document()),
-            documentMapper.toRunInfo(context.document()),
-            overviewBuilder.collectWarnings(context.document())
+            documentMapper.toSourceInfo(context.canonicalDocument()),
+            documentMapper.toRunInfo(context.canonicalDocument()),
+            overviewBuilder.collectWarnings(context.canonicalDocument())
         );
     }
 
     public FullSnapshotPayloadResponse toFullPayload(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new FullSnapshotPayloadResponse(
             toSummary(context.summary()),
-            documentMapper.toSourceInfo(context.document()),
-            documentMapper.toRunInfo(context.document()),
-            documentMapper.toCompletenessInfo(context.document()),
-            documentMapper.mapScopes(context.document()),
-            documentMapper.mapEntities(context.document()),
-            documentMapper.mapRelationships(context.document()),
-            documentMapper.mapViewpoints(context.document()),
-            documentMapper.mapDiagnostics(context.document()),
-            new MetadataEnvelope(documentMapper.metadataEnvelope(context.document())),
-            overviewBuilder.collectWarnings(context.document())
+            documentMapper.toSourceInfo(context.canonicalDocument()),
+            documentMapper.toRunInfo(context.canonicalDocument()),
+            documentMapper.toCompletenessInfo(context.canonicalDocument()),
+            documentMapper.mapScopes(context.canonicalDocument()),
+            documentMapper.mapEntities(context.canonicalDocument()),
+            documentMapper.mapRelationships(context.canonicalDocument()),
+            documentMapper.mapViewpoints(context.canonicalDocument()),
+            documentMapper.mapDiagnostics(context.canonicalDocument()),
+            new MetadataEnvelope(documentMapper.metadataEnvelope(context.canonicalDocument())),
+            overviewBuilder.collectWarnings(context.canonicalDocument())
         );
     }
 
     public SnapshotOverviewResponse toOverview(SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext context) {
         return new SnapshotOverviewResponse(
             toSummary(context.summary()),
-            documentMapper.toSourceInfo(context.document()),
-            documentMapper.toRunInfo(context.document()),
-            documentMapper.toCompletenessInfo(context.document()),
+            documentMapper.toSourceInfo(context.canonicalDocument()),
+            documentMapper.toRunInfo(context.canonicalDocument()),
+            documentMapper.toCompletenessInfo(context.canonicalDocument()),
             overviewBuilder.summarizeKinds(context.facts(), FactType.SCOPE),
             overviewBuilder.summarizeKinds(context.facts(), FactType.ENTITY),
             overviewBuilder.summarizeKinds(context.facts(), FactType.RELATIONSHIP),
             overviewBuilder.summarizeKinds(context.facts(), FactType.DIAGNOSTIC),
-            overviewBuilder.buildTopScopes(context.document(), context.facts()),
-            overviewBuilder.buildRecentDiagnostics(context.document()),
-            overviewBuilder.collectWarnings(context.document())
+            overviewBuilder.buildTopScopes(context.canonicalDocument(), context.facts()),
+            overviewBuilder.buildRecentDiagnostics(context.canonicalDocument()),
+            overviewBuilder.collectWarnings(context.canonicalDocument())
         );
     }
 

@@ -1,20 +1,9 @@
-import type { FullSnapshotPayload } from './appModel';
-import {
-  type BrowserTreeMode,
-  detectDefaultBrowserTreeMode,
-  getOrBuildBrowserSnapshotIndex,
-  getViewpointById,
-} from './browserSnapshotIndex';
 import type {
-  BrowserSessionSnapshot,
   BrowserSessionState,
   PersistedBrowserSessionState,
 } from './browserSessionStore.types';
-import { normalizeCanvasNodes } from './browserSessionStore.canvas.nodes';
 import { createDefaultBrowserRoutingLayoutConfig, normalizeBrowserRoutingLayoutConfig } from './browserRoutingLayoutConfig';
-import { syncMeaningfulCanvasEdges } from './browserSessionStore.canvas.relationships';
-import { computeSearchResults } from './browserSessionStore.search';
-import { buildAppliedViewpointGraph } from './browserSessionStore.viewpoints.helpers';
+import { normalizeCanvasNodes } from './browserSessionStore.canvas.nodes';
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
   return {
@@ -112,98 +101,5 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
       offsetY: typeof persisted.canvasViewport?.offsetY === 'number' && Number.isFinite(persisted.canvasViewport.offsetY) ? persisted.canvasViewport.offsetY : state.canvasViewport.offsetY,
     },
     routingLayoutConfig: normalizeBrowserRoutingLayoutConfig(persisted.routingLayoutConfig),
-  };
-}
-
-export function openSnapshotSession(
-  state: BrowserSessionState,
-  args: {
-    workspaceId: string;
-    repositoryId: string | null;
-    payload: FullSnapshotPayload;
-    preparedAt?: string;
-    keepViewState?: boolean;
-  },
-): BrowserSessionState {
-  const index = getOrBuildBrowserSnapshotIndex(args.payload);
-  const nextState = args.keepViewState ? hydrateBrowserSessionState(createPersistedBrowserSessionState(state)) : createEmptyBrowserSessionState();
-  const preparedAt = args.preparedAt ?? new Date().toISOString();
-  const activeSnapshot: BrowserSessionSnapshot = {
-    workspaceId: args.workspaceId,
-    repositoryId: args.repositoryId,
-    snapshotId: args.payload.snapshot.id,
-    snapshotKey: args.payload.snapshot.snapshotKey,
-    preparedAt,
-  };
-  const selectedScopeId = nextState.selectedScopeId && index.scopesById.has(nextState.selectedScopeId)
-    ? nextState.selectedScopeId
-    : args.payload.scopes[0]?.externalId ?? null;
-  const selectedEntityIds = nextState.selectedEntityIds.filter((entityId) => index.entitiesById.has(entityId));
-  const canvasNodes = normalizeCanvasNodes(nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id)));
-  const persistedCanvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
-  const canvasEdges = syncMeaningfulCanvasEdges({
-    ...nextState,
-    payload: args.payload,
-    index,
-    canvasNodes,
-    canvasEdges: persistedCanvasEdges,
-  }, canvasNodes);
-  const searchResults = computeSearchResults(index, nextState.searchQuery, nextState.searchScopeId);
-  const treeMode: BrowserTreeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);
-  const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)
-    ? nextState.viewpointSelection.viewpointId
-    : null;
-
-  return {
-    ...nextState,
-    activeSnapshot,
-    payload: args.payload,
-    index,
-    selectedScopeId,
-    selectedEntityIds,
-    canvasNodes,
-    canvasEdges,
-    searchResults,
-    viewpointSelection: {
-      ...nextState.viewpointSelection,
-      viewpointId: selectedViewpointId,
-    },
-    appliedViewpoint: null,
-    treeMode,
-    canvasViewport: nextState.canvasViewport,
-  };
-}
-
-export function selectBrowserScope(state: BrowserSessionState, scopeId: string | null): BrowserSessionState {
-  const selectedScopeId = scopeId && state.index?.scopesById.has(scopeId) ? scopeId : null;
-  const nextState: BrowserSessionState = {
-    ...state,
-    selectedScopeId,
-    focusedElement: selectedScopeId ? { kind: 'scope', id: selectedScopeId } : state.focusedElement,
-    factsPanelMode: selectedScopeId ? 'scope' : state.factsPanelMode,
-  };
-  const selectedViewpoint = nextState.viewpointSelection.viewpointId && nextState.index
-    ? getViewpointById(nextState.index, nextState.viewpointSelection.viewpointId)
-    : null;
-  return {
-    ...nextState,
-    appliedViewpoint: selectedViewpoint ? buildAppliedViewpointGraph(nextState, selectedViewpoint, nextState.viewpointSelection) : nextState.appliedViewpoint,
-  };
-}
-
-export function setBrowserSearch(state: BrowserSessionState, query: string, scopeId?: string | null): BrowserSessionState {
-  const searchScopeId = scopeId === undefined ? state.searchScopeId : scopeId;
-  return {
-    ...state,
-    searchQuery: query,
-    searchScopeId,
-    searchResults: computeSearchResults(state.index, query, searchScopeId),
-  };
-}
-
-export function setBrowserTreeMode(state: BrowserSessionState, treeMode: BrowserTreeMode): BrowserSessionState {
-  return {
-    ...state,
-    treeMode,
   };
 }

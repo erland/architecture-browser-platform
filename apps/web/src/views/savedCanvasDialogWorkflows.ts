@@ -1,5 +1,5 @@
 import { defaultSavedCanvasName } from '../saved-canvas/browserState';
-import type { SavedCanvasCommandPorts } from './savedCanvasWorkflows';
+import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runOpenSavedCanvasDialogWorkflow(ports: Pick<SavedCanvasCommandPorts,
   'currentSavedCanvasId' | 'savedCanvasStore' | 'selectedSnapshotLabel' | 'setSavedCanvasDraftName' | 'setSavedCanvasStatusMessage' | 'setIsSavedCanvasDialogOpen' | 'applySavedCanvasSyncResult' | 'runSavedCanvasSync' | 'loadSavedCanvasRecords'>,

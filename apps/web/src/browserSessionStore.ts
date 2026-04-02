@@ -22,11 +22,24 @@ export {
   createEmptyBrowserSessionState,
   createPersistedBrowserSessionState,
   hydrateBrowserSessionState,
-  openSnapshotSession,
+} from './browserSessionStore.state';
+
+export {
+  deriveFactsPanelModeFromFocus,
+  normalizeFocusedBrowserContext,
+  normalizeFocusedElement,
+  normalizeSearchScopeId,
+  normalizeSelectedEntityIds,
+  recomputeBrowserSearchState,
+} from './browserSessionStore.invariants';
+
+export { openSnapshotSession } from './browserSessionStore.lifecycle';
+
+export {
   selectBrowserScope,
   setBrowserSearch,
   setBrowserTreeMode,
-} from './browserSessionStore.state';
+} from './browserSessionStore.navigation';
 
 export {
   readPersistedBrowserSession,
@@ -54,10 +67,8 @@ export {
   arrangeCanvasNodesInteractivelyWithMode,
   arrangeCanvasAroundFocus,
   clearCanvas,
-  focusBrowserElement,
   isolateCanvasSelection,
   moveCanvasNode,
-  openFactsPanel,
   panCanvasViewport,
   relayoutCanvas,
   removeCanvasSelection,
@@ -68,3 +79,16 @@ export {
   setCanvasViewport,
   toggleCanvasNodePin,
 } from './browserSessionStore.canvas';
+
+export {
+  focusBrowserElement,
+  openFactsPanel,
+} from './browserSessionStore.factsPanel';
+
+export {
+  browserSessionCanvasCommands,
+  browserSessionFactsPanelCommands,
+  browserSessionLifecycleCommands,
+  browserSessionNavigationCommands,
+  browserSessionViewpointCommands,
+} from './browserSessionStore.commands';

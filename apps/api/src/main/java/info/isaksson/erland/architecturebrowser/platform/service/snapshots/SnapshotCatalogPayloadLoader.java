@@ -13,16 +13,21 @@ public class SnapshotCatalogPayloadLoader {
     @Inject
     SnapshotCatalogDocumentReader documentReader;
 
+    @Inject
+    SnapshotCatalogCanonicalDocumentMapper canonicalDocumentMapper;
+
     public SnapshotCatalogDocumentContext load(SnapshotEntity snapshot, SnapshotCatalogSummaryProjection summary) {
         ArchitectureIndexDocument document = documentReader.parseDocument(snapshot.rawPayloadJson);
         List<ImportedFactEntity> facts = ImportedFactEntity.list("snapshotId", snapshot.id);
-        return new SnapshotCatalogDocumentContext(snapshot, summary, document, facts);
+        SnapshotCatalogCanonicalDocument canonicalDocument = canonicalDocumentMapper.toCanonicalDocument(document);
+        return new SnapshotCatalogDocumentContext(snapshot, summary, document, canonicalDocument, facts);
     }
 
     public record SnapshotCatalogDocumentContext(
         SnapshotEntity snapshot,
         SnapshotCatalogSummaryProjection summary,
         ArchitectureIndexDocument document,
+        SnapshotCatalogCanonicalDocument canonicalDocument,
         List<ImportedFactEntity> facts
     ) {
     }

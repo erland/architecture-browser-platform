@@ -1,7 +1,5 @@
 package info.isaksson.erland.architecturebrowser.platform.service.snapshots;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SavedCanvasDtos;
 import info.isaksson.erland.architecturebrowser.platform.domain.SavedCanvasEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
@@ -24,18 +22,19 @@ public class SnapshotSavedCanvasService {
     AuditService auditService;
 
     @Inject
-    ObjectMapper objectMapper;
+    SavedCanvasDocumentSerializer documentSerializer;
+
+    @Inject
+    SavedCanvasResponseAssembler responseAssembler;
 
     public List<SavedCanvasDtos.SavedCanvasResponse> listSavedCanvases(String workspaceId, String snapshotId) {
         requireSnapshotOwnership(workspaceId, snapshotId);
-        return SavedCanvasEntity.<SavedCanvasEntity>list("workspaceId = ?1 and snapshotId = ?2 order by updatedAt desc", workspaceId, snapshotId).stream()
-            .map(this::toSavedCanvasResponse)
-            .toList();
+        return responseAssembler.toResponses(SavedCanvasEntity.list("workspaceId = ?1 and snapshotId = ?2 order by updatedAt desc", workspaceId, snapshotId));
     }
 
     public SavedCanvasDtos.SavedCanvasResponse getSavedCanvas(String workspaceId, String snapshotId, String savedCanvasId) {
         requireSnapshotOwnership(workspaceId, snapshotId);
-        return toSavedCanvasResponse(requireSavedCanvas(workspaceId, snapshotId, savedCanvasId));
+        return responseAssembler.toResponse(requireSavedCanvas(workspaceId, snapshotId, savedCanvasId));
     }
 
     @Transactional
@@ -47,13 +46,13 @@ public class SnapshotSavedCanvasService {
         savedCanvas.workspaceId = workspaceId;
         savedCanvas.snapshotId = snapshotId;
         savedCanvas.name = request.name().trim();
-        savedCanvas.documentJson = jsonOrNull(request.document());
+        savedCanvas.documentJson = documentSerializer.jsonOrNull(request.document());
         savedCanvas.documentVersion = 1L;
         savedCanvas.createdAt = Instant.now();
         savedCanvas.updatedAt = savedCanvas.createdAt;
         savedCanvas.persist();
-        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.created", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
-        return toSavedCanvasResponse(savedCanvas);
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.created", documentSerializer.jsonOrNull(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
+        return responseAssembler.toResponse(savedCanvas);
     }
 
     @Transactional
@@ -63,11 +62,11 @@ public class SnapshotSavedCanvasService {
         SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
         requireSavedCanvasBackendVersion(savedCanvas, request.expectedBackendVersion());
         savedCanvas.name = request.name().trim();
-        savedCanvas.documentJson = jsonOrNull(request.document());
+        savedCanvas.documentJson = documentSerializer.jsonOrNull(request.document());
         savedCanvas.documentVersion = savedCanvas.documentVersion + 1;
         savedCanvas.updatedAt = Instant.now();
-        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.updated", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
-        return toSavedCanvasResponse(savedCanvas);
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.updated", documentSerializer.jsonOrNull(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name, "documentVersion", savedCanvas.documentVersion)));
+        return responseAssembler.toResponse(savedCanvas);
     }
 
     @Transactional
@@ -84,8 +83,8 @@ public class SnapshotSavedCanvasService {
         duplicate.createdAt = Instant.now();
         duplicate.updatedAt = duplicate.createdAt;
         duplicate.persist();
-        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.duplicated", auditJson(Map.of("savedCanvasId", duplicate.id, "sourceSavedCanvasId", existing.id, "name", duplicate.name, "documentVersion", duplicate.documentVersion)));
-        return toSavedCanvasResponse(duplicate);
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.duplicated", documentSerializer.jsonOrNull(Map.of("savedCanvasId", duplicate.id, "sourceSavedCanvasId", existing.id, "name", duplicate.name, "documentVersion", duplicate.documentVersion)));
+        return responseAssembler.toResponse(duplicate);
     }
 
     @Transactional
@@ -94,7 +93,7 @@ public class SnapshotSavedCanvasService {
         SavedCanvasEntity savedCanvas = requireSavedCanvas(workspaceId, snapshotId, savedCanvasId);
         requireSavedCanvasBackendVersion(savedCanvas, expectedBackendVersion);
         savedCanvas.delete();
-        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.deleted", auditJson(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name)));
+        auditService.recordSnapshotEvent(workspaceId, snapshotRepositoryId(snapshotId), null, snapshotId, "saved-canvas.deleted", documentSerializer.jsonOrNull(Map.of("savedCanvasId", savedCanvas.id, "name", savedCanvas.name)));
     }
 
     private void requireSavedCanvasBackendVersion(SavedCanvasEntity savedCanvas, String expectedBackendVersion) {
@@ -134,34 +133,5 @@ public class SnapshotSavedCanvasService {
         if (document == null || document.isEmpty()) {
             throw new ValidationException(List.of("saved canvas document is required"));
         }
-    }
-
-    private String jsonOrNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Could not serialize customization payload", exception);
-        }
-    }
-
-    private String auditJson(Map<String, Object> payload) {
-        return jsonOrNull(payload);
-    }
-
-    private SavedCanvasDtos.SavedCanvasResponse toSavedCanvasResponse(SavedCanvasEntity savedCanvas) {
-        return new SavedCanvasDtos.SavedCanvasResponse(
-            savedCanvas.id,
-            savedCanvas.workspaceId,
-            savedCanvas.snapshotId,
-            savedCanvas.name,
-            savedCanvas.documentJson,
-            savedCanvas.documentVersion,
-            Long.toString(savedCanvas.documentVersion),
-            savedCanvas.createdAt,
-            savedCanvas.updatedAt
-        );
     }
 }

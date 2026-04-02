@@ -2,7 +2,7 @@ import { getBrowserSnapshotCache } from '../snapshotCache';
 import { restoreSavedCanvasToBrowserSession } from '../saved-canvas/browserState';
 import { buildAcceptedSavedCanvasRebindingDocument, buildSavedCanvasRebindingStatusMessage, rebindSavedCanvasToTargetSnapshot, toSavedCanvasRebindingUiSummary } from '../saved-canvas/rebinding';
 import { getSavedCanvasOfflineAvailability, loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../saved-canvas/opening';
-import type { SavedCanvasCommandPorts } from './savedCanvasWorkflows';
+import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runOpenSavedCanvasWorkflow(
   ports: Pick<SavedCanvasCommandPorts,

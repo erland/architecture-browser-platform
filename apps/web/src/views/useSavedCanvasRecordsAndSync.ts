@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import { runSavedCanvasBusyControllerAction } from './savedCanvasControllerActions';
 
 type LoadSavedCanvasRecordsArgs = {
   savedCanvasStore: {
@@ -87,17 +88,15 @@ export function useSavedCanvasSyncActions({
     }
   }, [currentSavedCanvasId, setCurrentSavedCanvasId]);
 
-  const handleSyncSavedCanvasesNow = useCallback(async () => {
-    setIsSavedCanvasBusy(true);
-    try {
+  const handleSyncSavedCanvasesNow = useCallback(async () => runSavedCanvasBusyControllerAction({
+    setBusy: setIsSavedCanvasBusy,
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to sync saved canvases.',
+    action: async () => {
       const result = await runSavedCanvasSync({ silent: false });
       applySavedCanvasSyncResult(result);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to sync saved canvases.');
-    } finally {
-      setIsSavedCanvasBusy(false);
-    }
-  }, [applySavedCanvasSyncResult, runSavedCanvasSync, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
+    },
+  }), [applySavedCanvasSyncResult, runSavedCanvasSync, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   return {
     runSavedCanvasSync,

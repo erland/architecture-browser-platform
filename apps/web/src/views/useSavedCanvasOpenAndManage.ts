@@ -8,7 +8,8 @@ import type { SnapshotSummary } from '../appModel';
 import type { SavedCanvasDocument } from '../saved-canvas';
 import type { SavedCanvasLocalStore } from '../saved-canvas/storage';
 import type { SavedCanvasSyncService } from '../saved-canvas/syncing';
-import { runDeleteSavedCanvasCommand, runOpenSavedCanvasCommand, runOpenSavedCanvasDialogCommand, runOpenSavedCanvasOnSelectedSnapshotCommand, runSaveCurrentCanvasCommand } from './savedCanvasWorkflows';
+import { createSavedCanvasCommandPorts } from './savedCanvasControllerPorts';
+import { deleteSavedCanvas, openSavedCanvas, openSavedCanvasDialog, openSavedCanvasOnSelectedSnapshot, runSavedCanvasBusyControllerAction, runSavedCanvasPassiveControllerAction, saveCurrentSavedCanvas } from './savedCanvasControllerActions';
 
 export type SavedCanvasOpenAndManageArgs = {
   browserSession: BrowserSessionContextValue;
@@ -71,7 +72,7 @@ export function useSavedCanvasOpenAndManage({
   loadSavedCanvasRecords,
   buildOfflineUnavailableMessage,
 }: SavedCanvasOpenAndManageArgs) {
-  const commandPorts = {
+  const commandPorts = createSavedCanvasCommandPorts({
     browserSession,
     selection,
     selectedSnapshot,
@@ -95,59 +96,41 @@ export function useSavedCanvasOpenAndManage({
     applySavedCanvasSyncResult,
     loadSavedCanvasRecords,
     buildOfflineUnavailableMessage,
-  };
+  });
 
-  const handleOpenSavedCanvasDialog = useCallback(async () => {
-    try {
-      await runOpenSavedCanvasDialogCommand(commandPorts);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to load saved canvases.');
-    }
-  }, [commandPorts, setSavedCanvasStatusMessage]);
+  const handleOpenSavedCanvasDialog = useCallback(async () => runSavedCanvasPassiveControllerAction({
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to load saved canvases.',
+    action: () => openSavedCanvasDialog(commandPorts),
+  }), [commandPorts, setSavedCanvasStatusMessage]);
 
-  const handleSaveCurrentCanvas = useCallback(async () => {
-    setIsSavedCanvasBusy(true);
-    try {
-      await runSaveCurrentCanvasCommand(commandPorts);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to save canvas.');
-    } finally {
-      setIsSavedCanvasBusy(false);
-    }
-  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
+  const handleSaveCurrentCanvas = useCallback(async () => runSavedCanvasBusyControllerAction({
+    setBusy: setIsSavedCanvasBusy,
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to save canvas.',
+    action: () => saveCurrentSavedCanvas(commandPorts),
+  }), [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
-  const handleOpenSavedCanvas = useCallback(async (canvasId: string, mode: SavedCanvasOpenMode = 'original') => {
-    setIsSavedCanvasBusy(true);
-    try {
-      await runOpenSavedCanvasCommand(commandPorts, canvasId, mode);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas.');
-    } finally {
-      setIsSavedCanvasBusy(false);
-    }
-  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
+  const handleOpenSavedCanvas = useCallback(async (canvasId: string, mode: SavedCanvasOpenMode = 'original') => runSavedCanvasBusyControllerAction({
+    setBusy: setIsSavedCanvasBusy,
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to open saved canvas.',
+    action: () => openSavedCanvas(commandPorts, canvasId, mode),
+  }), [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
-  const handleOpenSavedCanvasOnSelectedSnapshot = useCallback(async (canvasId: string) => {
-    setIsSavedCanvasBusy(true);
-    try {
-      await runOpenSavedCanvasOnSelectedSnapshotCommand(commandPorts, canvasId);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to open saved canvas on the selected snapshot.');
-    } finally {
-      setIsSavedCanvasBusy(false);
-    }
-  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
+  const handleOpenSavedCanvasOnSelectedSnapshot = useCallback(async (canvasId: string) => runSavedCanvasBusyControllerAction({
+    setBusy: setIsSavedCanvasBusy,
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to open saved canvas on the selected snapshot.',
+    action: () => openSavedCanvasOnSelectedSnapshot(commandPorts, canvasId),
+  }), [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
-  const handleDeleteSavedCanvas = useCallback(async (canvasId: string) => {
-    setIsSavedCanvasBusy(true);
-    try {
-      await runDeleteSavedCanvasCommand(commandPorts, canvasId);
-    } catch (caught) {
-      setSavedCanvasStatusMessage(caught instanceof Error ? caught.message : 'Failed to delete saved canvas.');
-    } finally {
-      setIsSavedCanvasBusy(false);
-    }
-  }, [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
+  const handleDeleteSavedCanvas = useCallback(async (canvasId: string) => runSavedCanvasBusyControllerAction({
+    setBusy: setIsSavedCanvasBusy,
+    setStatusMessage: setSavedCanvasStatusMessage,
+    failureMessage: 'Failed to delete saved canvas.',
+    action: () => deleteSavedCanvas(commandPorts, canvasId),
+  }), [commandPorts, setIsSavedCanvasBusy, setSavedCanvasStatusMessage]);
 
   return {
     handleOpenSavedCanvasDialog,
