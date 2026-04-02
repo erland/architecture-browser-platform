@@ -9,7 +9,7 @@ import {
   emptyWorkspaceForm,
   initialHealth,
   initialRunRequest,
-} from "../../appModel";
+} from "../../app-model";
 import { emptyRepositoryEditor, emptyWorkspaceEditor } from "./workspaceData.helpers";
 import type { WorkspaceDataState } from "./workspaceData.types";
 

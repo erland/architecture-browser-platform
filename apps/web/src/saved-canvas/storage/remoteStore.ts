@@ -1,4 +1,4 @@
-import { platformApi } from '../../platformApi';
+import { platformApi } from '../../api/platformApi';
 import { parseSavedCanvasJson, type SavedCanvasDocument } from '../model/document';
 
 export type SavedCanvasBackendResponse = {

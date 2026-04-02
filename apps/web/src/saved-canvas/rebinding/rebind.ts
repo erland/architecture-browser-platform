@@ -1,4 +1,4 @@
-import type { FullSnapshotPayload, SnapshotSummary } from '../../appModel';
+import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { getOrBuildBrowserSnapshotIndex } from '../../browserSnapshotIndex';
 import { restoreSavedCanvasToBrowserSession } from '../browser-state/sessionMapping';
 import { toSavedCanvasSnapshotRef, type SavedCanvasDocument } from '../model/document';

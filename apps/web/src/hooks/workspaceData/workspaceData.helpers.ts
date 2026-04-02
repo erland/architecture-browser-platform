@@ -1,4 +1,4 @@
-import type { Repository } from "../../appModel";
+import type { Repository } from "../../app-model";
 import type { RepositoryEditor, WorkspaceEditor } from "./workspaceData.types";
 
 export const initialRetentionForm = {

@@ -1,7 +1,7 @@
-import type { FullSnapshotPayload, SnapshotSummary } from '../../appModel';
-import type { SnapshotCache } from '../../snapshotCache';
+import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
+import type { SnapshotCache } from '../../api/snapshotCache';
 import type { SavedCanvasDocument, SavedCanvasSnapshotRef } from '../model/document';
-import { platformApi } from '../../platformApi';
+import { platformApi } from '../../api/platformApi';
 
 export type SavedCanvasOpenMode = 'original' | 'currentTarget';
 

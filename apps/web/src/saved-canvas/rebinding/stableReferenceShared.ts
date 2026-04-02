@@ -2,7 +2,7 @@ import type {
   FullSnapshotEntity,
   FullSnapshotScope,
   SnapshotSourceRef,
-} from '../../appModel';
+} from '../../app-model';
 import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
 
 export type SavedCanvasStableReferenceLookup = {

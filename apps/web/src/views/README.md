@@ -1,16 +1,8 @@
-# Browser view orchestration
+# views
 
-- `BrowserView.tsx` is the page composition layer.
-- `useBrowserViewScreenController.ts` is now a thin composition layer over smaller controller hooks for startup gating, source-tree switching, repository actions, browser-session bootstrap, and view-level dialog state.
-- `useBrowserViewStartup.ts` owns implicit-workspace selection and startup gate messaging.
-- `useBrowserViewSourceTreeController.ts` owns source-tree launcher items and source-tree switching behavior.
-- `useBrowserViewRepositoryActions.ts` owns repository/workspace dialog actions that mutate backend state.
-- `useBrowserViewDerivedState.ts` owns Browser footer/header labels and selected snapshot/repository derivation.
-- `useBrowserViewHandlers.ts` assembles the side-effectful action surface exposed to `BrowserView.tsx`.
-- `useBrowserSavedCanvasController.ts` now composes smaller saved-canvas controller hooks for shared state, record/sync orchestration, and action-driven open/save/rebinding flows.
-- Keep domain logic in subsystem modules rather than rebuilding it in React components.
-- `browserViewFocusWorkflows.ts` owns canvas focus and scope/entity analysis workflows.
-- `browserTopSearchWorkflows.ts` owns top-search action workflows.
-- `savedCanvasDialogWorkflows.ts` owns dialog-open and record refresh workflows.
-- `savedCanvasOpeningWorkflows.ts` owns open and rebind-open workflows.
-- `savedCanvasPersistenceWorkflows.ts` owns save and delete workflows.
+This directory is organized by screen/controller responsibility.
+
+- `browser-view/` contains Browser screen composition, Browser shell sections, and Browser-specific controller hooks/workflows.
+- `saved-canvas-controller/` contains saved-canvas controller state, controller actions/ports, and saved-canvas open/persist/dialog workflows.
+
+Root-level files are temporary compatibility re-exports retained during the directory restructuring sequence.

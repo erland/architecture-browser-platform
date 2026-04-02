@@ -2,7 +2,7 @@ import type {
   FullSnapshotEntity,
   FullSnapshotRelationship,
   FullSnapshotScope,
-} from '../../appModel';
+} from '../../app-model';
 import type { BrowserSnapshotIndex } from '../../browserSnapshotIndex';
 import {
   classifyEntityCategory,

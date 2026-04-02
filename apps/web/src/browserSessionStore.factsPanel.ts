@@ -1,1 +1,1 @@
-export { focusBrowserElement, openFactsPanel } from './browserSessionStore.canvas.mutations';
+export * from "./browser-session/browserSessionStore.factsPanel";

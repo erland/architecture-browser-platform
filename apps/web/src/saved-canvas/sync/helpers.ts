@@ -1,4 +1,4 @@
-import { HttpError } from '../../httpClient';
+import { HttpError } from '../../api/httpClient';
 import type { SavedCanvasLocalRecord } from '../storage/localStore';
 import type { SavedCanvasRemoteRecord } from '../storage/remoteStore';
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SnapshotSummary } from '../appModel';
-import type { SnapshotCache } from '../snapshotCache';
+import type { SnapshotSummary } from '../app-model';
+import type { SnapshotCache } from '../api/snapshotCache';
 import { useBrowserSession, type BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
-import { getBrowserSnapshotCache } from '../snapshotCache';
+import { getBrowserSnapshotCache } from '../api/snapshotCache';
 
 export type BrowserSessionBootstrapStatus = 'idle' | 'loading' | 'ready' | 'failed';
 

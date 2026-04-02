@@ -1,4 +1,4 @@
-import type { FullSnapshotEntity, FullSnapshotScope } from '../appModel';
+import type { FullSnapshotEntity, FullSnapshotScope } from '../app-model';
 import type { BrowserCanvasNode, BrowserSessionState } from '../browserSessionStore';
 
 export type BrowserProjectionResolvedSource =

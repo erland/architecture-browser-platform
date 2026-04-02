@@ -1,4 +1,4 @@
-import type { FullSnapshotEntity, FullSnapshotScope } from '../appModel';
+import type { FullSnapshotEntity, FullSnapshotScope } from '../app-model';
 import {
   BROWSER_ENTITY_NODE_SIZE,
   BROWSER_SCOPE_NODE_SIZE,

@@ -1,4 +1,4 @@
-import type { FullSnapshotRelationship } from '../../appModel';
+import type { FullSnapshotRelationship } from '../../app-model';
 import type { BrowserCanvasEdge, BrowserCanvasNode } from '../../browserSessionStore';
 import {
   createSavedCanvasDocument,

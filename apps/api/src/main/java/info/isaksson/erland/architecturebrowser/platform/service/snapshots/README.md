@@ -1,9 +1,8 @@
-# Snapshot catalog service composition
+# snapshots
 
-- `SnapshotCatalogService` is the thin application-service entry point.
-- `SnapshotCatalogQueryService` owns repository/database lookup.
-- `SnapshotCatalogPayloadLoader` loads and parses snapshot payload documents.
-- `SnapshotCatalogResponseAssembler` converts projections and payload context into API DTOs.
-- `SnapshotCatalogSummaryProjection` captures summary-only data needed by the assembler.
+This package is organized by backend responsibility:
 
-Keep query, payload loading, and response assembly separate so snapshot catalog behavior stays easy to evolve and test.
+- `catalog/` contains snapshot catalog loading, canonical mapping, query support, and Browser-facing assembly.
+- `savedcanvas/` contains saved-canvas service orchestration plus response/document serialization helpers.
+
+Java package names remain unchanged (`...service.snapshots`) so this directory split is navigation-only and behavior-preserving.

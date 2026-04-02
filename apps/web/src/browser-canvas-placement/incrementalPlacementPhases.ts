@@ -1,4 +1,4 @@
-import type { FullSnapshotEntity, FullSnapshotRelationship } from '../appModel';
+import type { FullSnapshotEntity, FullSnapshotRelationship } from '../app-model';
 import {
   createBrowserAutoLayoutPipelineContext,
   type BrowserAutoLayoutGraph,

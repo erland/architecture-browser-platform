@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { platformApi } from "../../platformApi";
-import { type ApiHealth, type Repository, type RunRecord, type SnapshotSummary, type Workspace } from "../../appModel";
+import { platformApi } from "../../api/platformApi";
+import { type ApiHealth, type Repository, type RunRecord, type SnapshotSummary, type Workspace } from "../../app-model";
 import { emptyRepositoryEditor, emptyWorkspaceEditor, toErrorMessage } from "./workspaceData.helpers";
 import type { UseWorkspaceDataArgs, WorkspaceDataLoaders, WorkspaceDataState } from "./workspaceData.types";
 

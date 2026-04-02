@@ -1,6 +1,6 @@
 import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
 import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex';
-import type { FullSnapshotPayload } from '../appModel';
+import type { FullSnapshotPayload } from '../app-model';
 import type {
   BrowserCanvasViewport,
   BrowserFactsPanelLocation,

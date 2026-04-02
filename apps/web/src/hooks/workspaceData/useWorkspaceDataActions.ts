@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
-import { platformApi } from "../../platformApi";
-import { type Repository, type RunRecord, type SnapshotSummary, type StubRunResult, type Workspace, emptyRepositoryForm, emptyWorkspaceForm } from "../../appModel";
+import { platformApi } from "../../api/platformApi";
+import { type Repository, type RunRecord, type SnapshotSummary, type StubRunResult, type Workspace, emptyRepositoryForm, emptyWorkspaceForm } from "../../app-model";
 import { toErrorMessage } from "./workspaceData.helpers";
 import type { UseWorkspaceDataArgs, WorkspaceDataActions, WorkspaceDataLoaders, WorkspaceDataState } from "./workspaceData.types";
 

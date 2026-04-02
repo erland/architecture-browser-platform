@@ -3,7 +3,7 @@ import {
   emptyRepositoryForm,
   emptyWorkspaceForm,
   initialRunRequest,
-} from "../../appModel";
+} from "../../app-model";
 import type {
   ApiHealth,
   Repository,
@@ -11,7 +11,7 @@ import type {
   SnapshotSummary,
   StubRunResult,
   Workspace,
-} from "../../appModel";
+} from "../../app-model";
 
 export type WorkspaceEditor = { name: string; description: string };
 export type RepositoryEditor = {

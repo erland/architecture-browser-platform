@@ -1,4 +1,4 @@
-import type { FullSnapshotEntity } from '../appModel';
+import type { FullSnapshotEntity } from '../app-model';
 import type { BrowserSnapshotIndex } from '../browserSnapshotIndex';
 import type { BrowserCanvasNode } from '../browserSessionStore';
 import type {
