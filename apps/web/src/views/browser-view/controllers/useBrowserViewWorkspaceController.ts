@@ -3,12 +3,12 @@ import { useAppSelectionContext } from '../../../contexts/AppSelectionContext';
 import { useBrowserSession } from '../../../contexts/BrowserSessionContext';
 import { useBrowserSessionBootstrap } from '../../../hooks/useBrowserSessionBootstrap';
 import { useWorkspaceData } from '../../../hooks/useWorkspaceData';
-import { useBrowserViewDerivedState } from '../useBrowserViewDerivedState';
-import { useBrowserViewHandlers } from '../useBrowserViewHandlers';
-import { useBrowserViewRepositoryActions } from '../useBrowserViewRepositoryActions';
-import { useBrowserViewSourceTreeController } from '../useBrowserViewSourceTreeController';
-import { useBrowserViewStartup } from '../useBrowserViewStartup';
-import { useBrowserViewLayout } from '../useBrowserViewLayout';
+import { useBrowserViewDerivedState } from './internal/useBrowserViewDerivedState';
+import { useBrowserViewHandlers } from './internal/useBrowserViewHandlers';
+import { useBrowserViewRepositoryActions } from './internal/useBrowserViewRepositoryActions';
+import { useBrowserViewSourceTreeController } from './internal/useBrowserViewSourceTreeController';
+import { useBrowserViewStartup } from './internal/useBrowserViewStartup';
+import { useBrowserViewLayout } from './internal/useBrowserViewLayout';
 
 /**
  * Owns workspace, repository, snapshot, and startup orchestration for BrowserView.

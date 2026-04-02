@@ -1,16 +1,18 @@
 /**
  * Canonical public entrypoint for the browser graph pipeline.
  *
- * Pipeline ownership:
- * - `browser-projection/` builds projection nodes/edges from browser session state
- * - `browser-graph/workspace` normalizes projection output into workspace nodes/edges
- * - `browser-routing/` owns generic edge-routing engine primitives
- * - `browser-graph/presentation` owns browser-facing display semantics/policies
- * - `browser-graph/canvas` owns browser-facing node sizing and viewport helpers
- * - `components/browser-graph-workspace/` owns React rendering only
+ * Strict ownership model:
+ * - `browser-projection/` owns projection building from browser/session state
+ * - `browser-graph/workspace/` owns browser workspace model assembly from projection output
+ * - `browser-canvas-placement/` owns initial and incremental placement decisions
+ * - `browser-auto-layout/` owns layout engine orchestration and layout mode implementations
+ * - `browser-routing/` owns generic edge-routing engine primitives and route extraction
+ * - `browser-graph/routing/` owns browser-specific routing configuration only
+ * - `browser-graph/presentation/` owns browser-facing display semantics and viewpoint policy
+ * - `browser-graph/canvas/` owns browser-facing canvas sizing, viewport helpers, and placement-policy constants
+ * - `components/browser-graph-workspace/` owns React rendering and interaction wiring only
  *
- * Prefer importing graph-facing helpers from this surface unless a narrower
- * stage-specific entrypoint communicates ownership better.
+ * Prefer importing from a narrower stage-specific entrypoint when ownership matters.
  */
 
 export * from './canvas';

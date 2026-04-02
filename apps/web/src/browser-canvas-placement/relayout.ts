@@ -1,4 +1,4 @@
-import { BROWSER_SCOPE_NODE_SIZE } from '../browser-graph';
+import { BROWSER_SCOPE_NODE_SIZE } from '../browser-graph/canvas';
 import { PEER_SPACING_X, PEER_SPACING_Y } from '../browser-graph/canvas';
 import type { BrowserCanvasEdge, BrowserCanvasNode } from '../browser-session';
 import { type BrowserCanvasPlacementOptions } from './types';

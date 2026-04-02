@@ -1,3 +1,15 @@
+/**
+ * Strict ownership entrypoint for browser canvas placement.
+ *
+ * Owns:
+ * - first-node placement
+ * - appended/incremental placement
+ * - relayout placement helpers
+ * - post-layout cleanup
+ *
+ * Does not own layout engine mode orchestration or generic routing.
+ */
+
 export type {
   BrowserCanvasBounds,
   BrowserCanvasNodeLike,

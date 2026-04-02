@@ -13,5 +13,5 @@
 export * from './domain';
 export * from './application';
 export * from './adapters';
-export { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from './rebinding/ui';
-export type { SavedCanvasRebindingUiSummary } from './rebinding/ui';
+export { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from './domain/rebinding-impl/ui';
+export type { SavedCanvasRebindingUiSummary } from './domain/rebinding-impl/ui';

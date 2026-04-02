@@ -1,6 +1,6 @@
 import type { FullSnapshotEntity, FullSnapshotRelationship } from '../../app-model';
-import { getAssociationKind, hasAssociationDisplayMetadata } from '../../browserRelationshipSemantics';
-import type { BrowserSnapshotIndex, BrowserTreeMode, BrowserViewpointScopeMode } from '../browserSnapshotIndex.types';
+import { getAssociationKind, hasAssociationDisplayMetadata } from '../../browser-graph/presentation';
+import type { BrowserSnapshotIndex, BrowserTreeMode, BrowserViewpointScopeMode } from '../model';
 import { stableSortRelationships } from './sort';
 
 export function getArchitecturalRoles(entity: FullSnapshotEntity) {

@@ -1,5 +1,5 @@
 import type { FullSnapshotScope } from '../../app-model';
-import type { BrowserSearchDocument, BrowserSearchResultKind, BrowserSnapshotIndex } from '../browserSnapshotIndex.types';
+import type { BrowserSearchDocument, BrowserSearchResultKind, BrowserSnapshotIndex } from '../model';
 
 export function normalizeSearchText(value: string | null | undefined) {
   return (value ?? '').trim().toLocaleLowerCase();

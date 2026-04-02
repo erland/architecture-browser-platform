@@ -13,7 +13,7 @@ import type {
   BrowserCanvasNode,
   BrowserSessionState,
   BrowserViewpointSelection,
-} from '../browserSessionStore.types';
+} from '../model/types';
 
 export function resolveViewpointScopeId(state: BrowserSessionState, scopeMode: BrowserViewpointScopeMode) {
   if (scopeMode === 'whole-snapshot') {

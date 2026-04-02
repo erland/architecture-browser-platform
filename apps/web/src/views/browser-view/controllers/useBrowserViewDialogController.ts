@@ -1,5 +1,5 @@
 import { useBrowserSavedCanvasController } from '../../saved-canvas-controller/useBrowserSavedCanvasController';
-import { useBrowserViewDialogState } from '../useBrowserViewDialogState';
+import { useBrowserViewDialogState } from './internal/useBrowserViewDialogState';
 import type { BrowserViewWorkspaceController } from './useBrowserViewWorkspaceController';
 
 /**

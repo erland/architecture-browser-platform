@@ -1,8 +1,8 @@
 import { planEntityInsertion } from '../../browser-canvas-placement';
 import type { BrowserDependencyDirection } from '../../browser-snapshot';
 import { getDependencyNeighborhood, getPrimaryEntitiesForScope } from '../../browser-snapshot';
-import type { BrowserSessionState } from '../browserSessionStore.types';
-import { uniqueValues } from '../browserSessionStore.collections';
+import type { BrowserSessionState } from '../model/types';
+import { uniqueValues } from '../model/collections';
 import { syncMeaningfulCanvasEdges } from './relationships';
 import {
   planEntityNodePosition,

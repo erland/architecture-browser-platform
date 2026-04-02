@@ -1,4 +1,4 @@
-import { formatAssociationEdgeLabel } from '../browser-graph';
+import { formatAssociationEdgeLabel } from '../browser-graph/presentation';
 import type { BrowserCanvasEdge, BrowserSessionState } from '../browser-session';
 import type { BrowserProjectionEdge, BrowserProjectionNode } from './types';
 

@@ -1,7 +1,7 @@
 import { arrangeCanvasNodesAroundEntityFocus } from '../../browser-canvas-placement';
 import { runBrowserAutoLayout } from '../../browser-auto-layout';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
-import type { BrowserCanvasViewport, BrowserSessionState } from '../browserSessionStore.types';
+import type { BrowserCanvasViewport, BrowserSessionState } from '../model/types';
 
 
 

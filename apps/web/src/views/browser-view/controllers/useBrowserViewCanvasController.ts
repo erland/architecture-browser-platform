@@ -1,5 +1,5 @@
-import { useBrowserViewActions } from '../useBrowserViewActions';
-import { useBrowserViewSearchController } from '../useBrowserViewSearchController';
+import { useBrowserViewActions } from './internal/useBrowserViewActions';
+import { useBrowserViewSearchController } from './internal/useBrowserViewSearchController';
 import type { BrowserViewWorkspaceController } from './useBrowserViewWorkspaceController';
 
 /**

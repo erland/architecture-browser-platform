@@ -1,3 +1,6 @@
-export function uniqueValues<T>(values: T[]) {
-  return [...new Set(values)];
-}
+/**
+ * Compatibility wrapper retained while browser-session implementation files
+ * are normalized under grouped internal categories.
+ */
+
+export * from './model/collections';

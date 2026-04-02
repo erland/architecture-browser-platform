@@ -1,11 +1,6 @@
-import {
-  type BrowserSnapshotIndex,
-  searchBrowserSnapshotIndex,
-} from '../browser-snapshot';
+/**
+ * Compatibility wrapper retained while browser-session implementation files
+ * are normalized under grouped internal categories.
+ */
 
-export function computeSearchResults(index: BrowserSnapshotIndex | null, query: string, scopeId: string | null) {
-  if (!index || !query.trim()) {
-    return [];
-  }
-  return searchBrowserSnapshotIndex(index, query, { scopeId, limit: 50 });
-}
+export * from './navigation/search';

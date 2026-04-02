@@ -1,5 +1,5 @@
 import type { FullSnapshotRelationship, FullSnapshotViewpoint } from '../../app-model';
-import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browserSnapshotIndex.types';
+import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../model';
 import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships } from '../support/semantics';
 import { sortEntityIds, sortViewpointEntityIds, sortViewpointRelationshipIds, stableSortRelationships } from '../support/sort';
 

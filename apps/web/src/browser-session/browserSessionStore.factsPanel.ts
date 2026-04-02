@@ -1,1 +1,6 @@
-export { focusBrowserElement, openFactsPanel } from './canvas/mutations';
+/**
+ * Compatibility wrapper retained while browser-session implementation files
+ * are normalized under grouped internal categories.
+ */
+
+export * from './facts-panel/actions';

@@ -1,4 +1,4 @@
-import type { BrowserSearchDocument, BrowserSearchResult, BrowserSnapshotIndex } from '../browserSnapshotIndex.types';
+import type { BrowserSearchDocument, BrowserSearchResult, BrowserSnapshotIndex } from '../model';
 import { normalizeSearchText } from '../support/display';
 import { isScopeWithin } from '../support/semantics';
 

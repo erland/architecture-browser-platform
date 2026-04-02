@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotViewpoint } from '../../app-model';
-import type { BrowserSnapshotIndex } from '../browserSnapshotIndex.types';
+import type { BrowserSnapshotIndex } from '../model';
 import { compactScopeDisplayName, displayNameOf } from './display';
 import { getArchitecturalRoles, getArchitecturalSemantics } from './semantics';
 

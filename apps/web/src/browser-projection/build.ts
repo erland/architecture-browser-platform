@@ -1,4 +1,4 @@
-import { resolveBrowserStateViewpointPresentationPolicy } from '../browser-graph';
+import { resolveBrowserStateViewpointPresentationPolicy } from '../browser-graph/presentation';
 import type { BrowserSessionState } from '../browser-session';
 import { buildProjectionEdges, buildProjectionSourceEntityNodeMap } from './edgeShaping';
 import { buildProjectionNodes } from './nodeShaping';

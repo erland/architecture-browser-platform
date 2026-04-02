@@ -1,5 +1,5 @@
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
-import type { BrowserSessionState } from '../browserSessionStore.types';
+import type { BrowserSessionState } from '../model/types';
 
 /**
  * Explicit browser-session port consumed by saved-canvas controller workflows.

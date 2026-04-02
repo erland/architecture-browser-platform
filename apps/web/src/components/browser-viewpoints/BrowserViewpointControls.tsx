@@ -127,8 +127,8 @@ export function BrowserViewpointControls({
           </div>
           {appliedViewpoint?.viewpoint.id === selectedViewpoint.id ? (
             <div className="browser-viewpoint-controls__stats" aria-label="Applied viewpoint result">
-              <span className="badge badge--status">{appliedViewpoint.entityIds.length} entities on canvas</span>
-              <span className="badge badge--status">{appliedViewpoint.relationshipIds.length} relationships on canvas</span>
+              <span className="badge badge--status">{appliedViewpoint?.entityIds.length ?? 0} entities on canvas</span>
+              <span className="badge badge--status">{appliedViewpoint?.relationshipIds.length ?? 0} relationships on canvas</span>
             </div>
           ) : null}
         </div>

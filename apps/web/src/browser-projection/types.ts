@@ -1,4 +1,4 @@
-import type { BrowserViewpointPresentationPolicy } from '../browser-graph';
+import type { BrowserViewpointPresentationPolicy } from '../browser-graph/presentation';
 
 export type BrowserProjectionNodeKind = 'scope' | 'entity' | 'uml-class';
 export type BrowserProjectionCompartmentKind = 'attributes' | 'operations';

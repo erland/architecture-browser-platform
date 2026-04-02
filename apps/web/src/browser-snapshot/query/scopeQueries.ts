@@ -1,5 +1,5 @@
 import type { FullSnapshotDiagnostic, FullSnapshotEntity, FullSnapshotRelationship, FullSnapshotScope } from '../../app-model';
-import type { BrowserDependencyDirection, BrowserDependencyNeighborhood, BrowserEntityFacts, BrowserScopeFacts, BrowserScopeTreeNode, BrowserSnapshotIndex, BrowserTreeMode } from '../browserSnapshotIndex.types';
+import type { BrowserDependencyDirection, BrowserDependencyNeighborhood, BrowserEntityFacts, BrowserScopeFacts, BrowserScopeTreeNode, BrowserSnapshotIndex, BrowserTreeMode } from '../model';
 import { collectDescendantStats } from './aggregates';
 import { displayNameOf } from '../support/display';
 import { collectSourceRefs } from '../support/sourceRefs';

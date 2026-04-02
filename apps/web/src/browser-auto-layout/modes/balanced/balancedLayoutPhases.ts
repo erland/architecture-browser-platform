@@ -6,6 +6,12 @@ import type {
   BrowserAutoLayoutNode,
 } from '../../core/types';
 import { buildUndirectedAdjacency, compareNodePriority } from '../../shared/ordering';
+import {
+  findAnchoredComponentNodes,
+  findFirstPriorityNode,
+  findFocusedOrSelectedComponentNode,
+  findZeroIndegreeComponentNodes,
+} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNode } from '../../core/config';
 import {
   assignNodesToAnchors,
@@ -29,16 +35,9 @@ export function chooseBalancedComponentRoot(
   edges: BrowserAutoLayoutEdge[],
   graph: BrowserAutoLayoutGraph,
 ) {
-  const focused = graph.focusedNodeId ? componentNodes.find((node) => node.id === graph.focusedNodeId) : null;
-  if (focused) {
-    return focused;
-  }
-
-  const selected = graph.selectedNodeIds
-    .map((selectedNodeId) => componentNodes.find((node) => node.id === selectedNodeId) ?? null)
-    .find((node): node is BrowserAutoLayoutNode => Boolean(node));
-  if (selected) {
-    return selected;
+  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
+  if (preferred) {
+    return preferred;
   }
 
   const indegree = new Map<string, number>(componentNodes.map((node) => [node.id, 0]));
@@ -48,19 +47,17 @@ export function chooseBalancedComponentRoot(
     }
   }
 
-  const anchored = componentNodes.filter((node) => node.pinned || node.manuallyPlaced).sort(compareNodePriority)[0];
+  const anchored = findAnchoredComponentNodes(componentNodes, (node) => node.pinned || node.manuallyPlaced, compareNodePriority)[0];
   if (anchored) {
     return anchored;
   }
 
-  const zeroIndegree = componentNodes
-    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
-    .sort(compareNodePriority);
+  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
   if (zeroIndegree.length > 0) {
     return zeroIndegree[0];
   }
 
-  return [...componentNodes].sort(compareNodePriority)[0] ?? null;
+  return findFirstPriorityNode(componentNodes, compareNodePriority);
 }
 
 export function placeBalancedAnchoredComponentNodes(

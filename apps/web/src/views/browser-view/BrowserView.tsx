@@ -1,123 +1,71 @@
-import { type BrowserViewProps } from './browserView.shared';
 import { BrowserViewCenterContent } from './BrowserViewCenterContent';
 import { BrowserViewDialogs } from './BrowserViewDialogs';
 import { BrowserViewFooter } from './BrowserViewFooter';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { BrowserViewTopBar } from './BrowserViewTopBar';
+import { type BrowserViewProps } from './browserView.shared';
 import { useBrowserViewScreenController } from './useBrowserViewScreenController';
 
 export function BrowserView(props: BrowserViewProps) {
   const controller = useBrowserViewScreenController(props);
-  const {
-    browserActions,
-    browserLayout,
-    browserSession,
-    dialogs,
-    search,
-    workspaceData,
-    selectedSnapshot,
-    sourceTreeLauncherItems,
-    activeTabMeta,
-    repositoryLabel,
-    selectedScopeLabel,
-    selectedSnapshotLabel,
-    activeViewpointLabel,
-    startup,
-    savedCanvas,
-    handlers,
-  } = controller;
+  const { page } = controller;
 
   return (
     <div className="browser-workspace" aria-label="Browser">
-      <BrowserViewTopBar
-        search={search}
-        onOpenSourceTreeDialog={dialogs.handleOpenSourceTreeDialog}
-        onOpenSavedCanvasDialog={dialogs.openSavedCanvasDialog}
-      />
+      <BrowserViewTopBar {...page.topBar} />
 
-      <BrowserViewDialogs
-        browserSession={browserSession}
-        dialogs={dialogs}
-        selectedScopeLabel={selectedScopeLabel}
-        selectedSnapshot={selectedSnapshot}
-        selectedSnapshotLabel={selectedSnapshotLabel}
-        sourceTreeLauncherItems={sourceTreeLauncherItems}
-        repositories={workspaceData.repositories}
-        selectedWorkspace={workspaceData.selectedWorkspace}
-        savedCanvas={savedCanvas}
-        handlers={handlers}
-      />
+      <BrowserViewDialogs {...page.dialogs} />
 
-      <div className="browser-workspace__layout" style={browserLayout.layoutStyle}>
+      <div className="browser-workspace__layout" style={page.layout.layoutStyle}>
         <BrowserRailPanel
-          browserSession={browserSession}
-          isCollapsed={browserLayout.isRailCollapsed}
-          onExpand={() => browserLayout.setIsRailCollapsed(false)}
-          onCollapse={() => browserLayout.setIsRailCollapsed(true)}
-          onAddScopeEntitiesToCanvas={browserActions.handleAddPrimaryScopeEntitiesToCanvas}
-          onOpenViewpoints={dialogs.openViewpointDialog}
+          browserSession={page.rail.browserSession}
+          isCollapsed={page.layout.isRailCollapsed}
+          onExpand={page.layout.expandRail}
+          onCollapse={page.layout.collapseRail}
+          onAddScopeEntitiesToCanvas={page.rail.onAddScopeEntitiesToCanvas}
+          onOpenViewpoints={page.rail.onOpenViewpoints}
         />
 
         <div
-          className={`browser-workspace__resizer browser-workspace__resizer--rail ${browserLayout.isRailCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
+          className={`browser-workspace__resizer browser-workspace__resizer--rail ${page.layout.isRailCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize navigation tree"
-          onMouseDown={browserLayout.isRailCollapsed ? undefined : browserLayout.startPaneResize('rail')}
+          onMouseDown={page.layout.isRailCollapsed ? undefined : page.layout.startPaneResize('rail')}
         />
 
         <section className="browser-workspace__center">
-          {startup.shouldShowGate ? (
+          {page.startup.shouldShowGate ? (
             <div className="browser-workspace__stage">
               <section className="card browser-workspace__startup-gate" aria-live="polite">
                 <p className="eyebrow">Opening Browser</p>
                 <h3>Preparing Browser</h3>
-                <p className="muted">{startup.gateMessage}</p>
+                <p className="muted">{page.startup.gateMessage}</p>
               </section>
             </div>
           ) : (
-            <BrowserViewCenterContent
-              activeModeLabel={activeTabMeta.label}
-              browserSession={browserSession}
-              hasSelectedWorkspace={Boolean(workspaceData.selectedWorkspace)}
-              hasSelectedSnapshot={Boolean(selectedSnapshot)}
-              hasPreparedSession={Boolean(browserSession.state.index && browserSession.state.payload)}
-              sourceTreeLauncherItems={sourceTreeLauncherItems}
-              onSelectSourceTree={handlers.handleSelectSourceTree}
-              onOpenSourceTreeDialog={dialogs.handleOpenSourceTreeDialog}
-              onAddScopeAnalysis={browserActions.handleAddScopeAnalysisToCanvas}
-              onAddContainedEntities={browserActions.handleAddContainedEntitiesToCanvas}
-              onAddPeerEntities={browserActions.handleAddPeerEntitiesToCanvas}
-            />
+            <BrowserViewCenterContent {...page.center} />
           )}
         </section>
 
         <div
-          className={`browser-workspace__resizer browser-workspace__resizer--inspector ${browserLayout.isInspectorCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
+          className={`browser-workspace__resizer browser-workspace__resizer--inspector ${page.layout.isInspectorCollapsed ? 'browser-workspace__resizer--hidden' : ''}`}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize facts panel"
-          onMouseDown={browserLayout.isInspectorCollapsed ? undefined : browserLayout.startPaneResize('inspector')}
+          onMouseDown={page.layout.isInspectorCollapsed ? undefined : page.layout.startPaneResize('inspector')}
         />
 
         <BrowserInspectorPanel
-          browserSession={browserSession}
-          isCollapsed={browserLayout.isInspectorCollapsed}
-          onExpand={() => browserLayout.setIsInspectorCollapsed(false)}
-          onCollapse={() => browserLayout.setIsInspectorCollapsed(true)}
-          onSetActiveTab={browserLayout.setActiveTab}
+          browserSession={page.inspector.browserSession}
+          isCollapsed={page.layout.isInspectorCollapsed}
+          onExpand={page.layout.expandInspector}
+          onCollapse={page.layout.collapseInspector}
+          onSetActiveTab={page.inspector.onSetActiveTab}
         />
       </div>
 
-      <BrowserViewFooter
-        repositoryLabel={repositoryLabel}
-        activeModeLabel={activeTabMeta.label}
-        selectedScopeLabel={selectedScopeLabel}
-        activeViewpointLabel={activeViewpointLabel}
-        selectedSnapshotLabel={selectedSnapshotLabel}
-        selectedSnapshotImportedAt={selectedSnapshot?.importedAt}
-        hasPreparedSnapshot={Boolean(browserSession.state.activeSnapshot)}
-      />
+      <BrowserViewFooter {...page.footer} />
     </div>
   );
 }

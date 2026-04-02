@@ -8,7 +8,7 @@ import type {
   BrowserCanvasEdge,
   BrowserCanvasNode,
   BrowserSessionState,
-} from '../browserSessionStore.types';
+} from '../model/types';
 
 function isFiniteCoordinate(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);

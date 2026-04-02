@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity, FullSnapshotScope } from '../../app-model';
-import type { BrowserScopeTreeNode, BrowserSnapshotIndex } from '../browserSnapshotIndex.types';
+import type { BrowserScopeTreeNode, BrowserSnapshotIndex } from '../model';
 import { compactScopeDisplayName } from '../support/display';
 import { sortEntityIds, sortScopeIds } from '../support/sort';
 

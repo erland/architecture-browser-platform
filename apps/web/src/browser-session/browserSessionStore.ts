@@ -16,13 +16,13 @@ export type {
   BrowserViewpointPresentationPreference,
   BrowserViewpointSelection,
   PersistedBrowserSessionState,
-} from './browserSessionStore.types';
+} from './model/types';
 
 export {
   createEmptyBrowserSessionState,
   createPersistedBrowserSessionState,
   hydrateBrowserSessionState,
-} from './browserSessionStore.state';
+} from './model/state';
 
 export {
   deriveFactsPanelModeFromFocus,
@@ -31,20 +31,20 @@ export {
   normalizeSearchScopeId,
   normalizeSelectedEntityIds,
   recomputeBrowserSearchState,
-} from './browserSessionStore.invariants';
+} from './navigation/invariants';
 
-export { openSnapshotSession } from './browserSessionStore.lifecycle';
+export { openSnapshotSession } from './lifecycle/lifecycle';
 
 export {
   selectBrowserScope,
   setBrowserSearch,
   setBrowserTreeMode,
-} from './browserSessionStore.navigation';
+} from './navigation/navigation';
 
 export {
   readPersistedBrowserSession,
   persistBrowserSession,
-} from './browserSessionStore.persistence';
+} from './lifecycle/persistence';
 
 export {
   setSelectedViewpoint,
@@ -83,7 +83,7 @@ export {
 export {
   focusBrowserElement,
   openFactsPanel,
-} from './browserSessionStore.factsPanel';
+} from './facts-panel/actions';
 
 export {
   browserSessionCanvasCommands,
@@ -91,4 +91,4 @@ export {
   browserSessionLifecycleCommands,
   browserSessionNavigationCommands,
   browserSessionViewpointCommands,
-} from './browserSessionStore.commands';
+} from './commands/bundles';

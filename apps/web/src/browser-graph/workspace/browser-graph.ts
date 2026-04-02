@@ -13,3 +13,7 @@
 export * from './browserGraphWorkspaceProjection';
 export * from './browserGraphWorkspaceRouting';
 export * from './browserGraphWorkspaceModel';
+
+export * from './browserGraphWorkspaceSummary';
+
+export * from '../canvas/browserCanvasViewport';

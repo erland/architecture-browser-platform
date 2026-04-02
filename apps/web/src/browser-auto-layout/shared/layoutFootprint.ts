@@ -1,4 +1,4 @@
-import { BROWSER_ENTITY_NODE_SIZE } from '../../browser-graph';
+import { BROWSER_ENTITY_NODE_SIZE } from '../../browser-graph/canvas';
 import { COLLISION_MARGIN, GRID_Y, roundToGrid } from '../../browser-graph/canvas';
 import { getNodeSize } from '../../browser-canvas-placement/collision';
 import type { BrowserCanvasNode } from '../../browser-session';

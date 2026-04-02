@@ -1,9 +1,12 @@
 /**
  * Canonical domain-layer public entrypoint for the saved-canvas subsystem.
  *
- * Domain exports should stay pure and avoid direct storage, networking, or
+ * Domain exports stay pure and avoid direct storage, networking, or
  * browser-session orchestration concerns.
  */
-export * from './document';
-export * from './rebinding';
-export * from '../rebinding/ui';
+export * from './model/document';
+export { buildAcceptedSavedCanvasRebindingDocument } from './rebinding-impl/accepted';
+export { rebindSavedCanvasToTargetSnapshot } from './rebinding-impl/rebind';
+export type { SavedCanvasRebindResult } from './rebinding-impl/rebind';
+export * from './rebinding-impl/stableReferences';
+export * from './rebinding-impl/ui';

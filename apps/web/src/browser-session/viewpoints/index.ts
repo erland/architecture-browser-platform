@@ -5,7 +5,7 @@ import type {
   BrowserViewpointApplyMode,
   BrowserViewpointPresentationPreference,
   BrowserViewpointSelection,
-} from '../browserSessionStore.types';
+} from '../model/types';
 import {
   createCanvasEdgesForRelationshipIds,
   upsertCanvasEdge,

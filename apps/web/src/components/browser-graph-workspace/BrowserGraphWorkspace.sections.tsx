@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FullSnapshotEntity } from '../../app-model';
-import type { BrowserGraphWorkspaceModel } from '../../browser-graph';
+import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
 import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';

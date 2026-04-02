@@ -1,4 +1,4 @@
-import { defaultSavedCanvasName } from '../../saved-canvas';
+import { defaultSavedCanvasName } from '../../saved-canvas/application';
 import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runOpenSavedCanvasDialogWorkflow(ports: Pick<SavedCanvasCommandPorts,

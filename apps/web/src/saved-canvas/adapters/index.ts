@@ -3,6 +3,26 @@
  *
  * Adapter exports own concrete storage and browser-session integration.
  */
-export * from '../storage/localStore';
-export * from '../storage/remoteStore';
-export * from '../ports/browserSessionAdapter';
+export {
+  createSavedCanvasLocalStore,
+  getBrowserSavedCanvasLocalStore,
+  InMemorySavedCanvasLocalStorage,
+} from './storage-impl/localStore';
+export type {
+  SavedCanvasLocalListFilter,
+  SavedCanvasLocalRecord,
+  SavedCanvasLocalStorage,
+  SavedCanvasLocalStore,
+} from './storage-impl/localStore';
+export { createSavedCanvasRemoteStore } from './storage-impl/remoteStore';
+export type {
+  SavedCanvasBackendResponse,
+  SavedCanvasRemoteRecord,
+  SavedCanvasRemoteStore,
+} from './storage-impl/remoteStore';
+export type {
+  SavedCanvasBrowserSessionLifecyclePort,
+  SavedCanvasBrowserSessionState,
+  SavedCanvasOpenBrowserSessionOptions,
+} from './browser-session-impl/browserSession';
+export { browserSessionLifecycleAdapter } from './browser-session-impl/browserSessionAdapter';

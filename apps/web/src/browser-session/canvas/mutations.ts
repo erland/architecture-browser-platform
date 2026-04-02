@@ -4,13 +4,13 @@ import type {
   BrowserFactsPanelMode,
   BrowserFocusedElement,
   BrowserSessionState,
-} from '../browserSessionStore.types';
+} from '../model/types';
 import {
   upsertCanvasNode,
   upsertPinnedCanvasNode,
   upsertSelectedEntityIds,
 } from './nodes';
-import { deriveFactsPanelModeFromFocus, normalizeFocusedBrowserContext } from '../browserSessionStore.invariants';
+import { deriveFactsPanelModeFromFocus, normalizeFocusedBrowserContext } from '../navigation/invariants';
 
 export function removeEntityFromCanvas(state: BrowserSessionState, entityId: string): BrowserSessionState {
   const canvasNodes = state.canvasNodes.filter((node) => !(node.kind === 'entity' && node.id === entityId));

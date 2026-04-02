@@ -1,5 +1,5 @@
 import type { BrowserCanvasNode } from '../browser-session';
-import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browser-graph';
+import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browser-graph/canvas';
 import {
   APPEND_CLUSTER_GAP,
   COLLISION_MARGIN,

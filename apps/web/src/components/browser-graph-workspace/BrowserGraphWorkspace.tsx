@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { getPrimaryEntitiesForScope } from '../../browser-snapshot';
-import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
+import { buildBrowserGraphWorkspaceModel, buildBrowserGraphWorkspaceSummary } from '../../browser-graph/workspace';
 import { buildEntitySelectionActions } from './BrowserGraphWorkspace.actions';
 import { BrowserGraphWorkspaceCanvas, BrowserGraphWorkspaceToolbar } from './BrowserGraphWorkspace.sections';
 import type { BrowserGraphWorkspaceProps } from './BrowserGraphWorkspace.types';
@@ -39,17 +38,17 @@ export function BrowserGraphWorkspace({
   onFitView,
 }: BrowserGraphWorkspaceProps) {
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
-  const focusedEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
-  const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : null;
-  const scopeActionScopeId = focusedScopeId ?? state.selectedScopeId;
-  const scopeTreeNode = scopeActionScopeId ? state.index?.scopeTree.find((node) => node.scopeId === scopeActionScopeId) ?? null : null;
-  const scopeChildCount = scopeActionScopeId ? (state.index?.childScopeIdsByParentId.get(scopeActionScopeId)?.length ?? 0) : 0;
-  const scopeDirectEntityCount = scopeActionScopeId ? (state.index?.entityIdsByScopeId.get(scopeActionScopeId)?.length ?? 0) : 0;
-  const scopePrimaryEntityCount = scopeActionScopeId ? (state.index ? getPrimaryEntitiesForScope(state.index, scopeActionScopeId).length : 0) : 0;
-  const scopeSubtreeEntityCount = scopeTreeNode?.descendantEntityCount ?? 0;
-  const selectedEntityCount = state.selectedEntityIds.length;
-  const pinnedNodeCount = state.canvasNodes.filter((node) => node.pinned).length;
-  const focusedEntity = focusedEntityId ? state.index?.entitiesById.get(focusedEntityId) ?? null : null;
+  const {
+    focusedEntity,
+    focusedScopeId,
+    scopeActionScopeId,
+    scopeChildCount,
+    scopeDirectEntityCount,
+    scopePrimaryEntityCount,
+    scopeSubtreeEntityCount,
+    selectedEntityCount,
+    pinnedNodeCount,
+  } = useMemo(() => buildBrowserGraphWorkspaceSummary(state), [state]);
   const entityActions = useMemo(() => buildEntitySelectionActions(state.index, focusedEntity), [state.index, focusedEntity]);
 
   const { viewportRef, suppressClickRef, beginNodeDrag, beginViewportPan, handleViewportWheel } = useBrowserGraphWorkspaceInteractions({

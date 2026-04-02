@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BrowserWorkspaceNodeModel } from '../../browser-graph';
+import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
 import {
   computeDraggedCanvasNodePosition,
   computeFitViewCanvasViewport,
   computePannedCanvasViewport,
   computeZoomedCanvasViewportAroundPointer,
-} from '../../browser-graph';
+} from '../../browser-graph/workspace';
 import type { BrowserSessionState } from '../../browser-session';
 import type { DragState, PanState, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 

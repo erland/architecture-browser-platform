@@ -2,7 +2,7 @@ import { getBrowserSnapshotCache } from '../../api/snapshotCache';
 import { restoreSavedCanvasToBrowserSession } from '../../saved-canvas/application';
 import { getSavedCanvasOfflineAvailability, loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../../saved-canvas/application';
 import { buildAcceptedSavedCanvasRebindingDocument, rebindSavedCanvasToTargetSnapshot } from '../../saved-canvas/domain';
-import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas';
+import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas/domain';
 import type { SavedCanvasCommandPorts } from './savedCanvasControllerPorts';
 
 export async function runOpenSavedCanvasWorkflow(

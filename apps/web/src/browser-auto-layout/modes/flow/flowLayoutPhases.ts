@@ -6,6 +6,11 @@ import type {
   BrowserAutoLayoutNode,
 } from '../../core/types';
 import { buildUndirectedAdjacency, compareNodePriority, sortBandNodesByBarycenter } from '../../shared/ordering';
+import {
+  findFirstPriorityNode,
+  findFocusedOrSelectedComponentNode,
+  findZeroIndegreeComponentNodes,
+} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../../core/config';
 import {
   assignNodesToAnchors,
@@ -32,26 +37,17 @@ export function chooseFlowRoots(
   graph: BrowserAutoLayoutGraph,
 ) {
   const { indegree } = buildDirectedAdjacency(componentNodes, edges);
-  const focused = graph.focusedNodeId ? componentNodes.find((node) => node.id === graph.focusedNodeId) : null;
-  if (focused) {
-    return [focused];
+  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
+  if (preferred) {
+    return [preferred];
   }
 
-  const selected = graph.selectedNodeIds
-    .map((selectedNodeId) => componentNodes.find((node) => node.id === selectedNodeId) ?? null)
-    .find((node): node is BrowserAutoLayoutNode => Boolean(node));
-  if (selected) {
-    return [selected];
-  }
-
-  const zeroIndegree = componentNodes
-    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
-    .sort(compareNodePriority);
+  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
   if (zeroIndegree.length > 0) {
     return zeroIndegree;
   }
 
-  return [[...componentNodes].sort(compareNodePriority)[0]].filter((node): node is BrowserAutoLayoutNode => Boolean(node));
+  return [findFirstPriorityNode(componentNodes, compareNodePriority)].filter((node): node is BrowserAutoLayoutNode => Boolean(node));
 }
 
 export function assignFlowLevels(

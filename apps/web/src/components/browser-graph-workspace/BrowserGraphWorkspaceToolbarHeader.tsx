@@ -1,4 +1,4 @@
-import type { BrowserGraphWorkspaceModel } from '../../browser-graph';
+import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
 
 export function BrowserGraphWorkspaceToolbarHeader({
   model,

@@ -8,6 +8,12 @@ import type {
   BrowserAutoLayoutRequest,
 } from '../../core/types';
 import { compareNodePriority, compareRootPriority } from '../../shared/ordering';
+import {
+  findAnchoredComponentNodes,
+  findFirstPriorityNode,
+  findFocusedOrSelectedComponentNode,
+  findZeroIndegreeComponentNodes,
+} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../../core/config';
 import { buildFallbackFreeNodeOrigin, enforceAnchoredPlacementClearance, prepareAnchoredComponentPlacement } from '../../shared/layoutAnchoredPlacement';
 import { buildDirectedAdjacency, compareIds } from '../../shared/layoutShared';
@@ -23,32 +29,23 @@ export function chooseHierarchyRoots(
   request: BrowserAutoLayoutRequest,
 ) {
   const { indegree } = buildDirectedAdjacency(componentNodes, edges);
-  const focused = graph.focusedNodeId ? componentNodes.find((node) => node.id === graph.focusedNodeId) : null;
-  if (focused) {
-    return [focused];
-  }
-
-  const selected = graph.selectedNodeIds
-    .map((selectedNodeId) => componentNodes.find((node) => node.id === selectedNodeId) ?? null)
-    .find((node): node is BrowserAutoLayoutNode => Boolean(node));
-  if (selected) {
-    return [selected];
+  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
+  if (preferred) {
+    return [preferred];
   }
 
   const config = getBrowserAutoLayoutConfig(request);
-  const anchored = componentNodes.filter((node) => isHardAnchorCanvasNode(node, config)).sort(compareNodePriority);
+  const anchored = findAnchoredComponentNodes(componentNodes, (node) => isHardAnchorCanvasNode(node, config), compareNodePriority);
   if (anchored.length > 0) {
     return anchored;
   }
 
-  const zeroIndegree = componentNodes
-    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
-    .sort(compareNodePriority);
+  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
   if (zeroIndegree.length > 0) {
     return zeroIndegree;
   }
 
-  return [[...componentNodes].sort(compareNodePriority)[0]].filter((node): node is BrowserAutoLayoutNode => Boolean(node));
+  return [findFirstPriorityNode(componentNodes, compareNodePriority)].filter((node): node is BrowserAutoLayoutNode => Boolean(node));
 }
 
 export function assignHierarchyLevels(

@@ -8,7 +8,7 @@ import {
   isRetryableError,
   toRecoveryMessage,
   withSingleRetry,
-} from '../../saved-canvas/sync/helpers';
+} from '../../saved-canvas/application/sync-impl/helpers';
 
 function createRecord(overrides?: Partial<ReturnType<typeof createSavedCanvasDocument>>) {
   const document = createSavedCanvasDocument({

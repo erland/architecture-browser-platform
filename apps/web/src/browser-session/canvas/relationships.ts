@@ -1,7 +1,7 @@
 import type { FullSnapshotRelationship } from '../../app-model';
-import { getArchitecturalSemantics } from '../../browser-snapshot/browserSnapshotIndex.semantics';
+import { getArchitecturalSemantics } from '../../browser-snapshot/support';
 import { hasAssociationDisplayMetadata, hasAssociationSemantics } from '../../browser-graph/presentation/browserRelationshipSemantics';
-import type { BrowserSessionState } from '../browserSessionStore.types';
+import type { BrowserSessionState } from '../model/types';
 import { upsertCanvasEdge } from './nodes';
 
 const AUTO_VISIBLE_RELATIONSHIP_KINDS = new Set([

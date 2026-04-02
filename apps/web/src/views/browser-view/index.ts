@@ -15,3 +15,5 @@ export { useBrowserViewRepositoryActions } from './useBrowserViewRepositoryActio
 export * from './browserView.shared';
 
 export * from './controllers';
+
+export * from './application';

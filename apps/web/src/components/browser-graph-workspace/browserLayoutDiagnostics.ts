@@ -1,4 +1,4 @@
-import type { BrowserWorkspaceNodeModel } from '../../browser-graph';
+import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
 import type { BrowserSessionState } from '../../browser-session';
 import { isBrowserAutoLayoutDebugEnabled } from '../../browser-auto-layout/debug';
 
