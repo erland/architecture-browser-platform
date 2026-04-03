@@ -120,6 +120,32 @@ describe('browser session bootstrap', () => {
   });
 
 
+  test('fetches and caches a snapshot when it is missing locally', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    let currentState = createEmptyBrowserSessionState();
+
+    const outcome = await bootstrapPreparedBrowserSession({
+      cache,
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      snapshot: { ...snapshotSummary },
+      currentState,
+      fetchFullSnapshotPayload: async () => createPayload(),
+      openSnapshotSession: (options) => {
+        currentState = openSnapshotSession(currentState, options);
+      },
+    });
+
+    expect(outcome.status).toBe('ready');
+    expect(outcome.opened).toBe(true);
+    expect(currentState.activeSnapshot?.snapshotId).toBe(snapshotSummary.id);
+    await expect(cache.getSnapshot(snapshotSummary.id)).resolves.toMatchObject({
+      snapshotId: snapshotSummary.id,
+      repositoryId: 'repo-1',
+      snapshotKey: snapshotSummary.snapshotKey,
+    });
+  });
+
   test('fails cleanly when a cached snapshot is stale for the selected summary', async () => {
     const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
     const stalePayload = createPayload();
@@ -142,12 +168,48 @@ describe('browser session bootstrap', () => {
       openSnapshotSession: (options) => {
         currentState = openSnapshotSession(currentState, options);
       },
+      fetchFullSnapshotPayload: async () => { throw new Error('fetch disabled'); },
     });
 
     expect(outcome.status).toBe('failed');
     expect(outcome.opened).toBe(false);
-    expect(outcome.message).toContain('not prepared locally yet');
+    expect(outcome.message).toContain('Failed to prepare snapshot');
     expect(currentState.activeSnapshot).toBeNull();
+  });
+
+
+  test('clears a stale Browser session when a different selected snapshot is not prepared locally', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    let currentState = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-old',
+      payload: {
+        ...createPayload(),
+        snapshot: { ...createPayload().snapshot, id: 'snap-old', repositoryRegistrationId: 'repo-old', snapshotKey: 'old-snapshot' },
+        source: { ...createPayload().source, repositoryId: 'repo-old' },
+      },
+    });
+
+    const outcome = await bootstrapPreparedBrowserSession({
+      cache,
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      snapshot: { ...snapshotSummary },
+      currentState,
+      openSnapshotSession: (options) => {
+        currentState = openSnapshotSession(currentState, options);
+      },
+      clearSnapshotSession: () => {
+        currentState = createEmptyBrowserSessionState();
+      },
+      fetchFullSnapshotPayload: async () => { throw new Error('fetch disabled'); },
+    });
+
+    expect(outcome.status).toBe('failed');
+    expect(outcome.opened).toBe(false);
+    expect(currentState.activeSnapshot).toBeNull();
+    expect(currentState.index).toBeNull();
+    expect(currentState.payload).toBeNull();
   });
 
   test('fails cleanly when the selected snapshot is not prepared locally', async () => {
@@ -163,11 +225,12 @@ describe('browser session bootstrap', () => {
       openSnapshotSession: (options) => {
         currentState = openSnapshotSession(currentState, options);
       },
+      fetchFullSnapshotPayload: async () => { throw new Error('fetch disabled'); },
     });
 
     expect(outcome.status).toBe('failed');
     expect(outcome.opened).toBe(false);
-    expect(outcome.message).toContain('not prepared locally yet');
+    expect(outcome.message).toContain('Failed to prepare snapshot');
     expect(currentState.activeSnapshot).toBeNull();
   });
 });

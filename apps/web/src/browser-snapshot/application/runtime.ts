@@ -1,6 +1,6 @@
 import { getBrowserSnapshotCache } from '../../api/snapshotCache';
-import type { PreparedSnapshotCacheReadPort } from './ports/preparedSnapshotCache';
+import type { PreparedSnapshotCachePort } from './ports/preparedSnapshotCache';
 
-export function getBrowserPreparedSnapshotCache(): PreparedSnapshotCacheReadPort {
+export function getBrowserPreparedSnapshotCache(): PreparedSnapshotCachePort {
   return getBrowserSnapshotCache();
 }

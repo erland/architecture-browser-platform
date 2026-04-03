@@ -7,4 +7,4 @@
 
 export { findPreferredPreparedSnapshotId, loadPreparedSnapshotRecordForSummary } from './preparedSnapshots';
 export { getBrowserPreparedSnapshotCache } from './runtime';
-export type { PreparedSnapshotCacheReadPort, PreparedSnapshotCacheRecord } from './ports/preparedSnapshotCache';
+export type { PreparedSnapshotCacheReadPort, PreparedSnapshotCachePort, PreparedSnapshotCacheRecord } from './ports/preparedSnapshotCache';

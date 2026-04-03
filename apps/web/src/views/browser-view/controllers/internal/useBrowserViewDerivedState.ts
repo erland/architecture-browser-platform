@@ -55,12 +55,21 @@ export function useBrowserViewDerivedState({
     }
 
     const sessionSnapshotId = browserSession.state.activeSnapshot?.snapshotId;
-    if (sessionSnapshotId) {
-      return workspaceData.snapshots.find((snapshot) => snapshot.id === sessionSnapshotId) ?? null;
+    if (!sessionSnapshotId) {
+      return null;
     }
 
-    return null;
-  }, [selection.selectedSnapshotId, browserSession.state.activeSnapshot?.snapshotId, workspaceData.snapshots]);
+    const sessionSnapshot = workspaceData.snapshots.find((snapshot) => snapshot.id === sessionSnapshotId) ?? null;
+    if (!sessionSnapshot) {
+      return null;
+    }
+
+    if (selection.selectedRepositoryId && sessionSnapshot.repositoryRegistrationId !== selection.selectedRepositoryId) {
+      return null;
+    }
+
+    return sessionSnapshot;
+  }, [selection.selectedRepositoryId, selection.selectedSnapshotId, browserSession.state.activeSnapshot?.snapshotId, workspaceData.snapshots]);
 
   const selectedRepository = useMemo(() => {
     const bySelection = workspaceData.repositories.find((repository) => repository.id === selection.selectedRepositoryId);

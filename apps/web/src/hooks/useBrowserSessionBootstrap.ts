@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SnapshotSummary } from '../app-model';
+import type { FullSnapshotPayload, SnapshotSummary } from '../app-model';
+import { platformApi } from '../api/platformApi';
+import { hydrateBrowserSessionState } from '../browser-session';
 import { useBrowserSession, type BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
-import { getBrowserPreparedSnapshotCache, loadPreparedSnapshotRecordForSummary, type PreparedSnapshotCacheReadPort } from '../browser-snapshot';
+import { getBrowserPreparedSnapshotCache, loadPreparedSnapshotRecordForSummary, type PreparedSnapshotCachePort } from '../browser-snapshot';
 
 export type BrowserSessionBootstrapStatus = 'idle' | 'loading' | 'ready' | 'failed';
 
@@ -15,15 +17,78 @@ function toErrorMessage(caught: unknown) {
   return caught instanceof Error ? caught.message : 'Unknown error';
 }
 
+function isOfflineEnvironment() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+function shouldClearStaleBrowserSession(options: {
+  workspaceId: string | null;
+  repositoryId: string | null;
+  snapshot: SnapshotSummary | null;
+  currentState: Pick<BrowserSessionContextValue['state'], 'activeSnapshot'>;
+}) {
+  const activeSnapshot = options.currentState.activeSnapshot;
+  if (!activeSnapshot) {
+    return false;
+  }
+
+  if (!options.workspaceId) {
+    return false;
+  }
+
+  if (activeSnapshot.workspaceId != options.workspaceId) {
+    return true;
+  }
+
+  if (options.repositoryId && activeSnapshot.repositoryId !== options.repositoryId) {
+    return true;
+  }
+
+  if (options.snapshot && activeSnapshot.snapshotId !== options.snapshot.id) {
+    return true;
+  }
+
+  if (!options.snapshot && options.repositoryId && activeSnapshot.repositoryId === options.repositoryId) {
+    return false;
+  }
+
+  return false;
+}
+
+async function fetchAndCachePreparedSnapshotRecord(options: {
+  cache: PreparedSnapshotCachePort;
+  snapshot: SnapshotSummary;
+  fetchFullSnapshotPayload?: (workspaceId: string, snapshotId: string) => Promise<FullSnapshotPayload>;
+}) {
+  const { cache, snapshot, fetchFullSnapshotPayload } = options;
+  const fetchPayload = fetchFullSnapshotPayload ?? ((workspaceId: string, snapshotId: string) =>
+    platformApi.getFullSnapshotPayload<FullSnapshotPayload>(workspaceId, snapshotId));
+
+  const payload = await fetchPayload(snapshot.workspaceId, snapshot.id);
+  return cache.putSnapshot({
+    workspaceId: snapshot.workspaceId,
+    repositoryId: snapshot.repositoryRegistrationId,
+    snapshotKey: snapshot.snapshotKey,
+    cacheVersion: cache.buildCacheVersion(payload.snapshot),
+    payload,
+  });
+}
+
+function buildPreparedSnapshotUnavailableMessage(snapshot: SnapshotSummary) {
+  return `Snapshot ${snapshot.snapshotKey} is not available locally and cannot be prepared right now.`;
+}
+
 export async function bootstrapPreparedBrowserSession(options: {
-  cache: PreparedSnapshotCacheReadPort;
+  cache: PreparedSnapshotCachePort;
   workspaceId: string | null;
   repositoryId: string | null;
   snapshot: SnapshotSummary | null;
   currentState: Pick<BrowserSessionContextValue['state'], 'activeSnapshot' | 'index' | 'payload'>;
   openSnapshotSession: BrowserSessionContextValue['lifecycle']['openSnapshotSession'];
+  clearSnapshotSession?: () => void;
+  fetchFullSnapshotPayload?: (workspaceId: string, snapshotId: string) => Promise<FullSnapshotPayload>;
 }): Promise<BrowserSessionBootstrapOutcome> {
-  const { cache, workspaceId, repositoryId, snapshot, currentState, openSnapshotSession } = options;
+  const { cache, workspaceId, repositoryId, snapshot, currentState, openSnapshotSession, clearSnapshotSession, fetchFullSnapshotPayload } = options;
 
   if (!workspaceId || !snapshot) {
     return {
@@ -42,13 +107,36 @@ export async function bootstrapPreparedBrowserSession(options: {
     };
   }
 
-  const cachedRecord = await loadPreparedSnapshotRecordForSummary(cache, snapshot);
+  let cachedRecord = await loadPreparedSnapshotRecordForSummary(cache, snapshot);
   if (!cachedRecord) {
-    return {
-      status: 'failed',
-      message: `Snapshot ${snapshot.snapshotKey} is not prepared locally yet. Open the source tree dialog and prepare Browser data first.`,
-      opened: false,
-    };
+    if (isOfflineEnvironment()) {
+      if (clearSnapshotSession && shouldClearStaleBrowserSession({ workspaceId, repositoryId, snapshot, currentState })) {
+        clearSnapshotSession();
+      }
+      return {
+        status: 'failed',
+        message: buildPreparedSnapshotUnavailableMessage(snapshot),
+        opened: false,
+      };
+    }
+
+    try {
+      cachedRecord = await fetchAndCachePreparedSnapshotRecord({
+        cache,
+        snapshot,
+        fetchFullSnapshotPayload,
+      });
+    } catch (caught) {
+      if (clearSnapshotSession && shouldClearStaleBrowserSession({ workspaceId, repositoryId, snapshot, currentState })) {
+        clearSnapshotSession();
+      }
+      const message = toErrorMessage(caught);
+      return {
+        status: 'failed',
+        message: `Failed to prepare snapshot ${snapshot.snapshotKey} for Browser use. ${message}`,
+        opened: false,
+      };
+    }
   }
 
   openSnapshotSession({
@@ -77,8 +165,10 @@ export function useBrowserSessionBootstrap(options: {
 
   const currentStateRef = useRef(browserSession.state);
   const openSnapshotSessionRef = useRef(browserSession.lifecycle.openSnapshotSession);
+  const replaceStateRef = useRef(browserSession.lifecycle.replaceState);
   currentStateRef.current = browserSession.state;
   openSnapshotSessionRef.current = browserSession.lifecycle.openSnapshotSession;
+  replaceStateRef.current = browserSession.lifecycle.replaceState;
 
   const activeSnapshotId = browserSession.state.activeSnapshot?.snapshotId ?? null;
   const hasIndex = Boolean(browserSession.state.index);
@@ -94,6 +184,14 @@ export function useBrowserSessionBootstrap(options: {
     async function bootstrap() {
       if (!options.workspaceId || !options.snapshot) {
         completedBootstrapKeyRef.current = null;
+        if (shouldClearStaleBrowserSession({
+          workspaceId: options.workspaceId,
+          repositoryId: options.repositoryId,
+          snapshot: options.snapshot,
+          currentState: currentStateRef.current,
+        })) {
+          replaceStateRef.current(hydrateBrowserSessionState());
+        }
         if (!cancelled) {
           setStatus('idle');
           setMessage(null);
@@ -128,6 +226,7 @@ export function useBrowserSessionBootstrap(options: {
           snapshot: options.snapshot,
           currentState: currentStateRef.current,
           openSnapshotSession: openSnapshotSessionRef.current,
+          clearSnapshotSession: () => replaceStateRef.current(hydrateBrowserSessionState()),
         });
         if (outcome.status === 'ready' && bootstrapTargetKey) {
           completedBootstrapKeyRef.current = bootstrapTargetKey;

@@ -1,3 +1,4 @@
+import type { SnapshotCachePutInput } from '../../../api/snapshotCache';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../../app-model';
 
 export type PreparedSnapshotCacheRecord = {
@@ -17,4 +18,9 @@ export interface PreparedSnapshotCacheReadPort {
     snapshot: Pick<SnapshotSummary, 'id' | 'importedAt' | 'sourceRevision' | 'schemaVersion' | 'indexerVersion'>,
     record: Pick<PreparedSnapshotCacheRecord, 'cacheVersion'> | null,
   ): boolean;
+}
+
+export interface PreparedSnapshotCachePort extends PreparedSnapshotCacheReadPort {
+  putSnapshot(input: SnapshotCachePutInput): Promise<PreparedSnapshotCacheRecord>;
+  buildCacheVersion(snapshot: Pick<SnapshotSummary, 'importedAt' | 'sourceRevision' | 'schemaVersion' | 'indexerVersion'>): string;
 }

@@ -163,7 +163,7 @@ export function AppSelectionProvider({ children }: { children: ReactNode }) {
         return {
           ...current,
           selectedRepositoryId: resolvedRepositoryId,
-          selectedSnapshotId: current.selectedSnapshotId,
+          selectedSnapshotId: null,
         };
       });
     },
