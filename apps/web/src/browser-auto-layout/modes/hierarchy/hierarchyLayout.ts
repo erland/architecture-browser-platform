@@ -1,25 +1,17 @@
-import { getBrowserAutoLayoutConfig } from '../../core/config';
-import { extractBrowserAutoLayoutGraph } from '../../shared/graph';
-import { runBrowserHierarchyAutoLayoutWithContext } from './hierarchyLayoutSupport';
-import type { BrowserAutoLayoutPipelineContext, BrowserAutoLayoutStrategy } from '../../core/pipeline';
+import { createBrowserAutoLayoutModeEngine } from '../shared/modeEngine';
 import type { BrowserAutoLayoutGraph, BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from '../../core/types';
+import { runBrowserHierarchyAutoLayoutWithContext } from './hierarchyLayoutSupport';
 
-export const runBrowserHierarchyAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
-  mode: 'hierarchy',
-  run: runBrowserHierarchyAutoLayoutWithContext,
-};
+export const browserHierarchyAutoLayoutModeEngine = createBrowserAutoLayoutModeEngine(
+  'hierarchy',
+  runBrowserHierarchyAutoLayoutWithContext,
+);
+
+export const runBrowserHierarchyAutoLayoutStrategy = browserHierarchyAutoLayoutModeEngine.strategy;
 
 export function runBrowserHierarchyAutoLayout(
   request: BrowserAutoLayoutRequest,
   graph?: BrowserAutoLayoutGraph,
 ): BrowserAutoLayoutResult {
-  const config = getBrowserAutoLayoutConfig(request);
-  const effectiveGraph = graph ?? extractBrowserAutoLayoutGraph(request);
-  const context: BrowserAutoLayoutPipelineContext = {
-    request,
-    config,
-    graph: effectiveGraph,
-    mode: 'hierarchy',
-  };
-  return runBrowserHierarchyAutoLayoutWithContext(context);
+  return browserHierarchyAutoLayoutModeEngine.run(request, graph);
 }

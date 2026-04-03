@@ -1,19 +1,19 @@
-import { createBrowserAutoLayoutPipelineContext } from '../../core/pipeline';
+import { createBrowserAutoLayoutModeEngine } from '../shared/modeEngine';
 import type { BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from '../../core/types';
-import type { BrowserAutoLayoutStrategy } from '../../core/pipeline';
 import { runBrowserBalancedAutoLayoutWithContext } from './balancedLayoutSupport';
 
-export const runBrowserBalancedAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
-  mode: 'balanced',
-  run: runBrowserBalancedAutoLayoutWithContext,
-};
+export const browserBalancedAutoLayoutModeEngine = createBrowserAutoLayoutModeEngine(
+  'balanced',
+  runBrowserBalancedAutoLayoutWithContext,
+);
+
+export const runBrowserBalancedAutoLayoutStrategy = browserBalancedAutoLayoutModeEngine.strategy;
 
 export function runBrowserBalancedAutoLayout(
   request: Omit<BrowserAutoLayoutRequest, 'mode'>,
 ): BrowserAutoLayoutResult {
-  const context = createBrowserAutoLayoutPipelineContext({
+  return browserBalancedAutoLayoutModeEngine.run({
     ...request,
     mode: 'balanced',
   });
-  return runBrowserBalancedAutoLayoutWithContext(context);
 }

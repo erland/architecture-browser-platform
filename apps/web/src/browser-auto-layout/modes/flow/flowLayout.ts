@@ -1,25 +1,17 @@
-import { getBrowserAutoLayoutConfig } from '../../core/config';
-import { extractBrowserAutoLayoutGraph } from '../../shared/graph';
-import type { BrowserAutoLayoutPipelineContext, BrowserAutoLayoutStrategy } from '../../core/pipeline';
-import { runBrowserFlowAutoLayoutWithContext } from './flowLayoutSupport';
+import { createBrowserAutoLayoutModeEngine } from '../shared/modeEngine';
 import type { BrowserAutoLayoutGraph, BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from '../../core/types';
+import { runBrowserFlowAutoLayoutWithContext } from './flowLayoutSupport';
 
-export const runBrowserFlowAutoLayoutStrategy: BrowserAutoLayoutStrategy = {
-  mode: 'flow',
-  run: runBrowserFlowAutoLayoutWithContext,
-};
+export const browserFlowAutoLayoutModeEngine = createBrowserAutoLayoutModeEngine(
+  'flow',
+  runBrowserFlowAutoLayoutWithContext,
+);
+
+export const runBrowserFlowAutoLayoutStrategy = browserFlowAutoLayoutModeEngine.strategy;
 
 export function runBrowserFlowAutoLayout(
   request: BrowserAutoLayoutRequest,
   graph?: BrowserAutoLayoutGraph,
 ): BrowserAutoLayoutResult {
-  const config = getBrowserAutoLayoutConfig(request);
-  const resolvedGraph = graph ?? extractBrowserAutoLayoutGraph(request);
-  const context: BrowserAutoLayoutPipelineContext = {
-    request,
-    config,
-    graph: resolvedGraph,
-    mode: 'flow',
-  };
-  return runBrowserFlowAutoLayoutWithContext(context);
+  return browserFlowAutoLayoutModeEngine.run(request, graph);
 }
