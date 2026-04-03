@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import type { FullSnapshotEntity } from '../../app-model';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
 import type { BrowserSessionState } from '../../browser-session';
@@ -106,14 +107,44 @@ export function BrowserGraphWorkspaceCanvas({
   });
 
   if (model.nodes.length === 0) {
-    return (
-      <div className="browser-canvas__empty">
-        <h4>Start with a scope or entity</h4>
-        <p className="muted">Use the left tree, facts panel, search results, or the toolbar above to add entities first. Scope containers remain available only under advanced scope actions.</p>
-      </div>
-    );
+    return <BrowserGraphWorkspaceEmptyState />;
   }
 
+  return (
+    <BrowserGraphWorkspaceViewport
+      model={model}
+      state={state}
+      viewportHandlers={viewportHandlers}
+      viewportRef={viewportRef}
+    >
+      <BrowserGraphWorkspaceLayers
+        model={model}
+        suppressClickRef={suppressClickRef}
+        viewportHandlers={viewportHandlers}
+        interactionHandlers={interactionHandlers}
+      />
+    </BrowserGraphWorkspaceViewport>
+  );
+}
+
+function BrowserGraphWorkspaceEmptyState() {
+  return (
+    <div className="browser-canvas__empty">
+      <h4>Start with a scope or entity</h4>
+      <p className="muted">Use the left tree, facts panel, search results, or the toolbar above to add entities first. Scope containers remain available only under advanced scope actions.</p>
+    </div>
+  );
+}
+
+type ViewportProps = {
+  model: BrowserGraphWorkspaceModel;
+  state: BrowserSessionState;
+  viewportHandlers: ViewportEventHandlers;
+  viewportRef: React.MutableRefObject<HTMLDivElement | null>;
+  children: ReactNode;
+};
+
+function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewportRef, children }: ViewportProps) {
   return (
     <div
       ref={viewportRef}
@@ -133,28 +164,43 @@ export function BrowserGraphWorkspaceCanvas({
           transformOrigin: 'top left',
         }}
       >
-        <svg className="browser-canvas__edges" width={model.width} height={model.height} viewBox={`0 0 ${model.width} ${model.height}`} aria-hidden="true">
-          <defs>
-            <marker id="browser-canvas-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-              <path d="M0,0 L8,4 L0,8 z" className="browser-canvas__arrow" />
-            </marker>
-          </defs>
-          <g key={model.routingRevision} data-routing-revision={model.routingRevision}>
-            <BrowserGraphWorkspaceEdgeLayer
-              edges={model.edges}
-              onActivateRelationship={interactionHandlers.onActivateRelationship}
-            />
-          </g>
-        </svg>
-
-        <BrowserGraphWorkspaceNodeLayer
-          nodes={model.nodes}
-          suppressClickRef={suppressClickRef}
-          beginNodeDrag={viewportHandlers.beginNodeDrag}
-          draggingNodeId={viewportHandlers.draggingNodeId}
-          interactionHandlers={interactionHandlers}
-        />
+        {children}
       </div>
     </div>
+  );
+}
+
+type LayersProps = {
+  model: BrowserGraphWorkspaceModel;
+  suppressClickRef: React.MutableRefObject<boolean>;
+  viewportHandlers: ViewportEventHandlers;
+  interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
+};
+
+function BrowserGraphWorkspaceLayers({ model, suppressClickRef, viewportHandlers, interactionHandlers }: LayersProps) {
+  return (
+    <>
+      <svg className="browser-canvas__edges" width={model.width} height={model.height} viewBox={`0 0 ${model.width} ${model.height}`} aria-hidden="true">
+        <defs>
+          <marker id="browser-canvas-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" className="browser-canvas__arrow" />
+          </marker>
+        </defs>
+        <g key={model.routingRevision} data-routing-revision={model.routingRevision}>
+          <BrowserGraphWorkspaceEdgeLayer
+            edges={model.edges}
+            onActivateRelationship={interactionHandlers.onActivateRelationship}
+          />
+        </g>
+      </svg>
+
+      <BrowserGraphWorkspaceNodeLayer
+        nodes={model.nodes}
+        suppressClickRef={suppressClickRef}
+        beginNodeDrag={viewportHandlers.beginNodeDrag}
+        draggingNodeId={viewportHandlers.draggingNodeId}
+        interactionHandlers={interactionHandlers}
+      />
+    </>
   );
 }

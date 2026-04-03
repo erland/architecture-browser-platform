@@ -11,3 +11,14 @@ Renderer components in this folder should prefer `browser-graph/workspace` for w
 ## Rendering vs interaction boundary
 
 The workspace render layers should stay declarative: node and edge layers render workspace model data and invoke interaction handler ports. Browser-session action translation and DOM-based canvas reconciliation live in dedicated hooks so visual rendering can evolve independently from interaction logic.
+
+
+## Interaction split
+
+Pointer/gesture behavior should prefer small dedicated hooks:
+- `useBrowserGraphWorkspaceNodeDrag` for node drag lifecycle
+- `useBrowserGraphWorkspaceViewport` for pan/zoom viewport behavior
+- `useBrowserGraphWorkspaceFitView` for fit-view orchestration
+- `browserGraphWorkspaceInteractionPolicy` for pure interaction thresholds and pointer/wheel decisions
+
+The composition hook `useBrowserGraphWorkspaceInteractions` should remain a thin assembly seam only.
