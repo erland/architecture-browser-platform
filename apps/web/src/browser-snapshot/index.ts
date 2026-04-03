@@ -12,3 +12,5 @@ export * from './query';
 export * from './support';
 export * from './viewpoints';
 
+
+export * from './application';

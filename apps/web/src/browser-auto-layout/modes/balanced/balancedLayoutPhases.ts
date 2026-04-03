@@ -1,17 +1,11 @@
 import type { BrowserCanvasNode } from '../../../browser-session';
 import type {
-  BrowserAutoLayoutComponent,
   BrowserAutoLayoutEdge,
   BrowserAutoLayoutGraph,
   BrowserAutoLayoutNode,
 } from '../../core/types';
+import type { BrowserAutoLayoutComponentModel } from '../../shared/componentModel';
 import { buildUndirectedAdjacency, compareNodePriority } from '../../shared/ordering';
-import {
-  findAnchoredComponentNodes,
-  findFirstPriorityNode,
-  findFocusedOrSelectedComponentNode,
-  findZeroIndegreeComponentNodes,
-} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNode } from '../../core/config';
 import {
   assignNodesToAnchors,
@@ -23,11 +17,10 @@ import {
 import { placeBandBasedFreeComponentNodes } from '../../shared/layoutFreePlacement';
 import {
   buildDirectedAdjacency,
-  getComponentEdges,
-  getEntityComponentNodes,
-  getInitialEntityOrigin,
 } from '../../shared/layoutShared';
+import { buildComponentIndegree, chooseSinglePriorityRoot, getAnchoredPriorityNodes } from '../../shared/layoutRoots';
 import { buildCenteredVerticalTopPositions } from '../../shared/layoutFootprint';
+import { createBrowserAutoLayoutComponentOrigin } from '../../shared/componentModel';
 import type { BrowserAutoLayoutPipelineContext } from '../../core/pipeline';
 
 export function chooseBalancedComponentRoot(
@@ -35,33 +28,15 @@ export function chooseBalancedComponentRoot(
   edges: BrowserAutoLayoutEdge[],
   graph: BrowserAutoLayoutGraph,
 ) {
-  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
-  if (preferred) {
-    return preferred;
-  }
-
-  const indegree = new Map<string, number>(componentNodes.map((node) => [node.id, 0]));
-  for (const edge of edges) {
-    if (indegree.has(edge.toEntityId) && indegree.has(edge.fromEntityId)) {
-      indegree.set(edge.toEntityId, (indegree.get(edge.toEntityId) ?? 0) + 1);
-    }
-  }
-
-  const anchored = findAnchoredComponentNodes(componentNodes, (node) => node.pinned || node.manuallyPlaced, compareNodePriority)[0];
-  if (anchored) {
-    return anchored;
-  }
-
-  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
-  if (zeroIndegree.length > 0) {
-    return zeroIndegree[0];
-  }
-
-  return findFirstPriorityNode(componentNodes, compareNodePriority);
+  return chooseSinglePriorityRoot(componentNodes, {
+    graph,
+    indegree: buildComponentIndegree(componentNodes, edges),
+    getAnchoredNodes: (nodes) => getAnchoredPriorityNodes(nodes, (node) => node.pinned || node.manuallyPlaced),
+  });
 }
 
 export function placeBalancedAnchoredComponentNodes(
-  component: BrowserAutoLayoutComponent,
+  componentModel: BrowserAutoLayoutComponentModel,
   context: BrowserAutoLayoutPipelineContext,
   nodeById: Map<string, BrowserAutoLayoutNode>,
   canvasNodeByKey: Map<string, BrowserCanvasNode>,
@@ -69,7 +44,7 @@ export function placeBalancedAnchoredComponentNodes(
   fallbackOriginY: number,
 ) {
   const { request, graph } = context;
-  const prepared = prepareAnchoredComponentPlacement(component, request, graph, nodeById, canvasNodeByKey, arranged);
+  const prepared = prepareAnchoredComponentPlacement(componentModel.component, request, graph, nodeById, canvasNodeByKey, arranged);
   if (!prepared) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
@@ -145,7 +120,7 @@ export function placeBalancedAnchoredComponentNodes(
 
   nextArranged = enforceAnchoredPlacementClearance(nextArranged, freeNodes.map((node) => node.id), request);
 
-  return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
+  return finalizeComponentPlacement(componentModel.component, request, nextArranged, fallbackOriginY);
 }
 
 export type BalancedCluster = {
@@ -405,31 +380,27 @@ export function placeBalancedClusters(
 }
 
 export function placeBalancedFreeComponentNodes(
-  component: BrowserAutoLayoutComponent,
+  componentModel: BrowserAutoLayoutComponentModel,
   context: BrowserAutoLayoutPipelineContext,
-  nodeById: Map<string, BrowserAutoLayoutNode>,
+  _nodeById: Map<string, BrowserAutoLayoutNode>,
   canvasNodeByKey: Map<string, BrowserCanvasNode>,
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
-  const { request, graph } = context;
-  const componentNodes = getEntityComponentNodes(component, nodeById);
+  const { request } = context;
+  const { entityNodes: componentNodes, edges: componentEdges } = componentModel;
   if (componentNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
-  const componentEdges = getComponentEdges(component, graph);
-  const root = chooseBalancedComponentRoot(componentNodes, componentEdges, graph);
+  const root = chooseBalancedComponentRoot(componentNodes, componentEdges, context.graph);
   if (!root) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
-  const componentOrigin = {
-    ...getInitialEntityOrigin(arranged),
-    y: fallbackOriginY,
-  };
+  const componentOrigin = createBrowserAutoLayoutComponentOrigin(arranged, fallbackOriginY);
 
   const clusters = buildBalancedClusters(componentNodes, componentEdges, root);
   const nextArranged = placeBalancedClusters(arranged, request, canvasNodeByKey, clusters, componentEdges, componentOrigin);
-  return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
+  return finalizeComponentPlacement(componentModel.component, request, nextArranged, fallbackOriginY);
 }

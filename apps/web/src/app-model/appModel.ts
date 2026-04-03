@@ -5,4 +5,4 @@ export * from './appModel.utils';
 
 export * from '../app-model/appModel.sourceTree';
 
-export type { RepositoryUpdateRequest } from '../api/platformApi';
+export * from './appModel.contracts';

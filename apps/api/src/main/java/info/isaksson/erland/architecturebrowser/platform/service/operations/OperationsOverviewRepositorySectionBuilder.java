@@ -20,16 +20,16 @@ import java.util.stream.Collectors;
 public class OperationsOverviewRepositorySectionBuilder {
     List<RepositoryAdminRow> buildRepositoryRows(
         List<RepositoryRegistrationEntity> repositories,
-        List<OperationsOverviewQueryService.RunSummaryProjection> runs,
-        List<OperationsOverviewQueryService.SnapshotSummaryProjection> snapshots
+        List<OperationsOverviewWorkspaceQueryService.RunSummaryProjection> runs,
+        List<OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> snapshots
     ) {
         Map<String, Long> snapshotCountsByRepo = snapshots.stream()
             .collect(Collectors.groupingBy(snapshot -> snapshot.repositoryRegistrationId, Collectors.counting()));
         Map<String, Long> runCountsByRepo = runs.stream()
             .collect(Collectors.groupingBy(run -> run.repositoryRegistrationId, Collectors.counting()));
-        Map<String, OperationsOverviewQueryService.SnapshotSummaryProjection> latestSnapshotByRepo = snapshots.stream()
+        Map<String, OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> latestSnapshotByRepo = snapshots.stream()
             .collect(Collectors.toMap(snapshot -> snapshot.repositoryRegistrationId, Function.identity(), this::latestSnapshot));
-        Map<String, OperationsOverviewQueryService.RunSummaryProjection> latestRunByRepo = runs.stream()
+        Map<String, OperationsOverviewWorkspaceQueryService.RunSummaryProjection> latestRunByRepo = runs.stream()
             .collect(Collectors.toMap(run -> run.repositoryRegistrationId, Function.identity(), this::latestRun));
 
         return repositories.stream()
@@ -41,8 +41,8 @@ public class OperationsOverviewRepositorySectionBuilder {
 
     OperationsSummary buildSummary(
         List<RepositoryRegistrationEntity> repositories,
-        List<OperationsOverviewQueryService.RunSummaryProjection> runs,
-        List<OperationsOverviewQueryService.SnapshotSummaryProjection> snapshots,
+        List<OperationsOverviewWorkspaceQueryService.RunSummaryProjection> runs,
+        List<OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> snapshots,
         long auditCount
     ) {
         return new OperationsSummary(
@@ -60,13 +60,13 @@ public class OperationsOverviewRepositorySectionBuilder {
 
     private RepositoryAdminRow toRepositoryRow(
         RepositoryRegistrationEntity repo,
-        Map<String, OperationsOverviewQueryService.SnapshotSummaryProjection> latestSnapshotByRepo,
-        Map<String, OperationsOverviewQueryService.RunSummaryProjection> latestRunByRepo,
+        Map<String, OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> latestSnapshotByRepo,
+        Map<String, OperationsOverviewWorkspaceQueryService.RunSummaryProjection> latestRunByRepo,
         Map<String, Long> snapshotCountsByRepo,
         Map<String, Long> runCountsByRepo
     ) {
-        OperationsOverviewQueryService.SnapshotSummaryProjection latestSnapshot = latestSnapshotByRepo.get(repo.id);
-        OperationsOverviewQueryService.RunSummaryProjection latestRun = latestRunByRepo.get(repo.id);
+        OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection latestSnapshot = latestSnapshotByRepo.get(repo.id);
+        OperationsOverviewWorkspaceQueryService.RunSummaryProjection latestRun = latestRunByRepo.get(repo.id);
         return new RepositoryAdminRow(
             repo.id,
             repo.repositoryKey,
@@ -83,16 +83,16 @@ public class OperationsOverviewRepositorySectionBuilder {
         );
     }
 
-    private OperationsOverviewQueryService.SnapshotSummaryProjection latestSnapshot(
-        OperationsOverviewQueryService.SnapshotSummaryProjection left,
-        OperationsOverviewQueryService.SnapshotSummaryProjection right
+    private OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection latestSnapshot(
+        OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection left,
+        OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection right
     ) {
         return left.importedAt.isAfter(right.importedAt) ? left : right;
     }
 
-    private OperationsOverviewQueryService.RunSummaryProjection latestRun(
-        OperationsOverviewQueryService.RunSummaryProjection left,
-        OperationsOverviewQueryService.RunSummaryProjection right
+    private OperationsOverviewWorkspaceQueryService.RunSummaryProjection latestRun(
+        OperationsOverviewWorkspaceQueryService.RunSummaryProjection left,
+        OperationsOverviewWorkspaceQueryService.RunSummaryProjection right
     ) {
         return left.requestedAt.isAfter(right.requestedAt) ? left : right;
     }

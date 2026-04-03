@@ -5,8 +5,4 @@
  * `browser-session` rather than legacy root-level compatibility shims.
  */
 
-export * from './model';
-export * from './navigation';
-export * from './lifecycle';
-export * from './facts-panel';
-export * from './commands';
+export * from './browserSessionStore';

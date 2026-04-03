@@ -1,6 +1,5 @@
 import { HttpError } from '../../../api/httpClient';
-import type { SavedCanvasLocalRecord } from '../../adapters/storage-impl/localStore';
-import type { SavedCanvasRemoteRecord } from '../../adapters/storage-impl/remoteStore';
+import type { SavedCanvasLocalRecord, SavedCanvasRemoteRecord } from '../ports/storage';
 
 export type SavedCanvasRemoteLocation = {
   workspaceId: string;

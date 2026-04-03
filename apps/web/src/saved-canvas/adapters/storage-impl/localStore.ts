@@ -1,50 +1,13 @@
-import type { SavedCanvasDocument, SavedCanvasSyncState } from '../../domain/model/document';
+import type { SavedCanvasDocument } from '../../domain/model/document';
+import type {
+  SavedCanvasLocalRecord,
+  SavedCanvasLocalStorage,
+  SavedCanvasLocalStore,
+} from '../../application/ports/storage';
 
 const DB_NAME = 'architecture-browser-platform-saved-canvases';
 const STORE_NAME = 'saved-canvases';
 const DB_VERSION = 1;
-
-export type SavedCanvasLocalRecord = {
-  canvasId: string;
-  name: string;
-  workspaceId: string;
-  repositoryRegistrationId: string;
-  originSnapshotId: string;
-  currentTargetSnapshotId: string | null;
-  snapshotKey: string;
-  syncState: SavedCanvasSyncState;
-  localVersion: number;
-  backendVersion?: string | null;
-  updatedAt?: string;
-  lastModifiedAt: string;
-  lastSyncedAt?: string | null;
-  document: SavedCanvasDocument;
-};
-
-export interface SavedCanvasLocalStorage {
-  get(canvasId: string): Promise<SavedCanvasLocalRecord | null>;
-  put(document: SavedCanvasDocument): Promise<SavedCanvasLocalRecord>;
-  has(canvasId: string): Promise<boolean>;
-  remove(canvasId: string): Promise<void>;
-  clear(): Promise<void>;
-  list(): Promise<SavedCanvasLocalRecord[]>;
-}
-
-export type SavedCanvasLocalListFilter = {
-  workspaceId?: string | null;
-  repositoryRegistrationId?: string | null;
-  snapshotId?: string | null;
-  includeDeletedPendingSync?: boolean;
-};
-
-export interface SavedCanvasLocalStore {
-  getCanvas(canvasId: string): Promise<SavedCanvasLocalRecord | null>;
-  putCanvas(document: SavedCanvasDocument): Promise<SavedCanvasLocalRecord>;
-  hasCanvas(canvasId: string): Promise<boolean>;
-  deleteCanvas(canvasId: string): Promise<void>;
-  clearAll(): Promise<void>;
-  listCanvases(filter?: SavedCanvasLocalListFilter): Promise<SavedCanvasLocalRecord[]>;
-}
 
 function normalizeSavedCanvasLocalRecord(document: SavedCanvasDocument): SavedCanvasLocalRecord {
   return {

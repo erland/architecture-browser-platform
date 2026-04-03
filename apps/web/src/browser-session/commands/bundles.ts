@@ -1,81 +1,14 @@
 import {
-  addDependenciesToCanvas,
-  addEntitiesToCanvas,
-  addEntityToCanvas,
-  addPrimaryEntitiesForScope,
-  addScopeToCanvas,
-  arrangeAllCanvasNodesInteractive,
-  arrangeCanvasAroundFocus,
-  arrangeCanvasNodesInteractivelyWithMode,
-  clearCanvas,
-  focusBrowserElement,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  openFactsPanel,
-  panCanvasViewport,
-  reconcileCanvasNodePositions,
-  relayoutCanvas,
-  removeCanvasSelection,
-  removeEntityFromCanvas,
-  requestFitCanvasView,
-  selectCanvasEntity,
-  setCanvasViewport,
-  toggleCanvasNodePin,
-} from '../canvas';
-import { openSnapshotSession } from '../lifecycle/lifecycle';
-import { selectBrowserScope, setBrowserSearch, setBrowserTreeMode } from '../navigation/navigation';
-import {
-  applySelectedViewpoint,
-  setSelectedViewpoint,
-  setViewpointApplyMode,
-  setViewpointPresentationPreference,
-  setViewpointScopeMode,
-  setViewpointVariant,
-} from '../viewpoints';
+  browserSessionCanvasMutations,
+  browserSessionFactsPanelMutations,
+  browserSessionLifecycleMutations,
+  browserSessionNavigationMutations,
+  browserSessionViewpointMutations,
+} from './mutations';
 
-export const browserSessionLifecycleCommands = {
-  openSnapshotSession,
-};
-
-export const browserSessionNavigationCommands = {
-  selectBrowserScope,
-  setBrowserSearch,
-  setBrowserTreeMode,
-};
-
-export const browserSessionViewpointCommands = {
-  setSelectedViewpoint,
-  setViewpointScopeMode,
-  setViewpointApplyMode,
-  setViewpointVariant,
-  setViewpointPresentationPreference,
-  applySelectedViewpoint,
-};
-
-export const browserSessionCanvasCommands = {
-  addDependenciesToCanvas,
-  addEntitiesToCanvas,
-  addEntityToCanvas,
-  addPrimaryEntitiesForScope,
-  addScopeToCanvas,
-  arrangeAllCanvasNodesInteractive,
-  arrangeCanvasAroundFocus,
-  arrangeCanvasNodesInteractivelyWithMode,
-  clearCanvas,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  panCanvasViewport,
-  reconcileCanvasNodePositions,
-  relayoutCanvas,
-  removeCanvasSelection,
-  removeEntityFromCanvas,
-  requestFitCanvasView,
-  selectCanvasEntity,
-  setCanvasViewport,
-  toggleCanvasNodePin,
-};
-
-export const browserSessionFactsPanelCommands = {
-  focusBrowserElement,
-  openFactsPanel,
-};
+// Backward-compatible command surface for callers that apply mutations directly to a state snapshot.
+export const browserSessionLifecycleCommands = browserSessionLifecycleMutations;
+export const browserSessionNavigationCommands = browserSessionNavigationMutations;
+export const browserSessionViewpointCommands = browserSessionViewpointMutations;
+export const browserSessionCanvasCommands = browserSessionCanvasMutations;
+export const browserSessionFactsPanelCommands = browserSessionFactsPanelMutations;

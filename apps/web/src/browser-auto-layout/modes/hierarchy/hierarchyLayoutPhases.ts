@@ -1,22 +1,18 @@
 import { getBrowserCanvasBounds } from '../../../browser-canvas-placement/collision';
 import type { BrowserCanvasNode } from '../../../browser-session';
 import type {
-  BrowserAutoLayoutComponent,
   BrowserAutoLayoutEdge,
   BrowserAutoLayoutGraph,
   BrowserAutoLayoutNode,
   BrowserAutoLayoutRequest,
 } from '../../core/types';
+import type { BrowserAutoLayoutComponentModel } from '../../shared/componentModel';
 import { compareNodePriority, compareRootPriority } from '../../shared/ordering';
-import {
-  findAnchoredComponentNodes,
-  findFirstPriorityNode,
-  findFocusedOrSelectedComponentNode,
-  findZeroIndegreeComponentNodes,
-} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../../core/config';
 import { buildFallbackFreeNodeOrigin, enforceAnchoredPlacementClearance, prepareAnchoredComponentPlacement } from '../../shared/layoutAnchoredPlacement';
-import { buildDirectedAdjacency, compareIds } from '../../shared/layoutShared';
+import { buildDirectedAdjacency } from '../../shared/layoutShared';
+import { choosePriorityRoots, getAnchoredPriorityNodes } from '../../shared/layoutRoots';
+import { fillMissingLevels, propagateLongestDirectedLevels, seedLevelsFromRoots, seedLevelsFromZeroIndegreeRoots } from '../../shared/layoutLevels';
 import { assignSignedLevelsFromAnchor } from '../../shared/layoutSignedLevels';
 import { buildCenteredHorizontalLeftPositions, buildSequentialLevelTopPositions } from '../../shared/layoutFootprint';
 import { placeBrowserAutoLayoutNode } from '../../shared/placement';
@@ -29,23 +25,12 @@ export function chooseHierarchyRoots(
   request: BrowserAutoLayoutRequest,
 ) {
   const { indegree } = buildDirectedAdjacency(componentNodes, edges);
-  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
-  if (preferred) {
-    return [preferred];
-  }
-
   const config = getBrowserAutoLayoutConfig(request);
-  const anchored = findAnchoredComponentNodes(componentNodes, (node) => isHardAnchorCanvasNode(node, config), compareNodePriority);
-  if (anchored.length > 0) {
-    return anchored;
-  }
-
-  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
-  if (zeroIndegree.length > 0) {
-    return zeroIndegree;
-  }
-
-  return [findFirstPriorityNode(componentNodes, compareNodePriority)].filter((node): node is BrowserAutoLayoutNode => Boolean(node));
+  return choosePriorityRoots(componentNodes, {
+    graph,
+    indegree,
+    getAnchoredNodes: (nodes) => getAnchoredPriorityNodes(nodes, (node) => isHardAnchorCanvasNode(node, config)),
+  });
 }
 
 export function assignHierarchyLevels(
@@ -59,45 +44,10 @@ export function assignHierarchyLevels(
   const levels = new Map<string, number>();
   const queue: string[] = [];
 
-  for (const root of roots) {
-    if (!levels.has(root.id)) {
-      levels.set(root.id, 0);
-      queue.push(root.id);
-    }
-  }
-
-  const fallbackZeroRoots = componentNodes
-    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
-    .sort(compareNodePriority);
-  for (const root of fallbackZeroRoots) {
-    if (!levels.has(root.id)) {
-      levels.set(root.id, 0);
-      queue.push(root.id);
-    }
-  }
-
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (!currentId) {
-      continue;
-    }
-    const currentLevel = levels.get(currentId) ?? 0;
-    const neighbors = [...(outbound.get(currentId) ?? [])].sort(compareIds);
-    for (const neighborId of neighbors) {
-      const candidate = currentLevel + 1;
-      const existing = levels.get(neighborId);
-      if (existing === undefined || candidate > existing) {
-        levels.set(neighborId, candidate);
-        queue.push(neighborId);
-      }
-    }
-  }
-
-  for (const node of [...componentNodes].sort(compareNodePriority)) {
-    if (!levels.has(node.id)) {
-      levels.set(node.id, 0);
-    }
-  }
+  seedLevelsFromRoots(roots, levels, queue);
+  seedLevelsFromZeroIndegreeRoots(componentNodes, indegree, levels, queue);
+  propagateLongestDirectedLevels(outbound, levels, queue);
+  fillMissingLevels(componentNodes, levels);
 
   return levels;
 }
@@ -291,7 +241,7 @@ export function placeHierarchyTree(
 }
 
 export function placeAnchoredHierarchyComponentNodes(
-  component: BrowserAutoLayoutComponent,
+  componentModel: BrowserAutoLayoutComponentModel,
   context: BrowserAutoLayoutPipelineContext,
   nodeById: Map<string, BrowserAutoLayoutNode>,
   canvasNodeByKey: Map<string, BrowserCanvasNode>,
@@ -299,7 +249,7 @@ export function placeAnchoredHierarchyComponentNodes(
   fallbackOriginY: number,
 ) {
   const { request, graph } = context;
-  const prepared = prepareAnchoredComponentPlacement(component, request, graph, nodeById, canvasNodeByKey, arranged);
+  const prepared = prepareAnchoredComponentPlacement(componentModel.component, request, graph, nodeById, canvasNodeByKey, arranged);
   if (!prepared) {
     return { arranged, nextOriginY: fallbackOriginY };
   }

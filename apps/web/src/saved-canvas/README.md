@@ -52,3 +52,12 @@ Fallback rebinding rules are evaluated in an explicit ordered pipeline so preced
 ## Facade cleanup
 
 The layer entrypoints (`saved-canvas/domain`, `saved-canvas/application`, and `saved-canvas/adapters`) now export directly from their owned implementation locations. The older layer-local facade files such as `domain/document.ts`, `application/opening.ts`, and `adapters/storage/localStore.ts` have been retired to reduce duplication inside the layers.
+
+## Stricter layer contracts
+
+The application layer now owns the contracts that its workflows depend on:
+
+- `application/ports/storage.ts` defines local/remote persistence records and store ports
+- `application/browser-state/browserSessionPort.ts` defines the browser-session contract used by browser-state mapping
+
+Concrete adapters under `adapters/` implement those ports. This keeps domain/application code from importing concrete adapter implementation paths just to access shared contracts.

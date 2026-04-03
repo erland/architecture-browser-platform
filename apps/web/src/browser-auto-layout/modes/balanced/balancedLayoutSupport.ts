@@ -4,13 +4,10 @@ import type {
   BrowserAutoLayoutNode,
   BrowserAutoLayoutResult,
 } from '../../core/types';
-import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../../core/config';
-import { getCanvasNodeByKey, getEntityComponentNodes, getNodeById, orderLayoutComponents } from '../../shared/layoutShared';
 import type { BrowserAutoLayoutPipelineContext } from '../../core/pipeline';
-import {
-  createAutoLayoutPlacementBaseline,
-  buildAutoLayoutResult,
-} from '../../shared/browserAutoLayoutSupportShared';
+import { buildAutoLayoutResult } from '../../shared/browserAutoLayoutSupportShared';
+import { runBrowserAutoLayoutComponentPipeline } from '../../shared/componentPlacementPipeline';
+import { buildBrowserAutoLayoutComponentModel } from '../../shared/componentModel';
 import {
   placeBalancedAnchoredComponentNodes,
   placeBalancedFreeComponentNodes,
@@ -24,29 +21,26 @@ function placeComponentNodes(
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
-  const { request } = context;
-  const hasHardAnchors = getEntityComponentNodes(component, nodeById)
-    .some((node) => isHardAnchorCanvasNode(node, getBrowserAutoLayoutConfig(request)));
+  const componentModel = buildBrowserAutoLayoutComponentModel(component, context, nodeById);
 
-  return hasHardAnchors
-    ? placeBalancedAnchoredComponentNodes(component, context, nodeById, canvasNodeByKey, arranged, fallbackOriginY)
-    : placeBalancedFreeComponentNodes(component, context, nodeById, canvasNodeByKey, arranged, fallbackOriginY);
+  return componentModel.hasHardAnchors
+    ? placeBalancedAnchoredComponentNodes(componentModel, context, nodeById, canvasNodeByKey, arranged, fallbackOriginY)
+    : placeBalancedFreeComponentNodes(componentModel, context, nodeById, canvasNodeByKey, arranged, fallbackOriginY);
 }
 
 export function runBrowserBalancedAutoLayoutWithContext(context: BrowserAutoLayoutPipelineContext): BrowserAutoLayoutResult {
-  const { request, graph } = context;
-  const nodeById = getNodeById(graph);
-  const canvasNodeByKey = getCanvasNodeByKey(request.nodes);
-  const baseline = createAutoLayoutPlacementBaseline(request);
+  const placementState = runBrowserAutoLayoutComponentPipeline({
+    context,
+    enableOrderingHeuristics: context.config.enableOrderingHeuristics,
+    placeComponent: ({ component, context, nodeById, canvasNodeByKey, state }) => placeComponentNodes(
+      component,
+      context,
+      nodeById,
+      canvasNodeByKey,
+      state.arranged,
+      state.nextOriginY,
+    ),
+  });
 
-  let arranged = baseline.arranged;
-  let nextOriginY = baseline.initialOrigin.y;
-
-  for (const component of orderLayoutComponents(graph, nodeById, getBrowserAutoLayoutConfig(request).enableOrderingHeuristics)) {
-    const placement = placeComponentNodes(component, context, nodeById, canvasNodeByKey, arranged, nextOriginY);
-    arranged = placement.arranged;
-    nextOriginY = placement.nextOriginY;
-  }
-
-  return buildAutoLayoutResult(context, 'balanced', arranged);
+  return buildAutoLayoutResult(context, 'balanced', placementState.arranged);
 }

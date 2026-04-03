@@ -1,75 +1,79 @@
 import type { BrowserAutoLayoutResult } from '../../core/types';
-import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../../core/config';
-import {
-  getCanvasNodeByKey,
-  getComponentEdges,
-  getEntityComponentNodes,
-  getInitialEntityOrigin,
-  getNodeById,
-  orderLayoutComponents,
-} from '../../shared/layoutShared';
 import type { BrowserAutoLayoutPipelineContext } from '../../core/pipeline';
 import {
   buildHierarchyForest,
   placeAnchoredHierarchyComponentNodes,
   placeHierarchyTree,
 } from './hierarchyLayoutPhases';
+import { buildAutoLayoutResult } from '../../shared/browserAutoLayoutSupportShared';
+import { runBrowserAutoLayoutComponentPipeline } from '../../shared/componentPlacementPipeline';
 import {
-  buildAutoLayoutResult,
-  createAutoLayoutPlacementBaseline,
-} from '../../shared/browserAutoLayoutSupportShared';
+  buildBrowserAutoLayoutComponentModel,
+  createBrowserAutoLayoutComponentOrigin,
+  getBrowserAutoLayoutNextComponentOriginX,
+} from '../../shared/componentModel';
 
 export function runBrowserHierarchyAutoLayoutWithContext(context: BrowserAutoLayoutPipelineContext): BrowserAutoLayoutResult {
-  const { request, graph } = context;
-  const nodeById = getNodeById(graph);
-  const canvasNodeByKey = getCanvasNodeByKey(request.nodes);
-  const baseline = createAutoLayoutPlacementBaseline(request);
+  const placementState = runBrowserAutoLayoutComponentPipeline({
+    context,
+    includeComponent: ({ component, context, nodeById }) => buildBrowserAutoLayoutComponentModel(component, context, nodeById).entityNodes.length > 0,
+    placeComponent: ({ component, context, nodeById, canvasNodeByKey, state }) => {
+      const componentModel = buildBrowserAutoLayoutComponentModel(component, context, nodeById);
+      if (componentModel.entityNodes.length === 0) {
+        return {
+          arranged: state.arranged,
+          nextOriginX: state.nextOriginX,
+          nextOriginY: state.nextOriginY,
+        };
+      }
 
-  let arranged = baseline.arranged;
-  let nextOriginX = baseline.initialOrigin.x;
-  let nextOriginY = baseline.initialOrigin.y;
+      if (componentModel.hasHardAnchors) {
+        const anchoredPlacement = placeAnchoredHierarchyComponentNodes(
+          componentModel,
+          context,
+          nodeById,
+          canvasNodeByKey,
+          state.arranged,
+          state.nextOriginY,
+        );
+        return {
+          arranged: anchoredPlacement.arranged,
+          nextOriginX: getBrowserAutoLayoutNextComponentOriginX(anchoredPlacement.arranged),
+          nextOriginY: anchoredPlacement.nextOriginY,
+        };
+      }
 
-  for (const component of orderLayoutComponents(graph, nodeById).filter((candidate) => candidate.nodeIds.some((nodeId) => nodeById.get(nodeId)?.kind === 'entity'))) {
-    const componentNodes = getEntityComponentNodes(component, nodeById);
-    if (componentNodes.length === 0) {
-      continue;
-    }
+      const forest = buildHierarchyForest(componentModel.entityNodes, componentModel.edges, context.graph, context.request);
+      const subtreeMemo = new Map<string, number>();
+      let componentArranged = [...state.arranged];
+      let componentOriginX = state.nextOriginX;
+      let componentBottomY = state.nextOriginY;
+      const componentOrigin = createBrowserAutoLayoutComponentOrigin(state.arranged, state.nextOriginY);
 
-    if (componentNodes.some((node) => isHardAnchorCanvasNode(node, getBrowserAutoLayoutConfig(request)))) {
-      const anchoredPlacement = placeAnchoredHierarchyComponentNodes(component, context, nodeById, canvasNodeByKey, arranged, nextOriginY);
-      arranged = anchoredPlacement.arranged;
-      nextOriginX = getInitialEntityOrigin(arranged).x;
-      nextOriginY = anchoredPlacement.nextOriginY;
-      continue;
-    }
+      for (const rootId of forest.rootIds) {
+        const placement = placeHierarchyTree(
+          rootId,
+          componentOriginX,
+          componentOrigin.y,
+          forest,
+          nodeById,
+          canvasNodeByKey,
+          componentArranged,
+          context.request,
+          subtreeMemo,
+        );
+        componentArranged = placement.arranged;
+        componentOriginX = placement.nextOriginX;
+        componentBottomY = Math.max(componentBottomY, placement.nextOriginY);
+      }
 
-    const forest = buildHierarchyForest(componentNodes, getComponentEdges(component, graph), graph, request);
-    const subtreeMemo = new Map<string, number>();
-    let componentArranged = [...arranged];
-    let componentOriginX = nextOriginX;
-    let componentBottomY = nextOriginY;
+      return {
+        arranged: componentArranged,
+        nextOriginX: getBrowserAutoLayoutNextComponentOriginX(componentArranged),
+        nextOriginY: componentBottomY,
+      };
+    },
+  });
 
-    for (const rootId of forest.rootIds) {
-      const placement = placeHierarchyTree(
-        rootId,
-        componentOriginX,
-        nextOriginY,
-        forest,
-        nodeById,
-        canvasNodeByKey,
-        componentArranged,
-        request,
-        subtreeMemo,
-      );
-      componentArranged = placement.arranged;
-      componentOriginX = placement.nextOriginX;
-      componentBottomY = Math.max(componentBottomY, placement.nextOriginY);
-    }
-
-    arranged = componentArranged;
-    nextOriginX = getInitialEntityOrigin(arranged).x;
-    nextOriginY = componentBottomY;
-  }
-
-  return buildAutoLayoutResult(context, 'hierarchy', arranged, { cleanupMode: 'compact-only' });
+  return buildAutoLayoutResult(context, 'hierarchy', placementState.arranged, { cleanupMode: 'compact-only' });
 }

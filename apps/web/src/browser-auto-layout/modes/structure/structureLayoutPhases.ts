@@ -1,17 +1,11 @@
 import type { BrowserCanvasNode } from '../../../browser-session';
 import type {
-  BrowserAutoLayoutComponent,
   BrowserAutoLayoutEdge,
   BrowserAutoLayoutGraph,
   BrowserAutoLayoutNode,
 } from '../../core/types';
+import type { BrowserAutoLayoutComponentModel } from '../../shared/componentModel';
 import { buildUndirectedAdjacency, compareNodePriority, reduceLayerCrossings, sortBandNodesByBarycenter } from '../../shared/ordering';
-import {
-  findAnchoredComponentNodes,
-  findFirstPriorityNode,
-  findFocusedOrSelectedComponentNode,
-  findZeroIndegreeComponentNodes,
-} from '../../shared/rootSelection';
 import { getBrowserAutoLayoutConfig, getWrappedBandOffset, isHardAnchorCanvasNode } from '../../core/config';
 import {
   assignNodesToAnchors,
@@ -24,11 +18,11 @@ import { placeBandBasedFreeComponentNodes } from '../../shared/layoutFreePlaceme
 import {
   buildDirectedAdjacency,
   compareIds,
-  getComponentEdges,
-  getEntityComponentNodes,
-  getInitialEntityOrigin,
 } from '../../shared/layoutShared';
+import { buildComponentIndegree, chooseSinglePriorityRoot, getAnchoredPriorityNodes } from '../../shared/layoutRoots';
+import { groupNodesByLevel, propagateLongestDirectedLevels, seedLevelsFromRoots } from '../../shared/layoutLevels';
 import { buildCenteredVerticalTopPositions, buildSequentialBandLeftPositions } from '../../shared/layoutFootprint';
+import { createBrowserAutoLayoutComponentOrigin } from '../../shared/componentModel';
 import type { BrowserAutoLayoutPipelineContext } from '../../core/pipeline';
 
 export function chooseStructureComponentRoot(
@@ -36,29 +30,11 @@ export function chooseStructureComponentRoot(
   edges: BrowserAutoLayoutEdge[],
   graph: BrowserAutoLayoutGraph,
 ) {
-  const preferred = findFocusedOrSelectedComponentNode(componentNodes, graph);
-  if (preferred) {
-    return preferred;
-  }
-
-  const indegree = new Map<string, number>(componentNodes.map((node) => [node.id, 0]));
-  for (const edge of edges) {
-    if (indegree.has(edge.toEntityId) && indegree.has(edge.fromEntityId)) {
-      indegree.set(edge.toEntityId, (indegree.get(edge.toEntityId) ?? 0) + 1);
-    }
-  }
-
-  const anchored = findAnchoredComponentNodes(componentNodes, (node) => node.pinned || node.manuallyPlaced, compareNodePriority)[0];
-  if (anchored) {
-    return anchored;
-  }
-
-  const zeroIndegree = findZeroIndegreeComponentNodes(componentNodes, indegree, compareNodePriority);
-  if (zeroIndegree.length > 0) {
-    return zeroIndegree[0];
-  }
-
-  return findFirstPriorityNode(componentNodes, compareNodePriority);
+  return chooseSinglePriorityRoot(componentNodes, {
+    graph,
+    indegree: buildComponentIndegree(componentNodes, edges),
+    getAnchoredNodes: (nodes) => getAnchoredPriorityNodes(nodes, (node) => node.pinned || node.manuallyPlaced),
+  });
 }
 
 export function assignStructureLevels(
@@ -80,32 +56,15 @@ export function assignStructureLevels(
     if (levels.has(seed.id)) {
       continue;
     }
-    levels.set(seed.id, nextSeedLevel);
-    queue.push(seed.id);
+    seedLevelsFromRoots([seed], levels, queue, nextSeedLevel);
     nextSeedLevel += 1;
   }
 
   if (queue.length === 0) {
-    levels.set(root.id, 0);
-    queue.push(root.id);
+    seedLevelsFromRoots([root], levels, queue);
   }
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (!currentId) {
-      continue;
-    }
-    const currentLevel = levels.get(currentId) ?? 0;
-    const neighbors = [...(outbound.get(currentId) ?? [])].sort(compareIds);
-    for (const neighborId of neighbors) {
-      const candidateLevel = currentLevel + 1;
-      const existing = levels.get(neighborId);
-      if (existing === undefined || candidateLevel > existing) {
-        levels.set(neighborId, candidateLevel);
-        queue.push(neighborId);
-      }
-    }
-  }
+  propagateLongestDirectedLevels(outbound, levels, queue);
 
   const adjacency = buildUndirectedAdjacency(componentNodes, edges);
   const fallbackVisited = new Set<string>(levels.keys());
@@ -145,12 +104,7 @@ export function buildStructureBands(
   const levels = assignStructureLevels(componentNodes, edges, root);
   const adjacency = buildUndirectedAdjacency(componentNodes, edges);
   const { outbound, inbound } = buildDirectedAdjacency(componentNodes, edges);
-  const grouped = new Map<number, BrowserAutoLayoutNode[]>();
-  for (const node of componentNodes) {
-    const level = levels.get(node.id) ?? 0;
-    const key = Number.isFinite(level) ? level : 0;
-    grouped.set(key, [...(grouped.get(key) ?? []), node]);
-  }
+  const grouped = groupNodesByLevel(componentNodes, levels);
 
   const fixedOrder = new Map<string, number>([[root.id, 0]]);
   const initialBands = [...grouped.entries()]
@@ -167,7 +121,7 @@ export function buildStructureBands(
 }
 
 export function placeStructureAnchoredComponentNodes(
-  component: BrowserAutoLayoutComponent,
+  componentModel: BrowserAutoLayoutComponentModel,
   context: BrowserAutoLayoutPipelineContext,
   nodeById: Map<string, BrowserAutoLayoutNode>,
   canvasNodeByKey: Map<string, BrowserCanvasNode>,
@@ -175,7 +129,7 @@ export function placeStructureAnchoredComponentNodes(
   fallbackOriginY: number,
 ) {
   const { request, graph } = context;
-  const prepared = prepareAnchoredComponentPlacement(component, request, graph, nodeById, canvasNodeByKey, arranged);
+  const prepared = prepareAnchoredComponentPlacement(componentModel.component, request, graph, nodeById, canvasNodeByKey, arranged);
   if (!prepared) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
@@ -251,34 +205,30 @@ export function placeStructureAnchoredComponentNodes(
 
   nextArranged = enforceAnchoredPlacementClearance(nextArranged, freeNodes.map((node) => node.id), request);
 
-  return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
+  return finalizeComponentPlacement(componentModel.component, request, nextArranged, fallbackOriginY);
 }
 
 export function placeStructureFreeComponentNodes(
-  component: BrowserAutoLayoutComponent,
+  componentModel: BrowserAutoLayoutComponentModel,
   context: BrowserAutoLayoutPipelineContext,
-  nodeById: Map<string, BrowserAutoLayoutNode>,
+  _nodeById: Map<string, BrowserAutoLayoutNode>,
   canvasNodeByKey: Map<string, BrowserCanvasNode>,
   arranged: BrowserCanvasNode[],
   fallbackOriginY: number,
 ) {
-  const { request, graph } = context;
+  const { request } = context;
   const config = getBrowserAutoLayoutConfig(request);
-  const componentNodes = getEntityComponentNodes(component, nodeById);
+  const { entityNodes: componentNodes, edges: componentEdges } = componentModel;
   if (componentNodes.length === 0) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
-  const componentEdges = getComponentEdges(component, graph);
-  const root = chooseStructureComponentRoot(componentNodes, componentEdges, graph);
+  const root = chooseStructureComponentRoot(componentNodes, componentEdges, context.graph);
   if (!root) {
     return { arranged, nextOriginY: fallbackOriginY };
   }
 
-  const componentOrigin = {
-    ...getInitialEntityOrigin(arranged),
-    y: fallbackOriginY,
-  };
+  const componentOrigin = createBrowserAutoLayoutComponentOrigin(arranged, fallbackOriginY);
 
   const bands = buildStructureBands(componentNodes, componentEdges, root);
   const baseBands = bands.map((band) => ({ level: band.level, nodes: band.nodes.slice(0, config.maxBreadth) }));
@@ -304,5 +254,5 @@ export function placeStructureFreeComponentNodes(
     },
   );
 
-  return finalizeComponentPlacement(component, request, nextArranged, fallbackOriginY);
+  return finalizeComponentPlacement(componentModel.component, request, nextArranged, fallbackOriginY);
 }

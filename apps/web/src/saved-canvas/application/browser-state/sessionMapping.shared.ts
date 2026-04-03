@@ -3,7 +3,7 @@ import { getOrBuildBrowserSnapshotIndex } from '../../../browser-snapshot';
 import type {
   SavedCanvasBrowserCanvasLayoutMode,
   SavedCanvasBrowserSessionState,
-} from '../../adapters/browser-session-impl/browserSession';
+} from './browserSessionPort';
 import type { CreateSavedCanvasDocumentInput, SavedCanvasDocument, SavedCanvasItemReference } from '../../domain/model/document';
 import { resolveSavedCanvasReferenceWithFallback } from '../../domain/rebinding-impl/stableReferences';
 

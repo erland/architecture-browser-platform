@@ -1,9 +1,9 @@
 import { getOrBuildBrowserSnapshotIndex } from '../../../browser-snapshot';
-import { browserSessionLifecycleAdapter } from '../../adapters/browser-session-impl/browserSessionAdapter';
+import { getSavedCanvasBrowserSessionLifecycle } from '../runtime';
 import type {
   SavedCanvasBrowserCanvasEdge,
   SavedCanvasBrowserCanvasNode,
-} from '../../adapters/browser-session-impl/browserSession';
+} from './browserSessionPort';
 import type { SavedCanvasEdge, SavedCanvasNode } from '../../domain/model/document';
 import {
   normalizeCanvasLayoutMode,
@@ -18,7 +18,8 @@ export function restoreSavedCanvasToBrowserSession(
 ): RestoreSavedCanvasToBrowserSessionResult {
   const { document, payload, preparedAt } = options;
   const index = getOrBuildBrowserSnapshotIndex(payload);
-  let state = browserSessionLifecycleAdapter.openSnapshotSession(browserSessionLifecycleAdapter.createEmptyState(), {
+  const browserSessionLifecycle = getSavedCanvasBrowserSessionLifecycle();
+  let state = browserSessionLifecycle.openSnapshotSession(browserSessionLifecycle.createEmptyState(), {
     workspaceId: document.bindings.currentTargetSnapshot?.workspaceId ?? document.bindings.originSnapshot.workspaceId,
     repositoryId: payload.source.repositoryId,
     payload,

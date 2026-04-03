@@ -22,13 +22,13 @@ public class OperationsOverviewSnapshotAttentionBuilder {
     @Inject
     ObjectMapper objectMapper;
 
-    List<FailedSnapshotRow> buildFailedSnapshots(List<OperationsOverviewQueryService.FailedSnapshotProjection> failedSnapshotProjections) {
+    List<FailedSnapshotRow> buildFailedSnapshots(List<OperationsOverviewAttentionQueryService.FailedSnapshotProjection> failedSnapshotProjections) {
         return failedSnapshotProjections.stream()
             .map(this::toFailedSnapshot)
             .toList();
     }
 
-    private FailedSnapshotRow toFailedSnapshot(OperationsOverviewQueryService.FailedSnapshotProjection snapshot) {
+    private FailedSnapshotRow toFailedSnapshot(OperationsOverviewAttentionQueryService.FailedSnapshotProjection snapshot) {
         ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
         List<DiagnosticRow> diagnostics = Optional.ofNullable(document.diagnostics()).orElse(List.of()).stream()
             .map(diagnostic -> new DiagnosticRow(

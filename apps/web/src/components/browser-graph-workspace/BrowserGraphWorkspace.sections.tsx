@@ -3,13 +3,18 @@ import type { FullSnapshotEntity } from '../../app-model';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
 import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
-import type { BrowserEntitySelectionAction, ScopeAnalysisMode, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
+import type {
+  BrowserEntitySelectionAction,
+  BrowserGraphWorkspaceInteractionHandlers,
+  ScopeAnalysisMode,
+  ViewportEventHandlers,
+} from './BrowserGraphWorkspace.types';
 import { BrowserGraphWorkspaceEdgeLayer } from './BrowserGraphWorkspaceEdgeLayer';
 import { closeOpenMenus } from './BrowserGraphWorkspaceMenu';
 import { BrowserGraphWorkspaceNodeLayer } from './BrowserGraphWorkspaceNodeLayer';
 import { BrowserGraphWorkspaceToolbarHeader } from './BrowserGraphWorkspaceToolbarHeader';
-import { logRenderedBrowserLayoutDiagnostics, reconcileRenderedBrowserNodeClearance } from './browserLayoutDiagnostics';
 import { BrowserGraphWorkspaceToolbarMenus } from './BrowserGraphWorkspaceToolbarMenus';
+import { useBrowserGraphWorkspaceCanvasReconciliation } from './useBrowserGraphWorkspaceCanvasReconciliation';
 
 export { resolveRenderedEdgeGeometry, buildSvgPolylinePath, buildFallbackEdgePath } from './BrowserGraphWorkspace.edgeGeometry';
 
@@ -77,15 +82,11 @@ export function BrowserGraphWorkspaceToolbar(props: ToolbarProps) {
 type CanvasProps = {
   model: BrowserGraphWorkspaceModel;
   state: BrowserSessionState;
-  focusedEntity: FullSnapshotEntity | null;
   viewportHandlers: ViewportEventHandlers;
   suppressClickRef: React.MutableRefObject<boolean>;
   viewportRef: React.MutableRefObject<HTMLDivElement | null>;
-  onFocusRelationship: (relationshipId: string) => void;
+  interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
   onReconcileCanvasNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
-  onFocusScope: (scopeId: string) => void;
-  onFocusEntity: (entityId: string) => void;
-  onSelectEntity: (entityId: string, additive?: boolean) => void;
 };
 
 export function BrowserGraphWorkspaceCanvas({
@@ -94,41 +95,15 @@ export function BrowserGraphWorkspaceCanvas({
   viewportHandlers,
   suppressClickRef,
   viewportRef,
-  onFocusRelationship,
+  interactionHandlers,
   onReconcileCanvasNodePositions,
-  onFocusScope,
-  onFocusEntity,
-  onSelectEntity,
 }: CanvasProps) {
-  const lastReconciledRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || model.nodes.length === 0) {
-      return;
-    }
-    const surface = viewport.querySelector<HTMLElement>('.browser-canvas__surface');
-    if (!surface) {
-      return;
-    }
-    const frame = window.requestAnimationFrame(() => {
-      logRenderedBrowserLayoutDiagnostics(surface, model.nodes, state);
-      const updates = reconcileRenderedBrowserNodeClearance(surface, model.nodes, state);
-      const signature = updates.map((update) => `${update.kind}:${update.id}:${String(update.x ?? '')}:${String(update.y ?? '')}`).join('|');
-      if (updates.length === 0) {
-        lastReconciledRef.current = null;
-        return;
-      }
-      if (lastReconciledRef.current === signature) {
-        return;
-      }
-      lastReconciledRef.current = signature;
-      onReconcileCanvasNodePositions(updates);
-    });
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [model.nodes, onReconcileCanvasNodePositions, state, viewportRef]);
+  useBrowserGraphWorkspaceCanvasReconciliation({
+    model,
+    state,
+    viewportRef,
+    onReconcileCanvasNodePositions,
+  });
 
   if (model.nodes.length === 0) {
     return (
@@ -167,7 +142,7 @@ export function BrowserGraphWorkspaceCanvas({
           <g key={model.routingRevision} data-routing-revision={model.routingRevision}>
             <BrowserGraphWorkspaceEdgeLayer
               edges={model.edges}
-              onFocusRelationship={onFocusRelationship}
+              onActivateRelationship={interactionHandlers.onActivateRelationship}
             />
           </g>
         </svg>
@@ -177,9 +152,7 @@ export function BrowserGraphWorkspaceCanvas({
           suppressClickRef={suppressClickRef}
           beginNodeDrag={viewportHandlers.beginNodeDrag}
           draggingNodeId={viewportHandlers.draggingNodeId}
-          onFocusScope={onFocusScope}
-          onFocusEntity={onFocusEntity}
-          onSelectEntity={onSelectEntity}
+          interactionHandlers={interactionHandlers}
         />
       </div>
     </div>

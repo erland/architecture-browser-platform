@@ -123,6 +123,7 @@ Prefer importing from these subsystem entrypoints rather than from transitional 
 - Prefer `saved-canvas/domain`, `saved-canvas/application`, and `saved-canvas/adapters` when choosing where new saved-canvas code belongs.
 - Keep React rendering concerns in `components/browser-graph-workspace/`; do not move layout, routing, or placement logic there.
 - Prefer canonical subsystem entrypoints for imports and avoid reintroducing root-level compatibility shims.
+- Run `npm run check:boundaries` after structural cleanup; it enforces the current cross-layer import rules around browser-session wrappers, saved-canvas adapters, and snapshot-cache runtime ownership.
 
 
 ## Browser-snapshot consolidation notes

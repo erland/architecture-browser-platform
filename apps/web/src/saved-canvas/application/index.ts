@@ -1,3 +1,4 @@
+export { getBrowserSavedCanvasSnapshotCache } from './runtime';
 /**
  * Canonical application-layer public entrypoint for the saved-canvas subsystem.
  *
@@ -53,3 +54,27 @@ export type {
   SavedCanvasSyncService,
 } from './sync-impl/service';
 export { createEmptySavedCanvasSyncResult } from './sync-impl/model';
+export type {
+  SavedCanvasSnapshotCachePort,
+  SavedCanvasSnapshotCacheRecord,
+  SavedCanvasSnapshotSummary,
+} from './ports/snapshotCache';
+export type {
+  SavedCanvasLocalListFilter,
+  SavedCanvasLocalRecord,
+  SavedCanvasLocalStorage,
+  SavedCanvasLocalStore,
+  SavedCanvasRemoteRecord,
+  SavedCanvasRemoteStore,
+} from './ports/storage';
+export type {
+  SavedCanvasBrowserCanvasEdge,
+  SavedCanvasBrowserCanvasLayoutMode,
+  SavedCanvasBrowserCanvasNode,
+  SavedCanvasBrowserCanvasViewport,
+  SavedCanvasBrowserSessionLifecyclePort,
+  SavedCanvasBrowserSessionSnapshot,
+  SavedCanvasBrowserSessionState,
+  SavedCanvasBrowserViewpointSelection,
+  SavedCanvasOpenBrowserSessionOptions,
+} from './browser-state/browserSessionPort';

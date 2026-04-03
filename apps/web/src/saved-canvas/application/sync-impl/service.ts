@@ -1,5 +1,4 @@
-import type { SavedCanvasLocalRecord, SavedCanvasLocalStore } from '../../adapters/storage-impl/localStore';
-import type { SavedCanvasRemoteStore } from '../../adapters/storage-impl/remoteStore';
+import type { SavedCanvasLocalRecord, SavedCanvasLocalStore, SavedCanvasRemoteStore } from '../ports/storage';
 import type { SavedCanvasDocument } from '../../domain/model/document';
 import {
   applyConflictToLocalRecord,

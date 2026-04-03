@@ -87,8 +87,22 @@ export {
 
 export {
   browserSessionCanvasCommands,
+  browserSessionCanvasMutations,
   browserSessionFactsPanelCommands,
+  browserSessionFactsPanelMutations,
   browserSessionLifecycleCommands,
+  browserSessionLifecycleMutations,
   browserSessionNavigationCommands,
+  browserSessionNavigationMutations,
   browserSessionViewpointCommands,
-} from './commands/bundles';
+  browserSessionViewpointMutations,
+  createBoundBrowserSessionActionGroups,
+  applyBrowserSessionMutation,
+  bindBrowserSessionMutationGroup,
+} from './commands';
+
+export type {
+  BoundBrowserSessionMutationGroup,
+  BrowserSessionMutation,
+  BrowserSessionMutationGroup,
+} from './commands';

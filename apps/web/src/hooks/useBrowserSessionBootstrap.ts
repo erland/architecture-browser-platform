@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SnapshotSummary } from '../app-model';
-import type { SnapshotCache } from '../api/snapshotCache';
 import { useBrowserSession, type BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
-import { getBrowserSnapshotCache } from '../api/snapshotCache';
+import { getBrowserPreparedSnapshotCache, loadPreparedSnapshotRecordForSummary, type PreparedSnapshotCacheReadPort } from '../browser-snapshot';
 
 export type BrowserSessionBootstrapStatus = 'idle' | 'loading' | 'ready' | 'failed';
 
@@ -17,7 +16,7 @@ function toErrorMessage(caught: unknown) {
 }
 
 export async function bootstrapPreparedBrowserSession(options: {
-  cache: Pick<SnapshotCache, 'getSnapshot' | 'isSnapshotCurrent'>;
+  cache: PreparedSnapshotCacheReadPort;
   workspaceId: string | null;
   repositoryId: string | null;
   snapshot: SnapshotSummary | null;
@@ -43,8 +42,8 @@ export async function bootstrapPreparedBrowserSession(options: {
     };
   }
 
-  const cachedRecord = await cache.getSnapshot(snapshot.id);
-  if (!cachedRecord || !cache.isSnapshotCurrent(snapshot, cachedRecord)) {
+  const cachedRecord = await loadPreparedSnapshotRecordForSummary(cache, snapshot);
+  if (!cachedRecord) {
     return {
       status: 'failed',
       message: `Snapshot ${snapshot.snapshotKey} is not prepared locally yet. Open the source tree dialog and prepare Browser data first.`,
@@ -123,7 +122,7 @@ export function useBrowserSessionBootstrap(options: {
 
       try {
         const outcome = await bootstrapPreparedBrowserSession({
-          cache: getBrowserSnapshotCache(),
+          cache: getBrowserPreparedSnapshotCache(),
           workspaceId: options.workspaceId,
           repositoryId: options.repositoryId,
           snapshot: options.snapshot,

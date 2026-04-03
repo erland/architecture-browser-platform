@@ -22,7 +22,8 @@ The preferred internal organization is:
 - `facts-panel/`
   - facts-panel focus/open behavior
 - `commands/`
-  - command-oriented surface that composes canvas, viewpoint, and higher-level session commands
+  - pure mutation bundles for lifecycle/navigation/viewpoint/canvas/facts-panel changes
+  - binding helpers that adapt those mutations to a `setState` boundary
 - `canvas/`
   - canvas node/edge insertion, mutation, relationships, and viewport behavior
 - `viewpoints/`
@@ -32,11 +33,10 @@ The preferred internal organization is:
 
 ## Consolidation notes
 
-The grouped folders above now contain the primary implementation files.
-The remaining `browserSessionStore.*` files are compatibility wrappers kept to
-avoid a risky big-bang rename while consumers finish converging on the grouped
-internal structure.
-
+The grouped folders above now contain the primary implementation files. The old
+`browserSessionStore.*` compatibility wrappers have now been retired, so new
+imports should target either the root `browser-session` entrypoint or the
+owning grouped folder directly.
 
 ## Public API
 

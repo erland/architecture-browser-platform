@@ -1,5 +1,4 @@
-import type { SavedCanvasLocalRecord, SavedCanvasLocalStore } from '../../adapters/storage-impl/localStore';
-import type { SavedCanvasRemoteRecord, SavedCanvasRemoteStore } from '../../adapters/storage-impl/remoteStore';
+import type { SavedCanvasLocalRecord, SavedCanvasLocalStore, SavedCanvasRemoteRecord, SavedCanvasRemoteStore } from '../ports/storage';
 import type { SavedCanvasDocument } from '../../domain/model/document';
 import { markSavedCanvasConflicted, markSavedCanvasSyncFailed } from './model';
 import type { SavedCanvasSyncMutation } from './remoteOperations';

@@ -1,5 +1,6 @@
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
-import { createSavedCanvasRemoteStore, type SavedCanvasBackendResponse } from '../../saved-canvas';
+import { type SavedCanvasBackendResponseDto } from '../../app-model';
+import { createSavedCanvasRemoteStore } from '../../saved-canvas';
 
 const snapshotRef = toSavedCanvasSnapshotRef({
   id: 'snap-1',
@@ -84,7 +85,7 @@ describe('savedCanvasRemoteStore', () => {
   });
 });
 
-function toResponse(document: ReturnType<typeof createSavedCanvasDocument>): SavedCanvasBackendResponse {
+function toResponse(document: ReturnType<typeof createSavedCanvasDocument>): SavedCanvasBackendResponseDto {
   return {
     id: 'canvas-1',
     workspaceId: document.bindings.originSnapshot.workspaceId,

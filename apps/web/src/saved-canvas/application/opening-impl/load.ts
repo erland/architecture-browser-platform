@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../../app-model';
-import type { SnapshotCache } from '../../../api/snapshotCache';
+import type { SavedCanvasSnapshotCachePort } from '../ports/snapshotCache';
 import type { SavedCanvasDocument, SavedCanvasSnapshotRef } from '../../domain/model/document';
 import { platformApi } from '../../../api/platformApi';
 
@@ -23,7 +23,7 @@ function buildUnavailableOfflineMessage(snapshotRef: SavedCanvasSnapshotRef, mod
 }
 
 
-async function loadSnapshotRefPayload(snapshotRef: SavedCanvasSnapshotRef, cache: SnapshotCache): Promise<SavedCanvasOpenSnapshotResult> {
+async function loadSnapshotRefPayload(snapshotRef: SavedCanvasSnapshotRef, cache: SavedCanvasSnapshotCachePort): Promise<SavedCanvasOpenSnapshotResult> {
   const cached = await cache.getSnapshot(snapshotRef.snapshotId);
   if (cached) {
     return {
@@ -62,7 +62,7 @@ async function loadSnapshotRefPayload(snapshotRef: SavedCanvasSnapshotRef, cache
   }
 }
 
-export async function loadSelectedTargetSnapshotForSavedCanvasOpen(targetSnapshot: SnapshotSummary, cache: SnapshotCache): Promise<SavedCanvasOpenSnapshotResult> {
+export async function loadSelectedTargetSnapshotForSavedCanvasOpen(targetSnapshot: SnapshotSummary, cache: SavedCanvasSnapshotCachePort): Promise<SavedCanvasOpenSnapshotResult> {
   return loadSnapshotRefPayload({
     snapshotId: targetSnapshot.id,
     snapshotKey: targetSnapshot.snapshotKey,
@@ -78,7 +78,7 @@ export async function loadSelectedTargetSnapshotForSavedCanvasOpen(targetSnapsho
 
 export async function loadSavedCanvasSnapshotForOpen(
   document: SavedCanvasDocument,
-  cache: SnapshotCache,
+  cache: SavedCanvasSnapshotCachePort,
   mode: SavedCanvasOpenMode,
 ): Promise<SavedCanvasOpenSnapshotResult> {
   const snapshotRef = mode === 'original'

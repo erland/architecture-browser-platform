@@ -11,6 +11,7 @@ search, semantic, display, and viewpoint helpers that operate on that index.
 - `query/` — scope/entity/dependency/search queries over the index
 - `support/` — display, sorting, source-ref, and semantic helpers used by the index/query layers
 - `viewpoints/` — viewpoint availability and graph resolution helpers
+- `application/` — prepared-snapshot cache selection/runtime helpers for browser-facing workflows
 
 ## Canonical import guidance
 
@@ -26,3 +27,7 @@ search, semantic, display, and viewpoint helpers that operate on that index.
 The old flat `browserSnapshotIndex*.ts` files now remain only as thin
 compatibility wrappers. The canonical internal model lives under `model/`, and
 new code should not add fresh dependencies on the flat wrapper family.
+
+## Ownership boundary
+
+Prepared snapshot cache access for Browser workflows should go through `browser-snapshot/application` rather than importing the transport cache singleton directly into view/controller code.

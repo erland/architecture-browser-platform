@@ -4,3 +4,5 @@ export * from "./appModel.snapshot";
 export * from "./appModel.sourceTree";
 export * from "./appModel";
 export * from "./appModel.utils";
+
+export * from "./appModel.contracts";

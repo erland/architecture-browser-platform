@@ -1,6 +1,6 @@
 import type { SnapshotSummary } from '../../../app-model/appModel.api';
-import type { SnapshotCache } from '../../../api/snapshotCache';
-import type { SavedCanvasLocalRecord } from '../../adapters/storage-impl/localStore';
+import type { SavedCanvasSnapshotCachePort } from '../ports/snapshotCache';
+import type { SavedCanvasLocalRecord } from '../ports/storage';
 
 export type SavedCanvasSnapshotOfflineStatus = {
   snapshotId: string;
@@ -22,7 +22,7 @@ function label(snapshotId: string, snapshotKey?: string | null) {
 
 export async function getSavedCanvasOfflineAvailability(
   record: SavedCanvasLocalRecord,
-  cache: SnapshotCache,
+  cache: SavedCanvasSnapshotCachePort,
   selectedSnapshot?: SnapshotSummary | null,
 ): Promise<SavedCanvasOfflineAvailabilitySummary> {
   const idsToCheck = new Set<string>();

@@ -28,6 +28,10 @@ export const entityFallbackRules: StableReferenceResolutionRule[] = [
   },
   {
     strategy: 'FALLBACK_ENTITY_FINGERPRINT',
+    resolve: (index, reference) => resolveEntityByRelaxedSemanticFingerprint(index, reference),
+  },
+  {
+    strategy: 'FALLBACK_ENTITY_FINGERPRINT',
     resolve: (index, reference) => resolveEntityBySemanticFingerprint(index, reference),
   },
 ];
@@ -81,6 +85,26 @@ function resolveEntityByNameInScope(index: BrowserSnapshotIndex, reference: Save
     const entityScopeStableKey = entity.scopeId ? buildStableScopeKey(index, index.scopesById.get(entity.scopeId) ?? null) : 'scope:unscoped';
     return entityName === semanticName
       && normalizeToken(entityScopeStableKey) === scopeStableKey
+      && matchesEntityCategory(entity, category)
+      && (!origin || normalizeToken(entity.origin) === origin)
+      && (!signature || normalizeToken(deriveEntitySignature(entity)) === signature);
+  });
+}
+
+
+function resolveEntityByRelaxedSemanticFingerprint(index: BrowserSnapshotIndex, reference: SavedCanvasItemReference): string | null {
+  const fallback = reference.fallback;
+  const semanticName = normalizeToken(fallback?.displayName ?? fallback?.name ?? fallback?.qualifiedName);
+  const category = normalizeToken(fallback?.stableCategory ?? fallback?.kind);
+  const origin = normalizeToken(asString(fallback?.metadata?.origin));
+  const signature = normalizeToken(fallback?.signature);
+  if (!semanticName) {
+    return null;
+  }
+
+  return resolveSingleMatch(index.payload.entities, (entity) => {
+    const entityName = normalizeToken(entity.displayName ?? entity.name);
+    return entityName === semanticName
       && matchesEntityCategory(entity, category)
       && (!origin || normalizeToken(entity.origin) === origin)
       && (!signature || normalizeToken(deriveEntitySignature(entity)) === signature);

@@ -2,7 +2,7 @@ import type { FullSnapshotRelationship } from '../../../app-model';
 import type {
   SavedCanvasBrowserCanvasEdge,
   SavedCanvasBrowserCanvasNode,
-} from '../../adapters/browser-session-impl/browserSession';
+} from './browserSessionPort';
 import {
   createSavedCanvasDocument,
   type SavedCanvasEdge,

@@ -13,13 +13,11 @@ export type {
   SavedCanvasLocalRecord,
   SavedCanvasLocalStorage,
   SavedCanvasLocalStore,
-} from './storage-impl/localStore';
-export { createSavedCanvasRemoteStore } from './storage-impl/remoteStore';
-export type {
-  SavedCanvasBackendResponse,
   SavedCanvasRemoteRecord,
   SavedCanvasRemoteStore,
-} from './storage-impl/remoteStore';
+} from '../application/ports/storage';
+export { createSavedCanvasRemoteStore } from './storage-impl/remoteStore';
+export type { SavedCanvasBackendResponseDto } from '../../app-model';
 export type {
   SavedCanvasBrowserSessionLifecyclePort,
   SavedCanvasBrowserSessionState,

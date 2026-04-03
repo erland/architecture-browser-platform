@@ -1,5 +1,4 @@
-import { getBrowserSnapshotCache } from '../../api/snapshotCache';
-import { restoreSavedCanvasToBrowserSession } from '../../saved-canvas/application';
+import { getBrowserSavedCanvasSnapshotCache, restoreSavedCanvasToBrowserSession } from '../../saved-canvas/application';
 import { getSavedCanvasOfflineAvailability, loadSavedCanvasSnapshotForOpen, loadSelectedTargetSnapshotForSavedCanvasOpen, type SavedCanvasOpenMode } from '../../saved-canvas/application';
 import { buildAcceptedSavedCanvasRebindingDocument, rebindSavedCanvasToTargetSnapshot } from '../../saved-canvas/domain';
 import { buildSavedCanvasRebindingStatusMessage, toSavedCanvasRebindingUiSummary } from '../../saved-canvas/domain';
@@ -15,7 +14,7 @@ export async function runOpenSavedCanvasWorkflow(
   if (!record) {
     throw new Error('Saved canvas could not be found.');
   }
-  const availability = ports.savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), ports.selectedSnapshot);
+  const availability = ports.savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSavedCanvasSnapshotCache(), ports.selectedSnapshot);
   if (ports.isOffline) {
     const requestedAvailable = mode === 'original'
       ? availability.origin.availableOffline
@@ -24,7 +23,7 @@ export async function runOpenSavedCanvasWorkflow(
       throw new Error(ports.buildOfflineUnavailableMessage(availability, mode));
     }
   }
-  const cache = getBrowserSnapshotCache();
+  const cache = getBrowserSavedCanvasSnapshotCache();
   const openedSnapshot = await loadSavedCanvasSnapshotForOpen(record.document, cache, mode);
   const documentForOpen = mode === 'original'
     ? {
@@ -69,11 +68,11 @@ export async function runOpenSavedCanvasOnSelectedSnapshotWorkflow(
   if (!record) {
     throw new Error('Saved canvas could not be found.');
   }
-  const availability = ports.savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSnapshotCache(), ports.selectedSnapshot);
+  const availability = ports.savedCanvasAvailabilityById[canvasId] ?? await getSavedCanvasOfflineAvailability(record, getBrowserSavedCanvasSnapshotCache(), ports.selectedSnapshot);
   if (ports.isOffline && !availability.selected?.availableOffline) {
     throw new Error(ports.buildOfflineUnavailableMessage(availability, 'selected'));
   }
-  const cache = getBrowserSnapshotCache();
+  const cache = getBrowserSavedCanvasSnapshotCache();
   const openedSnapshot = await loadSelectedTargetSnapshotForSavedCanvasOpen(ports.selectedSnapshot, cache);
   const rebound = rebindSavedCanvasToTargetSnapshot(record.document, ports.selectedSnapshot, openedSnapshot.payload, openedSnapshot.preparedAt);
   const acceptedRebindingDocument = buildAcceptedSavedCanvasRebindingDocument({

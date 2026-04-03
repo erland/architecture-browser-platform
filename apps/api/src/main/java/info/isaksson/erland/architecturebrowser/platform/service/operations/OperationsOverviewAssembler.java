@@ -16,7 +16,10 @@ import java.util.List;
  */
 public class OperationsOverviewAssembler {
     @Inject
-    OperationsOverviewQueryService operationsOverviewQueryService;
+    OperationsOverviewWorkspaceQueryService workspaceQueryService;
+
+    @Inject
+    OperationsOverviewAttentionQueryService attentionQueryService;
 
     @Inject
     OperationsOverviewRepositorySectionBuilder repositorySectionBuilder;
@@ -28,16 +31,16 @@ public class OperationsOverviewAssembler {
     OperationsOverviewSnapshotAttentionBuilder snapshotAttentionBuilder;
 
     OperationsOverviewResponse buildOverview(String workspaceId) {
-        List<RepositoryRegistrationEntity> repositories = operationsOverviewQueryService.listRepositories(workspaceId);
-        List<OperationsOverviewQueryService.RunSummaryProjection> runs = operationsOverviewQueryService.listRuns(workspaceId);
-        List<OperationsOverviewQueryService.SnapshotSummaryProjection> snapshots = operationsOverviewQueryService.listSnapshots(workspaceId);
-        long auditCount = operationsOverviewQueryService.countAuditEvents(workspaceId);
+        List<RepositoryRegistrationEntity> repositories = workspaceQueryService.listRepositories(workspaceId);
+        List<OperationsOverviewWorkspaceQueryService.RunSummaryProjection> runs = workspaceQueryService.listRuns(workspaceId);
+        List<OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> snapshots = workspaceQueryService.listSnapshots(workspaceId);
+        long auditCount = workspaceQueryService.countAuditEvents(workspaceId);
 
         List<RepositoryAdminRow> repositoryRows = repositorySectionBuilder.buildRepositoryRows(repositories, runs, snapshots);
         List<RunAdminRow> recentRuns = runSectionBuilder.buildRecentRuns(runs, snapshots, repositories);
-        List<FailedRunRow> failedRuns = runSectionBuilder.buildFailedRuns(operationsOverviewQueryService.listFailedRuns(workspaceId));
+        List<FailedRunRow> failedRuns = runSectionBuilder.buildFailedRuns(attentionQueryService.listFailedRuns(workspaceId));
         List<FailedSnapshotRow> failedSnapshots = snapshotAttentionBuilder.buildFailedSnapshots(
-            operationsOverviewQueryService.listFailedSnapshots(workspaceId)
+            attentionQueryService.listFailedSnapshots(workspaceId)
         );
 
         return new OperationsOverviewResponse(

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Repository, SnapshotSummary, Workspace } from '../../../../app-model';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../../../../app-model/appModel.sourceTree';
-import { getBrowserSnapshotCache } from '../../../../api/snapshotCache';
+import { findPreferredPreparedSnapshotId, getBrowserPreparedSnapshotCache } from '../../../../browser-snapshot';
 
 type SelectionContextLike = {
   setSelectedWorkspaceId: (workspaceId: string | null) => void;
@@ -33,7 +33,7 @@ export function useBrowserViewSourceTreeController({
   }), [workspaceData.selectedWorkspace, workspaceData.repositories, workspaceData.snapshots]);
 
   const handleSelectSourceTree = useCallback(async (item: SourceTreeLauncherItem) => {
-    const cache = getBrowserSnapshotCache();
+    const cache = getBrowserPreparedSnapshotCache();
     selection.setSelectedWorkspaceId(item.workspaceId);
 
     const detail = workspaceData.selectedWorkspaceId === item.workspaceId
@@ -44,14 +44,11 @@ export function useBrowserViewSourceTreeController({
       .filter((snapshot) => snapshot.repositoryRegistrationId === item.repositoryId)
       .sort((left, right) => Date.parse(right.importedAt) - Date.parse(left.importedAt));
 
-    let preferredSnapshotId = item.latestSnapshotId;
-    for (const snapshot of repositorySnapshots) {
-      const record = await cache.getSnapshot(snapshot.id);
-      if (cache.isSnapshotCurrent(snapshot, record)) {
-        preferredSnapshotId = snapshot.id;
-        break;
-      }
-    }
+    const preferredSnapshotId = await findPreferredPreparedSnapshotId({
+      cache,
+      snapshots: repositorySnapshots,
+      fallbackSnapshotId: item.latestSnapshotId,
+    });
 
     selection.setSelectedRepositoryId(item.repositoryId);
     selection.setSelectedSnapshotId(preferredSnapshotId);

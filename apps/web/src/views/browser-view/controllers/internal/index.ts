@@ -14,3 +14,8 @@ export * from './useBrowserViewLayout';
 export * from './useBrowserViewRepositoryActions';
 export * from './useBrowserViewSourceTreeController';
 export * from './useBrowserViewStartup';
+
+export { useBrowserViewWorkspaceState } from './useBrowserViewWorkspaceState';
+export type { BrowserViewWorkspaceState } from './useBrowserViewWorkspaceState';
+export { useBrowserViewWorkspaceComposition } from './useBrowserViewWorkspaceComposition';
+export type { BrowserViewWorkspaceComposition } from './useBrowserViewWorkspaceComposition';

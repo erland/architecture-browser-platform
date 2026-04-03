@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class OperationsOverviewRunSectionBuilder {
     List<RunAdminRow> buildRecentRuns(
-        List<OperationsOverviewQueryService.RunSummaryProjection> runs,
-        List<OperationsOverviewQueryService.SnapshotSummaryProjection> snapshots,
+        List<OperationsOverviewWorkspaceQueryService.RunSummaryProjection> runs,
+        List<OperationsOverviewWorkspaceQueryService.SnapshotSummaryProjection> snapshots,
         List<RepositoryRegistrationEntity> repositories
     ) {
         Map<String, RepositoryRegistrationEntity> repositoryById = repositories.stream()
@@ -28,20 +28,20 @@ public class OperationsOverviewRunSectionBuilder {
             .collect(Collectors.toSet());
 
         return runs.stream()
-            .sorted(Comparator.comparing((OperationsOverviewQueryService.RunSummaryProjection run) -> run.requestedAt).reversed())
+            .sorted(Comparator.comparing((OperationsOverviewWorkspaceQueryService.RunSummaryProjection run) -> run.requestedAt).reversed())
             .limit(20)
             .map(run -> toRunAdminRow(run, repositoryById.get(run.repositoryRegistrationId), retainedRunIds.contains(run.id)))
             .toList();
     }
 
-    List<FailedRunRow> buildFailedRuns(List<OperationsOverviewQueryService.FailedRunProjection> failedRunProjections) {
+    List<FailedRunRow> buildFailedRuns(List<OperationsOverviewAttentionQueryService.FailedRunProjection> failedRunProjections) {
         return failedRunProjections.stream()
             .map(this::toFailedRunRow)
             .toList();
     }
 
     private RunAdminRow toRunAdminRow(
-        OperationsOverviewQueryService.RunSummaryProjection run,
+        OperationsOverviewWorkspaceQueryService.RunSummaryProjection run,
         RepositoryRegistrationEntity repository,
         boolean retainedBySnapshot
     ) {
@@ -59,7 +59,7 @@ public class OperationsOverviewRunSectionBuilder {
         );
     }
 
-    private FailedRunRow toFailedRunRow(OperationsOverviewQueryService.FailedRunProjection run) {
+    private FailedRunRow toFailedRunRow(OperationsOverviewAttentionQueryService.FailedRunProjection run) {
         return new FailedRunRow(
             run.id,
             run.repositoryRegistrationId,

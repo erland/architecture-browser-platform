@@ -6,7 +6,6 @@ import info.isaksson.erland.architecturebrowser.platform.domain.IndexRunEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegistrationEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.RunStatus;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
-import info.isaksson.erland.architecturebrowser.platform.service.management.ValidationException;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.*;
@@ -15,14 +14,6 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class OperationsRetentionPlanner {
-    int normalizeKeepCount(Integer requested, int defaultValue, String fieldName) {
-        int value = requested == null ? defaultValue : requested;
-        if (value < 1) {
-            throw new ValidationException(List.of(fieldName + " must be at least 1."));
-        }
-        return value;
-    }
-
     OperationsRetentionPlan planRetention(String workspaceId, int keepSnapshots, int keepRuns) {
         List<RepositoryRegistrationEntity> repositories = RepositoryRegistrationEntity.list("workspaceId", workspaceId);
         Map<String, RepositoryRegistrationEntity> repositoryById = repositories.stream()

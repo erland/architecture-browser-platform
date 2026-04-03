@@ -1,4 +1,4 @@
-import type { SavedCanvasBrowserSessionState } from '../../adapters/browser-session-impl/browserSession';
+import type { SavedCanvasBrowserSessionState } from './browserSessionPort';
 import type { SavedCanvasDocument } from '../../domain/model/document';
 import { createSavedCanvasDocumentFromBrowserSession } from './sessionMapping';
 

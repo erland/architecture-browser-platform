@@ -10,3 +10,4 @@ export * from './layoutScopePlacement';
 export * from './layoutShared';
 export * from './layoutSignedLevels';
 export * from './browserAutoLayoutSupportShared';
+export * from './componentModel';

@@ -54,6 +54,13 @@ export type PanState = {
   startOffsetY: number;
 };
 
+export type BrowserGraphWorkspaceInteractionHandlers = {
+  onEntityAction: (actionKey: string) => void;
+  onActivateRelationship: (relationshipId: string) => void;
+  onActivateScopeNode: (scopeId: string) => void;
+  onActivateEntityNode: (entityId: string, additive?: boolean) => void;
+};
+
 export type ViewportEventHandlers = {
   beginNodeDrag: (event: ReactMouseEvent<HTMLElement>, node: BrowserWorkspaceNodeModel) => void;
   beginViewportPan: (event: ReactMouseEvent<HTMLDivElement>) => void;

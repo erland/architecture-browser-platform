@@ -58,16 +58,25 @@ See:
 
 ## Refactor maintenance helpers
 
-After the step 1–10 refactor series, the repository includes two root helpers:
+The repository includes two root helpers that are intended to protect the platform during refactoring:
 
 - `npm run clean:generated` — removes packaged build output and machine-local artifacts
-- `npm run verify:refactor` — runs the lightweight refactor verification flow and records a report in `docs/reports/refactor-verification.txt`
+- `npm run verify:refactor` — runs the curated refactor safety-net flow and records a report in `docs/reports/refactor-verification.txt`
 
-For full local verification after restoring dependencies:
+The safety-net baseline and protected hotspot clusters are documented in:
+
+- `docs/platform_refactoring_safety_net_step1.md`
+
+For lightweight local verification after restoring dependencies:
 
 ```bash
-npm install
+npm ci
 npm run verify:refactor
+```
+
+For full backend verification after the lightweight pass:
+
+```bash
 cd apps/api && mvn test
 ```
 

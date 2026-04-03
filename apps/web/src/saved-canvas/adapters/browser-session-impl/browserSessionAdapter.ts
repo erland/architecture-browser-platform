@@ -7,7 +7,7 @@ import type {
   SavedCanvasBrowserSessionLifecyclePort,
   SavedCanvasBrowserSessionState,
   SavedCanvasOpenBrowserSessionOptions,
-} from './browserSession';
+} from '../../application/browser-state/browserSessionPort';
 
 /**
  * Concrete adapter from saved-canvas browser-session ports to the current

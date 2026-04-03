@@ -1,12 +1,28 @@
-/**
- * Consumer-facing browser-session command surface.
- *
- * Re-exports the grouped command bundles together with the high-level canvas
- * and viewpoint command families that callers are expected to use. Low-level
- * canvas helpers, node factories, relationship sync helpers, and viewpoint
- * graph helpers remain internal to the subsystem.
- */
+export {
+  browserSessionCanvasCommands,
+  browserSessionFactsPanelCommands,
+  browserSessionLifecycleCommands,
+  browserSessionNavigationCommands,
+  browserSessionViewpointCommands,
+} from './bundles';
 
-export * from './bundles';
-export * from '../canvas';
-export * from '../viewpoints';
+export {
+  browserSessionCanvasMutations,
+  browserSessionFactsPanelMutations,
+  browserSessionLifecycleMutations,
+  browserSessionNavigationMutations,
+  browserSessionViewpointMutations,
+} from './mutations';
+
+export { createBoundBrowserSessionActionGroups } from './bindings';
+
+export type {
+  BoundBrowserSessionMutationGroup,
+  BrowserSessionMutation,
+  BrowserSessionMutationGroup,
+} from './types';
+
+export {
+  applyBrowserSessionMutation,
+  bindBrowserSessionMutationGroup,
+} from './types';

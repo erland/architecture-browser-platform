@@ -1,24 +1,20 @@
 import type React from 'react';
 import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
 import { renderCompartmentSubtitle } from './BrowserGraphWorkspace.actions';
-import type { ViewportEventHandlers } from './BrowserGraphWorkspace.types';
+import type { BrowserGraphWorkspaceInteractionHandlers, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 
 function BrowserGraphWorkspaceNode({
   node,
   suppressClickRef,
   beginNodeDrag,
   draggingNodeId,
-  onFocusScope,
-  onFocusEntity,
-  onSelectEntity,
+  interactionHandlers,
 }: {
   node: BrowserWorkspaceNodeModel;
   suppressClickRef: React.MutableRefObject<boolean>;
   beginNodeDrag: ViewportEventHandlers['beginNodeDrag'];
   draggingNodeId?: string | null;
-  onFocusScope: (scopeId: string) => void;
-  onFocusEntity: (entityId: string) => void;
-  onSelectEntity: (entityId: string, additive?: boolean) => void;
+  interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
 }) {
   return (
     <article
@@ -50,11 +46,10 @@ function BrowserGraphWorkspaceNode({
             return;
           }
           if (node.kind === 'scope') {
-            onFocusScope(node.id);
+            interactionHandlers.onActivateScopeNode(node.id);
             return;
           }
-          onSelectEntity(node.id, event.shiftKey || event.metaKey || event.ctrlKey);
-          onFocusEntity(node.id);
+          interactionHandlers.onActivateEntityNode(node.id, event.shiftKey || event.metaKey || event.ctrlKey);
         }}
       >
         <span className="badge">{node.badgeLabel}</span>
@@ -82,8 +77,7 @@ function BrowserGraphWorkspaceNode({
                       }}
                       onClick={(event) => {
                         event.stopPropagation();
-                        onSelectEntity(item.entityId, event.shiftKey || event.metaKey || event.ctrlKey);
-                        onFocusEntity(item.entityId);
+                        interactionHandlers.onActivateEntityNode(item.entityId, event.shiftKey || event.metaKey || event.ctrlKey);
                       }}
                     >
                       <span className="browser-canvas__uml-member-title">{item.title}</span>
@@ -105,17 +99,13 @@ export function BrowserGraphWorkspaceNodeLayer({
   suppressClickRef,
   beginNodeDrag,
   draggingNodeId,
-  onFocusScope,
-  onFocusEntity,
-  onSelectEntity,
+  interactionHandlers,
 }: {
   nodes: BrowserWorkspaceNodeModel[];
   suppressClickRef: React.MutableRefObject<boolean>;
   beginNodeDrag: ViewportEventHandlers['beginNodeDrag'];
   draggingNodeId?: string | null;
-  onFocusScope: (scopeId: string) => void;
-  onFocusEntity: (entityId: string) => void;
-  onSelectEntity: (entityId: string, additive?: boolean) => void;
+  interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
 }) {
   return (
     <>
@@ -126,9 +116,7 @@ export function BrowserGraphWorkspaceNodeLayer({
           suppressClickRef={suppressClickRef}
           beginNodeDrag={beginNodeDrag}
           draggingNodeId={draggingNodeId}
-          onFocusScope={onFocusScope}
-          onFocusEntity={onFocusEntity}
-          onSelectEntity={onSelectEntity}
+          interactionHandlers={interactionHandlers}
         />
       ))}
     </>

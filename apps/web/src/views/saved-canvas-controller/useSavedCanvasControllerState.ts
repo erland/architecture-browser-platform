@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getBrowserSnapshotCache } from '../../api/snapshotCache';
 import { type SavedCanvasDocument, type SavedCanvasRebindingUiSummary } from '../../saved-canvas/domain';
 import {
   buildSavedCanvasOfflineUnavailableMessage,
   createSavedCanvasSyncService,
+  getBrowserSavedCanvasSnapshotCache,
   defaultSavedCanvasName,
   getSavedCanvasOfflineAvailability,
   hasSavedCanvasTrackedContentEdits,
@@ -53,7 +53,7 @@ export function useSavedCanvasControllerState({
   );
 
   const loadSavedCanvasAvailability = useCallback(async (records: SavedCanvasLocalRecord[]) => {
-    const cache = getBrowserSnapshotCache();
+    const cache = getBrowserSavedCanvasSnapshotCache();
     const entries = await Promise.all(records.map(async (record) => [
       record.canvasId,
       await getSavedCanvasOfflineAvailability(record, cache, selectedSnapshot),
