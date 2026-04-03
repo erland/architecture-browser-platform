@@ -41,6 +41,7 @@ export function propagateLongestDirectedLevels(
   levels: Map<string, number>,
   queue: string[],
 ) {
+  const maxLevelBound = Math.max(0, outbound.size - 1);
   while (queue.length > 0) {
     const currentId = queue.shift();
     if (!currentId) {
@@ -49,11 +50,13 @@ export function propagateLongestDirectedLevels(
     const currentLevel = levels.get(currentId) ?? 0;
     const neighbors = [...(outbound.get(currentId) ?? [])].sort(compareIds);
     for (const neighborId of neighbors) {
-      const candidate = currentLevel + 1;
+      const candidate = Math.min(currentLevel + 1, maxLevelBound);
       const existing = levels.get(neighborId);
       if (existing === undefined || candidate > existing) {
         levels.set(neighborId, candidate);
-        queue.push(neighborId);
+        if (candidate < maxLevelBound || existing !== candidate) {
+          queue.push(neighborId);
+        }
       }
     }
   }

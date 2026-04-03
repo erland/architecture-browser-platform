@@ -1,6 +1,6 @@
 import type { FullSnapshotRelationship, FullSnapshotViewpoint } from '../../app-model';
 import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../model';
-import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships } from '../support/semantics';
+import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships, resolvePersistentEntityAssociationEndpointIds } from '../support/semantics';
 import { sortEntityIds, sortViewpointEntityIds, sortViewpointRelationshipIds, stableSortRelationships } from '../support/sort';
 
 export function getAvailableViewpoints(index: BrowserSnapshotIndex, options?: { includePartial?: boolean; includeUnavailable?: boolean }) {
@@ -25,6 +25,13 @@ export function resolveViewpointSeedEntityIds(index: BrowserSnapshotIndex, viewp
     for (const entityId of index.entityIdsByArchitecturalRole.get('persistent-entity') ?? []) {
       if (isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) entityIds.add(entityId);
     }
+    if (entityIds.size === 0) {
+      for (const entityId of viewpoint.seedEntityIds) {
+        if (index.entitiesById.has(entityId) && isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)) entityIds.add(entityId);
+      }
+    }
+    const associationEndpointIds = resolvePersistentEntityAssociationEndpointIds(index, entityIds);
+    if (associationEndpointIds.size > 0) return sortEntityIds(index, associationEndpointIds);
     return sortEntityIds(index, entityIds);
   }
   for (const entityId of viewpoint.seedEntityIds) {

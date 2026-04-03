@@ -55,6 +55,16 @@ export function resolvePersistentEntityAssociationRelationships(index: BrowserSn
   return stableSortRelationships([...index.relationshipsById.values()].filter((relationship) => included.has(relationship.fromEntityId) && included.has(relationship.toEntityId) && getAssociationKind(relationship) === 'association' && hasAssociationDisplayMetadata(relationship)));
 }
 
+export function resolvePersistentEntityAssociationEndpointIds(index: BrowserSnapshotIndex, seedEntityIds: Iterable<string>) {
+  const relationships = resolvePersistentEntityAssociationRelationships(index, [...seedEntityIds]);
+  const entityIds = new Set<string>();
+  for (const relationship of relationships) {
+    entityIds.add(relationship.fromEntityId);
+    entityIds.add(relationship.toEntityId);
+  }
+  return entityIds;
+}
+
 export function includeIntegrationMapImmediateNeighbors(index: BrowserSnapshotIndex, seedEntityIds: string[], relationships: FullSnapshotRelationship[]) {
   const includedRelationshipIds = new Set(relationships.map((relationship) => relationship.externalId));
   const integrationSeedIds = new Set(seedEntityIds.filter((entityId) => {

@@ -111,7 +111,7 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
     }
     canvasNodes = upsertCanvasNode(
       canvasNodes,
-      { kind: 'entity', id: entityId, pinned: graph.seedEntityIds.includes(entityId) },
+      { kind: 'entity', id: entityId, pinned: false },
       planEntityInsertion(canvasNodes, state.index, entity, {
         anchorEntityId: graph.seedEntityIds[0] ?? null,
         selectedScopeId: state.selectedScopeId,

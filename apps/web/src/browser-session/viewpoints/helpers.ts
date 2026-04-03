@@ -167,7 +167,6 @@ export function arrangeViewpointCanvasNodes(
         ...node,
         x: laneX[lane],
         y: 120 + laneIndex * 132,
-        pinned: graph.seedEntityIds.includes(node.id) || node.pinned,
       };
     });
     return arranged;
