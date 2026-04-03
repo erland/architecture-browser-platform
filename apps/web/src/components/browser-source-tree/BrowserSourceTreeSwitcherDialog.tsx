@@ -15,6 +15,7 @@ export type BrowserSourceTreeSwitcherDialogProps = {
   onRequestReindex: (repository: Repository) => Promise<void>;
   onArchiveRepository: (repository: Repository) => Promise<void>;
   onUpdateRepository: (repository: Repository, payload: RepositoryUpdateRequest) => Promise<void>;
+  onDownloadSnapshotJson: (item: SourceTreeLauncherItem) => Promise<void>;
   onClose: () => void;
 };
 
@@ -29,6 +30,7 @@ export function BrowserSourceTreeSwitcherDialog({
   onRequestReindex,
   onArchiveRepository,
   onUpdateRepository,
+  onDownloadSnapshotJson,
   onClose,
 }: BrowserSourceTreeSwitcherDialogProps) {
   const controller = useBrowserSourceTreeSwitcherController({
@@ -91,6 +93,7 @@ export function BrowserSourceTreeSwitcherDialog({
             onReindexItem={controller.reindexItem}
             onEditRepository={controller.openEditDialog}
             onArchiveItem={controller.archiveItem}
+            onDownloadSnapshotJson={onDownloadSnapshotJson}
           />
         </section>
 

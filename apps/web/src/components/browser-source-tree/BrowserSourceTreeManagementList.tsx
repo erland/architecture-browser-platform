@@ -11,6 +11,7 @@ export type BrowserSourceTreeManagementListProps = {
   onReindexItem: (item: SourceTreeLauncherItem) => Promise<void>;
   onEditRepository: (repository: Repository) => void;
   onArchiveItem: (item: SourceTreeLauncherItem) => Promise<void>;
+  onDownloadSnapshotJson: (item: SourceTreeLauncherItem) => Promise<void>;
 };
 
 export function BrowserSourceTreeManagementList({
@@ -22,6 +23,7 @@ export function BrowserSourceTreeManagementList({
   onReindexItem,
   onEditRepository,
   onArchiveItem,
+  onDownloadSnapshotJson,
 }: BrowserSourceTreeManagementListProps) {
   return (
     <div className="browser-dialog__source-list" role="list" aria-label="Source tree management list">
@@ -48,6 +50,9 @@ export function BrowserSourceTreeManagementList({
               </button>
               <button type="button" className="button-secondary" onClick={() => void onReindexItem(item)} disabled={busy}>
                 Re-index
+              </button>
+              <button type="button" className="button-secondary" onClick={() => void onDownloadSnapshotJson(item)} disabled={!canOpen || busy}>
+                Download JSON
               </button>
               <button type="button" className="button-secondary" onClick={() => repository && onEditRepository(repository)} disabled={busy || !repository}>
                 Edit

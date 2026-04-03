@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { emptyRepositoryForm, type Repository, type RepositoryUpdateRequest, type Workspace } from '../../../../app-model';
 import { platformApi } from '../../../../api/platformApi';
+import { triggerJsonDownload } from '../../../../api/downloadFile';
+import type { SourceTreeLauncherItem } from '../../../../app-model/appModel.sourceTree';
 
 type SelectionLike = {
   selectedWorkspaceId: string | null;
@@ -87,6 +89,26 @@ export function useBrowserViewRepositoryActions({
     }
   }, [selection, workspaceData]);
 
+
+  const handleDownloadSnapshotJsonFromDialog = useCallback(async (item: SourceTreeLauncherItem) => {
+    if (!item.latestSnapshotId) {
+      return;
+    }
+    setBusyMessage(`Downloading snapshot JSON for ${item.sourceTreeLabel}…`);
+    try {
+      const payload = await platformApi.getFullSnapshotPayload<unknown>(item.workspaceId, item.latestSnapshotId);
+      const safeSnapshotKey = (item.latestSnapshotKey ?? item.sourceTreeKey ?? item.repositoryId)
+        .replace(/[^a-z0-9._-]+/gi, '-');
+      triggerJsonDownload(`${safeSnapshotKey || 'snapshot'}.json`, payload);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unknown error');
+      throw caught;
+    } finally {
+      setBusyMessage(null);
+    }
+  }, [setBusyMessage, setError]);
+
   const handleUpdateRepositoryFromDialog = useCallback(async (repository: Repository, payload: RepositoryUpdateRequest) => {
     setBusyMessage(`Updating source tree ${payload.name || repository.name}…`);
     try {
@@ -110,5 +132,6 @@ export function useBrowserViewRepositoryActions({
     handleRequestReindexFromDialog,
     handleArchiveRepositoryFromDialog,
     handleUpdateRepositoryFromDialog,
+    handleDownloadSnapshotJsonFromDialog,
   };
 }

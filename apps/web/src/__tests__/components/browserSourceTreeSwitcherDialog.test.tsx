@@ -60,6 +60,7 @@ function renderDialog(selectedWorkspace: Workspace | null, items: SourceTreeLaun
     onRequestReindex: async () => undefined,
     onArchiveRepository: async () => undefined,
     onUpdateRepository: async () => undefined,
+    onDownloadSnapshotJson: async () => undefined,
     onClose: () => undefined,
   }));
 }
@@ -82,6 +83,7 @@ describe('BrowserSourceTreeSwitcherDialog', () => {
     expect(markup).toContain('Re-index');
     expect(markup).toContain('Edit');
     expect(markup).toContain('Archive');
+    expect(markup).toContain('Download JSON');
     expect(markup).not.toContain('Operations');
     expect(markup).not.toContain('Compare');
   });

@@ -48,6 +48,7 @@ type BrowserViewDialogsProps = {
     handleRequestReindexFromDialog: (repository: Repository) => Promise<unknown>;
     handleArchiveRepositoryFromDialog: (repository: Repository) => Promise<unknown>;
     handleUpdateRepositoryFromDialog: (repository: Repository, payload: any) => Promise<unknown>;
+    handleDownloadSnapshotJsonFromDialog: (item: SourceTreeLauncherItem) => Promise<unknown>;
   };
 };
 
@@ -118,6 +119,7 @@ export function BrowserViewDialogs({
         onRequestReindex={async (repository) => { await handlers.handleRequestReindexFromDialog(repository); }}
         onArchiveRepository={async (repository) => { await handlers.handleArchiveRepositoryFromDialog(repository); }}
         onUpdateRepository={async (repository, payload) => { await handlers.handleUpdateRepositoryFromDialog(repository, payload); }}
+        onDownloadSnapshotJson={async (item) => { await handlers.handleDownloadSnapshotJsonFromDialog(item); }}
         onClose={() => dialogs.setIsSourceTreeSwitcherOpen(false)}
       />
     </>
