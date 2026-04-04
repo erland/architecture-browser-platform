@@ -163,7 +163,7 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
       index,
       selectedScopeId: 'scope:file',
       selectedEntityIds: ['entity:page'],
-      treeMode: 'advanced',
+      treeMode: 'filesystem',
       onSelectScope: () => {},
       onAddScopeEntitiesToCanvas: () => {},
       onSelectEntity: () => {},
@@ -177,7 +177,6 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
       },
     }));
 
-    expect(markup).toContain('Collapse Platform');
     expect(markup).toContain('Collapse Home.tsx');
     expect(markup).toContain('Collapse HomeLayout');
     expect(markup).toContain('HomePage');
@@ -219,7 +218,7 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
     const markup = renderToStaticMarkup(createElement(BrowserNavigationTree, {
       index,
       selectedScopeId: 'scope:file',
-      treeMode: 'advanced',
+      treeMode: 'filesystem',
       onSelectScope: () => {},
       selectedEntityIds: ['entity:layout'],
       onAddScopeEntitiesToCanvas: () => {},
@@ -245,7 +244,7 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
       index,
       selectedScopeId: 'scope:file',
       selectedEntityIds: [],
-      treeMode: 'advanced',
+      treeMode: 'filesystem',
       onSelectScope: () => {},
       onAddScopeEntitiesToCanvas: () => {},
       onSelectEntity: () => {},
@@ -266,7 +265,6 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
 
     expect(markup).toContain('Filtered by local search');
     expect(markup).toContain('Expand HomeLayout');
-    expect(markup).toContain('Platform');
     expect(markup).toContain('Home.tsx');
     expect(markup).toContain('HomeLayout');
     expect(markup).not.toContain('BrowserController');
@@ -308,7 +306,7 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
     const markup = renderToStaticMarkup(createElement(BrowserNavigationTree, {
       index,
       selectedScopeId: 'scope:file',
-      treeMode: 'advanced',
+      treeMode: 'filesystem',
       onSelectScope: () => {},
       selectedEntityIds: ['entity:page'],
       onAddScopeEntitiesToCanvas: () => {},

@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, canExpandEntityInNavigationTree, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
-import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from '../../components/browser-navigation/BrowserNavigationTree';
+import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, computeCollapsedAutoExpandState, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds, computeFocusExpandedState, computeSingleChildAutoExpandState } from '../../components/browser-navigation/BrowserNavigationTree';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-tree-1',
@@ -141,6 +141,39 @@ describe('browserNavigationTree helpers', () => {
     expect(computeDefaultExpandedScopeIds(index, 'scope:pkg:child', 'package')).toEqual(['scope:pkg:root', 'scope:pkg:child']);
   });
 
+
+  test('computeFocusExpandedState keeps only the selected branch expanded', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: ['java'] },
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:module', kind: 'MODULE', name: 'backend', displayName: 'Backend', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg:root', kind: 'PACKAGE', name: 'com.example', displayName: 'com.example', parentScopeId: 'scope:module', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg:child', kind: 'PACKAGE', name: 'com.example.browser', displayName: 'com.example.browser', parentScopeId: 'scope:pkg:root', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg:other', kind: 'PACKAGE', name: 'com.example.other', displayName: 'com.example.other', parentScopeId: 'scope:pkg:root', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(computeFocusExpandedState(index, 'scope:pkg:child', [], 'package')).toEqual({
+      scopeIds: ['scope:pkg:root', 'scope:pkg:child'],
+      entityIds: [],
+    });
+  });
+
+  test('computeFocusExpandedState falls back to collapsed auto-expand when nothing is selected', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:web', kind: 'MODULE', name: 'web', displayName: 'Web', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:browser', kind: 'PACKAGE', name: 'browser', displayName: 'Browser', parentScopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(computeFocusExpandedState(index, null, [], 'filesystem')).toEqual(computeCollapsedAutoExpandState(index, 'filesystem'));
+  });
+
   test('detects package mode as the default for Java/package-heavy snapshots', () => {
     const index = buildBrowserSnapshotIndex({
       ...createPayload(),
@@ -267,6 +300,49 @@ describe('browserNavigationTree helpers', () => {
       ['entity:page', 'entity:module', 2],
       ['entity:route', 'entity:module', 2],
     ]);
+  });
+
+
+  test('auto-expands down a single-child scope and entity chain when expanding a scope', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg', kind: 'PACKAGE', name: 'browser', displayName: 'browser', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:module', kind: 'MODULE', origin: 'react', name: 'BrowserModule', displayName: 'BrowserModule', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+        { externalId: 'entity:page', kind: 'COMPONENT', origin: 'react', name: 'BrowserPage', displayName: 'BrowserPage', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['ui-page'] } },
+      ],
+      relationships: [
+        { externalId: 'rel:module-page', kind: 'CONTAINS', fromEntityId: 'entity:module', toEntityId: 'entity:page', label: null, sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(computeSingleChildAutoExpandState(index, 'advanced', { scopeId: 'scope:repo' })).toEqual({
+      scopeIds: ['scope:pkg'],
+      entityIds: [],
+    });
+  });
+
+  test('collapse keeps the single-child top-level chain expanded', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: ['java'] },
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg', kind: 'PACKAGE', name: 'browser', displayName: 'browser', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:module', kind: 'MODULE', origin: 'java', name: 'BrowserModule', displayName: 'BrowserModule', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+      ],
+      relationships: [],
+    });
+
+    expect(computeCollapsedAutoExpandState(index, 'package')).toEqual({
+      scopeIds: ['scope:pkg'],
+      entityIds: [],
+    });
   });
 
   test('does not expand class entities into member-like fields and functions', () => {

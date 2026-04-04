@@ -25,7 +25,6 @@ export type BrowserScopeCategoryGroup = {
   nodes: BrowserScopeTreeNode[];
 };
 
-
 export type BrowserNavigationScopeNode = {
   nodeType: 'scope';
   nodeId: string;
@@ -201,6 +200,70 @@ export function buildNavigationEntityChildNodes(index: BrowserSnapshotIndex, par
     .sort(sortNavigationEntityNodes);
 }
 
+
+export type BrowserNavigationAutoExpandState = {
+  scopeIds: string[];
+  entityIds: string[];
+};
+
+function appendUnique(target: string[], value: string) {
+  if (!target.includes(value)) {
+    target.push(value);
+  }
+}
+
+function collectSingleChildAutoExpandStateFromEntity(index: BrowserSnapshotIndex, entityId: string, state: BrowserNavigationAutoExpandState, seen: Set<string>) {
+  const seenKey = `entity:${entityId}`;
+  if (seen.has(seenKey)) {
+    return;
+  }
+  seen.add(seenKey);
+  const children = getExpandableNavigationChildrenForEntity(index, entityId);
+  if (children.length !== 1) {
+    return;
+  }
+  const [singleChild] = children;
+  if (!canExpandEntityInNavigationTree(index, singleChild.externalId)) {
+    return;
+  }
+  appendUnique(state.entityIds, singleChild.externalId);
+  collectSingleChildAutoExpandStateFromEntity(index, singleChild.externalId, state, seen);
+}
+
+function collectSingleChildAutoExpandStateFromScope(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, scopeId: string | null, state: BrowserNavigationAutoExpandState, seen: Set<string>) {
+  const seenKey = `scope:${scopeId ?? 'root'}`;
+  if (seen.has(seenKey)) {
+    return;
+  }
+  seen.add(seenKey);
+  const children = buildNavigationChildNodes(index, scopeId, treeMode);
+  if (children.length !== 1) {
+    return;
+  }
+  const [singleChild] = children;
+  if (singleChild.nodeType === 'scope') {
+    appendUnique(state.scopeIds, singleChild.scopeId);
+    collectSingleChildAutoExpandStateFromScope(index, treeMode, singleChild.scopeId, state, seen);
+    return;
+  }
+  if (!singleChild.expandable) {
+    return;
+  }
+  appendUnique(state.entityIds, singleChild.entityId);
+  collectSingleChildAutoExpandStateFromEntity(index, singleChild.entityId, state, seen);
+}
+
+export function computeSingleChildAutoExpandState(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, parent: { scopeId?: string | null; entityId?: string | null } = {}): BrowserNavigationAutoExpandState {
+  const state: BrowserNavigationAutoExpandState = { scopeIds: [], entityIds: [] };
+  const seen = new Set<string>();
+  if (parent.entityId) {
+    collectSingleChildAutoExpandStateFromEntity(index, parent.entityId, state, seen);
+    return state;
+  }
+  collectSingleChildAutoExpandStateFromScope(index, treeMode, parent.scopeId ?? null, state, seen);
+  return state;
+}
+
 export function buildNavigationChildNodes(index: BrowserSnapshotIndex, parentScopeId: string | null, treeMode: BrowserTreeMode, options?: { visibleScopeIds?: Set<string> | null; visibleEntityIds?: Set<string> | null; viewpointId?: string | null }): BrowserNavigationChildNode[] {
   const scopeNodes = getScopeTreeNodesForMode(index, parentScopeId, treeMode)
     .filter((node) => !options?.visibleScopeIds || options.visibleScopeIds.has(node.scopeId))
@@ -224,6 +287,52 @@ export const TREE_MODE_META: Record<BrowserTreeMode, { label: string; descriptio
 
 function toCategoryLabel(kind: string) {
   return kind.replace(/_/g, ' ').toLocaleLowerCase().replace(/(^|\s)\S/g, (char) => char.toLocaleUpperCase());
+}
+
+export function buildScopeCategoryGroups(nodes: BrowserScopeTreeNode[]) {
+  const grouped = new Map<string, BrowserScopeTreeNode[]>();
+  for (const node of nodes) {
+    const current = grouped.get(node.kind);
+    if (current) {
+      current.push(node);
+    } else {
+      grouped.set(node.kind, [node]);
+    }
+  }
+  return [...grouped.entries()]
+    .map(([kind, groupNodes]) => ({
+      kind,
+      label: toCategoryLabel(kind),
+      nodes: groupNodes,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }));
+}
+
+function findTopLevelVisibleScopeKind(index: BrowserSnapshotIndex, scopeId: string | null, treeMode: BrowserTreeMode) {
+  if (!scopeId) {
+    return null;
+  }
+  for (const root of getScopeTreeNodesForMode(index, null, treeMode)) {
+    if (root.scopeId === scopeId) {
+      return root.kind;
+    }
+    const descendants = getScopeTreeNodesForMode(index, root.scopeId, treeMode);
+    if (descendants.some((node) => node.scopeId === scopeId)) {
+      return root.kind;
+    }
+  }
+  return null;
+}
+
+export function computeDefaultExpandedCategories(groups: BrowserScopeCategoryGroup[], index: BrowserSnapshotIndex | null, selectedScopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
+  if (!groups.length) {
+    return [] as string[];
+  }
+  const selectedKind = index ? findTopLevelVisibleScopeKind(index, selectedScopeId, treeMode) : null;
+  if (!selectedKind) {
+    return groups.map((group) => group.kind);
+  }
+  return groups.map((group) => group.kind).filter((kind) => kind === selectedKind);
 }
 
 export function collectAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
@@ -274,52 +383,6 @@ export function collectAllExpandableEntityIds(index: BrowserSnapshotIndex) {
   return [...index.entitiesById.keys()].filter((entityId) => canExpandEntityInNavigationTree(index, entityId));
 }
 
-export function buildScopeCategoryGroups(nodes: BrowserScopeTreeNode[]) {
-  const grouped = new Map<string, BrowserScopeTreeNode[]>();
-  for (const node of nodes) {
-    const current = grouped.get(node.kind);
-    if (current) {
-      current.push(node);
-    } else {
-      grouped.set(node.kind, [node]);
-    }
-  }
-  return [...grouped.entries()]
-    .map(([kind, groupNodes]) => ({
-      kind,
-      label: toCategoryLabel(kind),
-      nodes: groupNodes,
-    }))
-    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }));
-}
-
-function findTopLevelVisibleScopeKind(index: BrowserSnapshotIndex, scopeId: string | null, treeMode: BrowserTreeMode) {
-  if (!scopeId) {
-    return null;
-  }
-  for (const root of getScopeTreeNodesForMode(index, null, treeMode)) {
-    if (root.scopeId === scopeId) {
-      return root.kind;
-    }
-    const descendants = getScopeTreeNodesForMode(index, root.scopeId, treeMode);
-    if (descendants.some((node) => node.scopeId === scopeId)) {
-      return root.kind;
-    }
-  }
-  return null;
-}
-
-export function computeDefaultExpandedCategories(groups: BrowserScopeCategoryGroup[], index: BrowserSnapshotIndex | null, selectedScopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
-  if (!groups.length) {
-    return [] as string[];
-  }
-  const selectedKind = index ? findTopLevelVisibleScopeKind(index, selectedScopeId, treeMode) : null;
-  if (!selectedKind) {
-    return groups.map((group) => group.kind);
-  }
-  return groups.map((group) => group.kind).filter((kind) => kind === selectedKind);
-}
-
 export function collectAllVisibleScopeIds(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, parentScopeId: string | null = null): string[] {
   const nodes = getScopeTreeNodesForMode(index, parentScopeId, treeMode);
   return nodes.flatMap((node) => [node.scopeId, ...collectAllVisibleScopeIds(index, treeMode, node.scopeId)]);
@@ -329,13 +392,43 @@ export function buildNavigationTreeSummary(index: BrowserSnapshotIndex, treeMode
   const roots = getScopeTreeNodesForMode(index, null, treeMode);
   return {
     roots,
-    categoryGroups: buildScopeCategoryGroups(roots),
     totalDescendants: roots.reduce((sum, node) => sum + node.descendantScopeCount, 0),
     totalDirectEntities: roots.reduce((sum, node) => sum + node.directEntityIds.length, 0),
     defaultTreeMode: detectDefaultBrowserTreeMode(index),
   };
 }
 
+
+export function computeFocusExpandedState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, selectedEntityIds: string[], treeMode: BrowserTreeMode = 'advanced'): BrowserNavigationAutoExpandState {
+  if (!index) {
+    return { scopeIds: [], entityIds: [] };
+  }
+
+  const scopeIds = selectedScopeId && isScopeVisibleInTreeMode(index, selectedScopeId, treeMode)
+    ? [...new Set([...collectAncestorScopeIds(index, selectedScopeId, treeMode), selectedScopeId])]
+    : [];
+
+  const entityIds = selectedEntityIds.flatMap((entityId) => collectSafeNavigationAncestorEntityIds(index, entityId));
+
+  if (scopeIds.length === 0 && entityIds.length === 0) {
+    return computeCollapsedAutoExpandState(index, treeMode);
+  }
+
+  return {
+    scopeIds,
+    entityIds: [...new Set(entityIds)],
+  };
+}
+export function computeCollapsedAutoExpandState(index: BrowserSnapshotIndex | null, treeMode: BrowserTreeMode = 'advanced'): BrowserNavigationAutoExpandState {
+  if (!index) {
+    return { scopeIds: [], entityIds: [] };
+  }
+  return computeSingleChildAutoExpandState(index, treeMode);
+}
+
+export function computeCollapsedScopeIds(index: BrowserSnapshotIndex | null, treeMode: BrowserTreeMode = 'advanced') {
+  return computeCollapsedAutoExpandState(index, treeMode).scopeIds;
+}
 
 export function collectNavigationSearchVisibility(
   index: BrowserSnapshotIndex,
@@ -386,17 +479,12 @@ export function collectNavigationSearchVisibility(
   return { scopeIds, entityIds };
 }
 
-export function filterCategoryGroupsForSearch(
-  groups: BrowserScopeCategoryGroup[],
+export function filterRootsForSearch(
+  roots: BrowserScopeTreeNode[],
   visibleScopeIds: Set<string> | null,
 ) {
   if (!visibleScopeIds) {
-    return groups;
+    return roots;
   }
-  return groups
-    .map((group) => ({
-      ...group,
-      nodes: group.nodes.filter((node) => visibleScopeIds.has(node.scopeId)),
-    }))
-    .filter((group) => group.nodes.length > 0);
+  return roots.filter((node) => visibleScopeIds.has(node.scopeId));
 }

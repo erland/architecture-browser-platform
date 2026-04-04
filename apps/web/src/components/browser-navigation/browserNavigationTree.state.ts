@@ -7,27 +7,27 @@ import {
   collectAllVisibleScopeIds,
   collectNavigationSearchVisibility,
   collectSafeNavigationAncestorEntityIds,
-  computeDefaultExpandedCategories,
+  computeCollapsedAutoExpandState,
+  computeFocusExpandedState,
+  computeSingleChildAutoExpandState,
   computeDefaultExpandedScopeIds,
-  filterCategoryGroupsForSearch,
+  filterRootsForSearch,
 } from './browserNavigationTree.model';
 
 export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, selectedEntityIds: string[], treeMode: BrowserTreeMode, persistedTreeState: BrowserNavigationTreeViewState | null, onTreeStateChange: ((state: BrowserNavigationTreeViewState) => void) | undefined, searchQuery = '', searchResults: BrowserSearchResult[] = []) {
   const summary = useMemo(() => index ? buildNavigationTreeSummary(index, treeMode) : null, [index, treeMode]);
-  const roots = summary?.roots ?? ([] as BrowserScopeTreeNode[]);
-  const rawCategoryGroups = summary?.categoryGroups ?? [];
+  const rawRoots = summary?.roots ?? ([] as BrowserScopeTreeNode[]);
   const normalizedSearchQuery = searchQuery.trim();
   const searchVisibility = useMemo(() => index && normalizedSearchQuery
     ? collectNavigationSearchVisibility(index, treeMode, searchResults)
     : null, [index, normalizedSearchQuery, searchResults, treeMode]);
-  const categoryGroups = useMemo(() => filterCategoryGroupsForSearch(rawCategoryGroups, searchVisibility?.scopeIds ?? null), [rawCategoryGroups, searchVisibility]);
+  const roots = useMemo(() => filterRootsForSearch(rawRoots, searchVisibility?.scopeIds ?? null), [rawRoots, searchVisibility]);
   const totalDescendants = summary?.totalDescendants ?? 0;
   const totalDirectEntities = summary?.totalDirectEntities ?? 0;
   const defaultTreeMode = summary?.defaultTreeMode ?? 'filesystem';
 
   const initialTreeState = normalizeBrowserNavigationTreeViewState(persistedTreeState ?? createEmptyBrowserNavigationTreeViewState());
   const [expandedScopeIds, setExpandedScopeIds] = useState<string[]>(() => initialTreeState.expandedScopeIds.length > 0 ? initialTreeState.expandedScopeIds : computeDefaultExpandedScopeIds(index, selectedScopeId, treeMode));
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(() => initialTreeState.expandedCategories.length > 0 ? initialTreeState.expandedCategories : computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId, treeMode));
   const [expandedEntityIds, setExpandedEntityIds] = useState<string[]>(() => initialTreeState.expandedEntityIds.length > 0 ? initialTreeState.expandedEntityIds : (index ? selectedEntityIds.flatMap((entityId) => collectSafeNavigationAncestorEntityIds(index, entityId)) : []));
   const [expandedChildListNodeIds, setExpandedChildListNodeIds] = useState<string[]>(() => initialTreeState.expandedChildListNodeIds);
   const hasHydratedFromPersistedStateRef = useRef(false);
@@ -43,7 +43,6 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
     }
     const normalized = normalizeBrowserNavigationTreeViewState(persistedTreeState);
     if (normalized.expandedScopeIds.length > 0) setExpandedScopeIds(normalized.expandedScopeIds);
-    if (normalized.expandedCategories.length > 0) setExpandedCategories(normalized.expandedCategories);
     if (normalized.expandedEntityIds.length > 0) setExpandedEntityIds(normalized.expandedEntityIds);
     if (normalized.expandedChildListNodeIds.length > 0) setExpandedChildListNodeIds(normalized.expandedChildListNodeIds);
     hasHydratedFromPersistedStateRef.current = true;
@@ -63,22 +62,6 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
     });
   }, [index, selectedScopeId, treeMode]);
 
-  useEffect(() => {
-    setExpandedCategories((current) => {
-      const next = new Set(current);
-      let changed = false;
-      for (const kind of computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId, treeMode)) {
-        if (!next.has(kind)) {
-          next.add(kind);
-          changed = true;
-        }
-      }
-      if (!changed) {
-        return current;
-      }
-      return categoryGroups.map((group) => group.kind).filter((kind) => next.has(kind));
-    });
-  }, [categoryGroups, index, selectedScopeId, treeMode]);
 
   useEffect(() => {
     if (!searchVisibility) {
@@ -106,19 +89,7 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
       }
       return changed ? [...next] : current;
     });
-    setExpandedCategories((current) => {
-      const visibleKinds = new Set(categoryGroups.map((group) => group.kind));
-      const next = new Set(current);
-      let changed = false;
-      for (const kind of visibleKinds) {
-        if (!next.has(kind)) {
-          next.add(kind);
-          changed = true;
-        }
-      }
-      return changed ? [...next] : current;
-    });
-  }, [categoryGroups, searchVisibility]);
+  }, [searchVisibility]);
 
   useEffect(() => {
     if (!index || selectedEntityIds.length === 0) {
@@ -144,32 +115,47 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
     }
     onTreeStateChange({
       expandedScopeIds,
-      expandedCategories,
+      expandedCategories: [],
       expandedEntityIds,
       expandedChildListNodeIds,
     });
-  }, [expandedCategories, expandedChildListNodeIds, expandedEntityIds, expandedScopeIds, onTreeStateChange]);
+  }, [expandedChildListNodeIds, expandedEntityIds, expandedScopeIds, onTreeStateChange]);
 
-  const expandedSet = useMemo(() => new Set(expandedScopeIds), [expandedScopeIds]);  const expandedCategorySet = useMemo(() => new Set(expandedCategories), [expandedCategories]);
+  const expandedSet = useMemo(() => new Set(expandedScopeIds), [expandedScopeIds]);
   const expandedEntitySet = useMemo(() => new Set(expandedEntityIds), [expandedEntityIds]);
   const expandedChildListSet = useMemo(() => new Set(expandedChildListNodeIds), [expandedChildListNodeIds]);
 
   const toggleScope = (scopeId: string) => {
-    setExpandedScopeIds((current) => current.includes(scopeId)
-      ? current.filter((candidate) => candidate !== scopeId)
-      : [...current, scopeId]);
+    if (!index) {
+      return;
+    }
+    const isExpanded = expandedSet.has(scopeId);
+    if (isExpanded) {
+      setExpandedScopeIds((current) => current.filter((candidate) => candidate !== scopeId));
+      return;
+    }
+    const autoExpandState = computeSingleChildAutoExpandState(index, treeMode, { scopeId });
+    setExpandedScopeIds((current) => [...new Set([...current, scopeId, ...autoExpandState.scopeIds])]);
+    if (autoExpandState.entityIds.length > 0) {
+      setExpandedEntityIds((current) => [...new Set([...current, ...autoExpandState.entityIds])]);
+    }
   };
 
-  const toggleCategory = (kind: string) => {
-    setExpandedCategories((current) => current.includes(kind)
-      ? current.filter((candidate) => candidate !== kind)
-      : [...current, kind]);
-  };
 
   const toggleEntity = (entityId: string) => {
-    setExpandedEntityIds((current) => current.includes(entityId)
-      ? current.filter((candidate) => candidate !== entityId)
-      : [...current, entityId]);
+    if (!index) {
+      return;
+    }
+    const isExpanded = expandedEntitySet.has(entityId);
+    if (isExpanded) {
+      setExpandedEntityIds((current) => current.filter((candidate) => candidate !== entityId));
+      return;
+    }
+    const autoExpandState = computeSingleChildAutoExpandState(index, treeMode, { entityId });
+    setExpandedEntityIds((current) => [...new Set([...current, entityId, ...autoExpandState.entityIds])]);
+    if (autoExpandState.scopeIds.length > 0) {
+      setExpandedScopeIds((current) => [...new Set([...current, ...autoExpandState.scopeIds])]);
+    }
   };
 
   const toggleChildList = (nodeId: string) => {
@@ -183,32 +169,37 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
       return;
     }
     setExpandedScopeIds(collectAllVisibleScopeIds(index, treeMode));
-    setExpandedCategories(categoryGroups.map((group) => group.kind));
     setExpandedEntityIds(collectAllExpandableEntityIds(index));
   };
 
   const collapseToSelection = () => {
-    setExpandedScopeIds(computeDefaultExpandedScopeIds(index, selectedScopeId, treeMode));
-    setExpandedCategories(computeDefaultExpandedCategories(categoryGroups, index, selectedScopeId, treeMode));
-    setExpandedEntityIds(index ? selectedEntityIds.flatMap((entityId) => collectSafeNavigationAncestorEntityIds(index, entityId)) : []);
+    const focusedState = computeFocusExpandedState(index, selectedScopeId, selectedEntityIds, treeMode);
+    setExpandedScopeIds(focusedState.scopeIds);
+    setExpandedEntityIds(focusedState.entityIds);
+    setExpandedChildListNodeIds([]);
+  };
+
+  const collapseAll = () => {
+    const collapsedState = computeCollapsedAutoExpandState(index, treeMode);
+    setExpandedScopeIds(collapsedState.scopeIds);
+    setExpandedEntityIds(collapsedState.entityIds);
+    setExpandedChildListNodeIds([]);
   };
 
   return {
     roots,
-    categoryGroups,
     searchVisibility,
     totalDescendants,
     totalDirectEntities,
     defaultTreeMode,
     expandedSet,
-    expandedCategorySet,
     expandedEntitySet,
     expandedChildListSet,
     toggleScope,
-    toggleCategory,
     toggleEntity,
     toggleChildList,
     expandAll,
     collapseToSelection,
+    collapseAll,
   };
 }

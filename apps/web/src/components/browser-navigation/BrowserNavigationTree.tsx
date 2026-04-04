@@ -1,4 +1,4 @@
-import type { BrowserSearchResult, BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
+import { detectDefaultBrowserTreeMode, type BrowserSearchResult, type BrowserSnapshotIndex, type BrowserTreeMode } from '../../browser-snapshot';
 import type { BrowserNavigationTreeViewState } from '../../browser-session';
 import {
   buildNavigationEntityChildNodes,
@@ -415,21 +415,26 @@ function TreeNode({
 }
 
 export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityIds, treeMode, onSelectScope, onAddScopeEntitiesToCanvas, onSelectEntity, onAddEntityToCanvas, onTreeModeChange, persistedTreeState = null, onTreeStateChange, searchQuery = '', searchResults = [], selectedViewpointId = null }: BrowserNavigationTreeProps) {
+  const defaultBrowsableTreeMode: BrowserTreeMode = !index ? 'filesystem' : (() => {
+    const detected = detectDefaultBrowserTreeMode(index);
+    return detected === 'package' ? 'package' : 'filesystem';
+  })();
+  const effectiveTreeMode: BrowserTreeMode = treeMode === 'advanced' ? defaultBrowsableTreeMode : treeMode;
+
   const {
-    categoryGroups,
+    roots,
     defaultTreeMode,
     expandedSet,
-    expandedCategorySet,
     expandedEntitySet,
     expandedChildListSet,
     toggleScope,
-    toggleCategory,
     toggleEntity,
     toggleChildList,
     expandAll,
     collapseToSelection,
+    collapseAll,
     searchVisibility,
-  } = useBrowserNavigationTreeState(index, selectedScopeId, selectedEntityIds, treeMode, persistedTreeState, onTreeStateChange, searchQuery, searchResults);
+  } = useBrowserNavigationTreeState(index, selectedScopeId, selectedEntityIds, effectiveTreeMode, persistedTreeState, onTreeStateChange, searchQuery, searchResults);
 
   const visibleScopeIds = searchVisibility?.scopeIds ?? null;
   const visibleEntityIds = searchVisibility?.entityIds ?? null;
@@ -454,6 +459,7 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
         </div>
         <div className="browser-navigation-tree__actions">
           <button type="button" className="button-secondary" onClick={expandAll}>Expand</button>
+          <button type="button" className="button-secondary" onClick={collapseAll}>Collapse</button>
           <button type="button" className="button-secondary" onClick={collapseToSelection}>Focus</button>
         </div>
       </div>
@@ -480,15 +486,16 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
       ) : null}
 
       <div className="browser-navigation-tree__modes" role="group" aria-label="Tree mode">
-        {(Object.entries(TREE_MODE_META) as Array<[BrowserTreeMode, { label: string; description: string }]>)
+        {(['filesystem', 'package'] as BrowserTreeMode[])
+          .map((mode) => [mode, TREE_MODE_META[mode]] as const)
           .map(([mode, meta]) => (
             <button
               key={mode}
               type="button"
-              className={treeMode === mode ? 'button-secondary browser-navigation-tree__mode-button browser-navigation-tree__mode-button--active' : 'button-secondary browser-navigation-tree__mode-button'}
+              className={effectiveTreeMode === mode ? 'button-secondary browser-navigation-tree__mode-button browser-navigation-tree__mode-button--active' : 'button-secondary browser-navigation-tree__mode-button'}
               onClick={() => onTreeModeChange(mode)}
               title={meta.description}
-              aria-pressed={treeMode === mode}
+              aria-pressed={effectiveTreeMode === mode}
             >
               {meta.label}
             </button>
@@ -496,64 +503,35 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
       </div>
 
       <ul className="browser-tree" role="tree">
-        {categoryGroups.map((group) => {
-          const isExpanded = expandedCategorySet.has(group.kind);
-          return (
-            <li key={group.kind} className="browser-tree__item">
-              <div className="browser-tree__row browser-tree__row--category">
-                <button
-                  type="button"
-                  className="browser-tree__toggle"
-                  onClick={() => toggleCategory(group.kind)}
-                  aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${group.label}`}
-                  aria-expanded={isExpanded}
-                >
-                  {isExpanded ? '▾' : '▸'}
-                </button>
-                <div className="browser-tree__node-button browser-tree__node-button--static">
-                  <span className="browser-tree__node-heading">
-                    <span className="browser-tree__node-icon browser-tree__node-icon--category" aria-hidden="true">Cat</span>
-                    <span className="browser-tree__node-title">{group.label}</span>
-                  </span>
-                </div>
-              </div>
-
-              {isExpanded ? (
-                <ul className="browser-tree__children" role="group">
-                  {group.nodes.map((root) => (
-                    <TreeNode
-                      key={root.scopeId}
-                      index={index}
-                      node={toRootNavigationScopeNode(root)}
-                      treeMode={treeMode}
-                      selectedScopeId={selectedScopeId}
-                      expandedScopeIds={expandedSet}
-                      expandedEntityIds={expandedEntitySet}
-                      onToggle={toggleScope}
-                      onToggleEntity={toggleEntity}
-                      onToggleChildList={toggleChildList}
-                      onSelectScope={onSelectScope}
-                      onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
-                      selectedEntityIds={selectedEntityIds}
-                      onSelectEntity={onSelectEntity}
-                      onAddEntityToCanvas={onAddEntityToCanvas}
-                      visibleScopeIds={visibleScopeIds}
-                      visibleEntityIds={visibleEntityIds}
-                      expandedChildListIds={expandedChildListSet}
-                      isSearchActive={isSearchActive}
-                      selectedViewpointId={selectedViewpointId}
-                    />
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          );
-        })}
+        {roots.map((root) => (
+          <TreeNode
+            key={root.scopeId}
+            index={index}
+            node={toRootNavigationScopeNode(root)}
+            treeMode={effectiveTreeMode}
+            selectedScopeId={selectedScopeId}
+            expandedScopeIds={expandedSet}
+            expandedEntityIds={expandedEntitySet}
+            onToggle={toggleScope}
+            onToggleEntity={toggleEntity}
+            onToggleChildList={toggleChildList}
+            onSelectScope={onSelectScope}
+            onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
+            selectedEntityIds={selectedEntityIds}
+            onSelectEntity={onSelectEntity}
+            onAddEntityToCanvas={onAddEntityToCanvas}
+            visibleScopeIds={visibleScopeIds}
+            visibleEntityIds={visibleEntityIds}
+            expandedChildListIds={expandedChildListSet}
+            isSearchActive={isSearchActive}
+            selectedViewpointId={selectedViewpointId}
+          />
+        ))}
       </ul>
 
       <footer className="browser-navigation-tree__footer">
         <p className="muted browser-navigation-tree__footer-note">
-          {TREE_MODE_META[treeMode].description}. Default: <strong>{TREE_MODE_META[defaultTreeMode].label}</strong>.
+          {TREE_MODE_META[effectiveTreeMode].description}. Default: <strong>{TREE_MODE_META[defaultTreeMode === 'package' ? 'package' : 'filesystem'].label}</strong>.
         </p>
       </footer>
     </section>
@@ -565,6 +543,10 @@ export {
   buildNavigationEntityChildNodes,
   buildScopeCategoryGroups,
   collectAncestorScopeIds,
+  computeCollapsedAutoExpandState,
+  computeCollapsedScopeIds,
   computeDefaultExpandedCategories,
   computeDefaultExpandedScopeIds,
+  computeFocusExpandedState,
+  computeSingleChildAutoExpandState,
 } from './browserNavigationTree.model';
