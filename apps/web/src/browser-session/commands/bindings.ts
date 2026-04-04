@@ -83,6 +83,12 @@ export function createBoundBrowserSessionActionGroups(
       toggleNodePin: bindBrowserSessionMutationGroup(setState, {
         toggleNodePin: browserSessionCanvasMutations.toggleCanvasNodePin,
       }).toggleNodePin,
+      setClassPresentationMode: bindBrowserSessionMutationGroup(setState, {
+        setClassPresentationMode: browserSessionCanvasMutations.setCanvasEntityClassPresentationMode,
+      }).setClassPresentationMode,
+      toggleClassPresentationMembers: bindBrowserSessionMutationGroup(setState, {
+        toggleClassPresentationMembers: browserSessionCanvasMutations.toggleCanvasEntityClassPresentationMembers,
+      }).toggleClassPresentationMembers,
       moveNode: bindBrowserSessionMutationGroup(setState, {
         moveNode: browserSessionCanvasMutations.moveCanvasNode,
       }).moveNode,

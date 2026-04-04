@@ -1875,6 +1875,16 @@ dd {
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.96));
 }
 
+.browser-canvas__node--class-compartments,
+.browser-canvas__node--class-expanded {
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.browser-canvas__node--class-fields:not(.browser-canvas__node--class-functions) .browser-canvas__uml-compartment-label,
+.browser-canvas__node--class-functions:not(.browser-canvas__node--class-fields) .browser-canvas__uml-compartment-label {
+  color: #bfdbfe;
+}
+
 .browser-canvas__node--selected {
   border-color: rgba(96, 165, 250, 0.72);
 }
@@ -2829,4 +2839,13 @@ dd {
 .browser-tree__node-badge--viewpoint {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   background: color-mix(in srgb, var(--accent-muted) 70%, white);
+}
+
+
+.browser-canvas__node--class-member {
+  border-style: dashed;
+}
+
+.browser-canvas__node--class-member .badge {
+  opacity: 0.9;
 }

@@ -23,10 +23,12 @@ import {
   selectBrowserScope,
   selectCanvasEntity,
   setBrowserSearch,
+  setCanvasEntityClassPresentationMode,
   setSelectedViewpoint,
   setViewpointApplyMode,
   setViewpointPresentationPreference,
   setViewpointScopeMode,
+  toggleCanvasEntityClassPresentationMembers,
   toggleCanvasNodePin,
 } from '../../browser-session';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
@@ -55,6 +57,44 @@ const snapshotSummary: SnapshotSummary = {
   totalFileCount: 1,
   degradedFileCount: 0,
 };
+
+function createClassPayload(): FullSnapshotPayload {
+  return {
+    snapshot: snapshotSummary,
+    source: { repositoryId: 'repo-1', acquisitionType: 'GIT', path: null, remoteUrl: null, branch: 'main', revision: 'abc123', acquiredAt: null },
+    run: { startedAt: null, completedAt: null, outcome: 'SUCCESS', detectedTechnologies: ['java'] },
+    completeness: { status: 'COMPLETE', indexedFileCount: 1, totalFileCount: 1, degradedFileCount: 0, omittedPaths: [], notes: [] },
+    scopes: [
+      { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+    ],
+    entities: [
+      { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:repo', sourceRefs: [], metadata: { architecturalRoles: ['persistent-entity'] } },
+      { externalId: 'entity:order:id', kind: 'FIELD', origin: 'java', name: 'id', displayName: 'id', scopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:order:save', kind: 'METHOD', origin: 'java', name: 'save', displayName: 'save()', scopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+    ],
+    relationships: [
+      { externalId: 'rel:contains:order:id', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:id', label: null, sourceRefs: [], metadata: {} },
+      { externalId: 'rel:contains:order:save', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:save', label: null, sourceRefs: [], metadata: {} },
+    ],
+    viewpoints: [
+      {
+        id: 'persistence-model',
+        title: 'Persistence model',
+        description: 'Shows persistence-centric entities.',
+        availability: 'available',
+        confidence: 0.8,
+        seedEntityIds: ['entity:order'],
+        seedRoleIds: ['persistent-entity'],
+        expandViaSemantics: [],
+        preferredDependencyViews: ['default'],
+        evidenceSources: ['test'],
+      },
+    ],
+    diagnostics: [],
+    metadata: { metadata: {} },
+    warnings: [],
+  };
+}
 
 function createPayload(): FullSnapshotPayload {
   return {
@@ -172,6 +212,153 @@ function createPayload(): FullSnapshotPayload {
 }
 
 describe('browserSessionStore', () => {
+
+
+  test('class-like entities get a default class presentation policy when added to the canvas', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:service', kind: 'COMPONENT', origin: 'java', name: 'OrderService', displayName: 'OrderService', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [],
+      },
+    });
+
+    const withClass = addEntityToCanvas(opened, 'entity:order');
+    const withComponent = addEntityToCanvas(withClass, 'entity:service');
+
+    expect(withComponent.canvasNodes.find((node) => node.id === 'entity:order')).toMatchObject({
+      kind: 'entity',
+      id: 'entity:order',
+      classPresentation: {
+        mode: 'simple',
+        showFields: true,
+        showFunctions: true,
+      },
+    });
+    expect(withComponent.canvasNodes.find((node) => node.id === 'entity:service')?.classPresentation).toBeUndefined();
+  });
+
+
+  test('updates selected class node presentation mode and member toggles through dedicated canvas mutations', () => {
+    const payload = createPayload();
+    payload.entities = [
+      { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+    ];
+    payload.relationships = [];
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload,
+    });
+    state = addEntityToCanvas(state, 'entity:order');
+    state = selectCanvasEntity(state, 'entity:order');
+
+    state = setCanvasEntityClassPresentationMode(state, ['entity:order'], 'compartments');
+    state = toggleCanvasEntityClassPresentationMembers(state, ['entity:order'], 'functions');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: false,
+    });
+  });
+
+
+  test('class presentation changes refresh routes conservatively without moving unrelated canvas nodes', () => {
+    const payload = createPayload();
+    payload.entities = [
+      { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:service', kind: 'COMPONENT', origin: 'java', name: 'OrderService', displayName: 'OrderService', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:field:id', kind: 'FIELD', origin: 'java', name: 'id', displayName: 'id', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+    ];
+    payload.relationships = [
+      {
+        externalId: 'rel:contains-field',
+        fromEntityId: 'entity:order',
+        toEntityId: 'entity:field:id',
+        kind: 'CONTAINS',
+        label: null,
+        sourceRefs: [],
+        metadata: { metadata: {} },
+      },
+    ];
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload,
+    });
+    state = addEntityToCanvas(state, 'entity:order');
+    state = addEntityToCanvas(state, 'entity:service');
+    state = moveCanvasNode(state, { kind: 'entity', id: 'entity:service' }, { x: 920, y: 180 });
+
+    const serviceBefore = state.canvasNodes.find((node) => node.id === 'entity:service');
+    const routeRefreshBefore = state.routeRefreshRequestedAt;
+
+    const expanded = setCanvasEntityClassPresentationMode(state, ['entity:order'], 'expanded');
+    const serviceAfterExpand = expanded.canvasNodes.find((node) => node.id === 'entity:service');
+
+    expect(expanded.routeRefreshRequestedAt).not.toBeNull();
+    expect(expanded.routeRefreshRequestedAt).not.toBe(routeRefreshBefore);
+    expect(serviceAfterExpand?.x).toBe(serviceBefore?.x);
+    expect(serviceAfterExpand?.y).toBe(serviceBefore?.y);
+
+    const collapsed = setCanvasEntityClassPresentationMode(expanded, ['entity:order'], 'simple');
+    const serviceAfterCollapse = collapsed.canvasNodes.find((node) => node.id === 'entity:service');
+
+    expect(collapsed.routeRefreshRequestedAt).not.toBeNull();
+    expect(typeof collapsed.routeRefreshRequestedAt).toBe('string');
+    expect(serviceAfterCollapse?.x).toBe(serviceBefore?.x);
+    expect(serviceAfterCollapse?.y).toBe(serviceBefore?.y);
+  });
+
+  test('opening a snapshot normalizes persisted class nodes into the explicit class presentation policy', () => {
+    const opened = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [],
+      },
+    });
+
+    const reopened = openSnapshotSession({
+      ...opened,
+      canvasNodes: [{ kind: 'entity', id: 'entity:order', x: 120, y: 180 }],
+    }, {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [],
+      },
+      keepViewState: true,
+    });
+
+    expect(reopened.canvasNodes).toEqual([
+      expect.objectContaining({
+        kind: 'entity',
+        id: 'entity:order',
+        classPresentation: {
+          mode: 'simple',
+          showFields: true,
+          showFunctions: true,
+        },
+      }),
+    ]);
+  });
   afterEach(() => {
     clearBrowserSnapshotIndex();
   });
@@ -412,6 +599,123 @@ describe('browserSessionStore', () => {
     expect(scoped.viewpointSelection.scopeMode).toBe('selected-subtree');
     expect(scoped.appliedViewpoint?.scopeMode).toBe('selected-subtree');
     expect(merged.viewpointSelection.applyMode).toBe('merge');
+  });
+
+
+  test('addEntityToCanvas normalizes compact UML add-time defaults into persisted class presentation policy', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createClassPayload(),
+    });
+
+    state = setSelectedViewpoint(state, 'persistence-model');
+    state = addEntityToCanvas(state, 'entity:order');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: false,
+    });
+
+    state = setCanvasEntityClassPresentationMode(state, ['entity:order'], 'expanded');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'expanded',
+      showFields: true,
+      showFunctions: false,
+    });
+  });
+
+  test('openSnapshotSession backfills missing class presentation from compact UML add-time defaults', () => {
+    const reopened = openSnapshotSession({
+      ...createEmptyBrowserSessionState(),
+      viewpointSelection: {
+        ...createEmptyBrowserSessionState().viewpointSelection,
+        viewpointId: 'persistence-model',
+      },
+      canvasNodes: [
+        { kind: 'entity', id: 'entity:order', x: 56, y: 64 },
+      ],
+    }, {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createClassPayload(),
+      keepViewState: true,
+    });
+
+    expect(reopened.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: false,
+    });
+  });
+
+
+  test('request-handling defaults newly added classes to operation-focused compartments', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createClassPayload(),
+        viewpoints: [
+          {
+            id: 'request-handling',
+            title: 'Request handling',
+            description: 'Trace requests across services.',
+            availability: 'available',
+            confidence: 0.91,
+            seedEntityIds: [],
+            seedRoleIds: ['api-entrypoint'],
+            expandViaSemantics: ['serves-request'],
+            preferredDependencyViews: ['runtime-dependencies'],
+            evidenceSources: ['test'],
+          },
+        ],
+      },
+    });
+
+    state = setSelectedViewpoint(state, 'request-handling');
+    state = addEntityToCanvas(state, 'entity:order');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: false,
+      showFunctions: true,
+    });
+  });
+
+  test('module-dependencies keeps simple class defaults for newly added classes', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createClassPayload(),
+        viewpoints: [
+          {
+            id: 'module-dependencies',
+            title: 'Module dependencies',
+            description: 'Show high-level module coupling.',
+            availability: 'available',
+            confidence: 0.88,
+            seedEntityIds: [],
+            seedRoleIds: ['module-boundary'],
+            expandViaSemantics: ['depends-on-module'],
+            preferredDependencyViews: ['module-dependencies'],
+            evidenceSources: ['test'],
+          },
+        ],
+      },
+    });
+
+    state = setSelectedViewpoint(state, 'module-dependencies');
+    state = addEntityToCanvas(state, 'entity:order');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'simple',
+      showFields: true,
+      showFunctions: true,
+    });
   });
 
   test('applySelectedViewpoint replaces canvas contents with seeded nodes and semantic edges', () => {

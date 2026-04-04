@@ -33,6 +33,11 @@ export function buildWorkspaceNodes(projectionNodes: BrowserProjectionNode[]): B
     focused: node.focused,
     memberEntityIds: node.memberEntityIds,
     compartments: node.compartments,
+    classPresentationMode: node.classPresentationMode,
+    classVisibleCompartmentKinds: node.classVisibleCompartmentKinds,
+    isExpandedClassMember: node.isExpandedClassMember,
+    parentClassEntityId: node.parentClassEntityId,
+    memberKind: node.memberKind,
   }));
 }
 

@@ -17,7 +17,9 @@ import {
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectCanvasEntity,
+  setCanvasEntityClassPresentationMode,
   setCanvasViewport,
+  toggleCanvasEntityClassPresentationMembers,
   toggleCanvasNodePin,
 } from '../canvas';
 import { focusBrowserElement, openFactsPanel } from '../facts-panel/actions';
@@ -71,7 +73,9 @@ export const browserSessionCanvasMutations = {
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectCanvasEntity,
+  setCanvasEntityClassPresentationMode,
   setCanvasViewport,
+  toggleCanvasEntityClassPresentationMembers,
   toggleCanvasNodePin,
 };
 

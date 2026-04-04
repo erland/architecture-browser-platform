@@ -94,6 +94,12 @@ describe('browser compact UML regression coverage', () => {
     state = setSelectedViewpoint(state, 'domain-model');
     state = addEntityToCanvas(state, 'entity:order');
     state = addEntityToCanvas(state, 'entity:customer');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: true,
+    });
     state = {
       ...state,
       canvasNodes: [

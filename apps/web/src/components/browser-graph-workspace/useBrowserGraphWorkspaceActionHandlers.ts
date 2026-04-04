@@ -15,7 +15,10 @@ type Args = Pick<BrowserGraphWorkspaceProps,
   | 'onExpandOutboundDependencies'
   | 'onRemoveEntity'
   | 'onTogglePinNode'
+  | 'onSetClassPresentationMode'
+  | 'onToggleClassPresentationMembers'
 > & {
+  selectedClassEntityIds: string[];
   focusedEntity: FullSnapshotEntity | null;
 };
 
@@ -33,6 +36,9 @@ export function useBrowserGraphWorkspaceActionHandlers({
   onExpandOutboundDependencies,
   onRemoveEntity,
   onTogglePinNode,
+  onSetClassPresentationMode = () => {},
+  onToggleClassPresentationMembers = () => {},
+  selectedClassEntityIds,
 }: Args): BrowserGraphWorkspaceInteractionHandlers {
   const onEntityAction = useCallback((actionKey: string) => {
     if (!focusedEntity) {
@@ -80,8 +86,28 @@ export function useBrowserGraphWorkspaceActionHandlers({
     }
     if (actionKey === 'pin') {
       onTogglePinNode({ kind: 'entity', id: focusedEntity.externalId });
+      return;
     }
-  }, [focusedEntity, onAddContainedEntities, onAddPeerEntities, onAddScopeAnalysis, onExpandEntityDependencies, onExpandInboundDependencies, onExpandOutboundDependencies, onRemoveEntity, onTogglePinNode]);
+    if (actionKey === 'class-simple') {
+      onSetClassPresentationMode(selectedClassEntityIds, 'simple');
+      return;
+    }
+    if (actionKey === 'class-compartments') {
+      onSetClassPresentationMode(selectedClassEntityIds, 'compartments');
+      return;
+    }
+    if (actionKey === 'class-expanded') {
+      onSetClassPresentationMode(selectedClassEntityIds, 'expanded');
+      return;
+    }
+    if (actionKey === 'class-fields') {
+      onToggleClassPresentationMembers(selectedClassEntityIds, 'fields');
+      return;
+    }
+    if (actionKey === 'class-functions') {
+      onToggleClassPresentationMembers(selectedClassEntityIds, 'functions');
+    }
+  }, [focusedEntity, onAddContainedEntities, onAddPeerEntities, onAddScopeAnalysis, onExpandEntityDependencies, onExpandInboundDependencies, onExpandOutboundDependencies, onRemoveEntity, onSetClassPresentationMode, onToggleClassPresentationMembers, onTogglePinNode, selectedClassEntityIds]);
 
   const onActivateRelationship = useCallback((relationshipId: string) => {
     onFocusRelationship(relationshipId);

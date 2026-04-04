@@ -15,6 +15,8 @@ export {
   removeCanvasSelection,
   removeEntityFromCanvas,
   selectCanvasEntity,
+  setCanvasEntityClassPresentationMode,
+  toggleCanvasEntityClassPresentationMembers,
   toggleCanvasNodePin,
 } from './mutations';
 

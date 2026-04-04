@@ -24,6 +24,13 @@ export function EntitySections({ section, onSelectScope, onFocusRelationship, on
         <div className="browser-facts-panel__summary">
           {section.summary.map((line) => <p key={line} className="muted">{line}</p>)}
         </div>
+        {section.classPresentationSummary ? (
+          <div className="browser-facts-panel__summary">
+            <p><strong>Canvas presentation</strong></p>
+            {section.classPresentationSummary.visibleDetails.map((line) => <p key={line} className="muted">{line}</p>)}
+            {section.classPresentationSummary.hiddenDetails.map((line) => <p key={line} className="muted">{line}</p>)}
+          </div>
+        ) : null}
       </section>
 
       <section className="browser-facts-panel__section">

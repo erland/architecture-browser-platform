@@ -1,7 +1,9 @@
 import { planEntityInsertion } from '../../browser-canvas-placement';
+import { resolveBrowserStateViewpointPresentationPolicy } from '../../browser-graph/presentation';
 import type { BrowserDependencyDirection } from '../../browser-snapshot';
 import { getDependencyNeighborhood, getPrimaryEntitiesForScope } from '../../browser-snapshot';
 import type { BrowserSessionState } from '../model/types';
+import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../model/classPresentation';
 import { uniqueValues } from '../model/collections';
 import { syncMeaningfulCanvasEdges } from './relationships';
 import {
@@ -21,7 +23,12 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
   if (!entity) {
     return state;
   }
-  const canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId }, planEntityNodePosition(state, entityId));
+  const presentationPolicy = resolveBrowserStateViewpointPresentationPolicy(state);
+  const canvasNodes = upsertCanvasNode(state.canvasNodes, {
+    kind: 'entity',
+    id: entityId,
+    classPresentation: createCanvasEntityClassPresentationFromViewpointPolicy(entityId, state.index, presentationPolicy),
+  }, planEntityNodePosition(state, entityId));
   const canvasEdges = syncMeaningfulCanvasEdges(state, canvasNodes);
   return {
     ...state,
@@ -42,6 +49,7 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
 
   let canvasNodes = [...state.canvasNodes];
   const anchorEntityId = state.focusedElement?.kind === 'entity' ? state.focusedElement.id : null;
+  const presentationPolicy = resolveBrowserStateViewpointPresentationPolicy(state);
   for (const [index, entityId] of validEntityIds.entries()) {
     const entity = state.index.entitiesById.get(entityId);
     if (!entity) {
@@ -49,7 +57,11 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
     }
     canvasNodes = upsertCanvasNode(
       canvasNodes,
-      { kind: 'entity', id: entityId },
+      {
+        kind: 'entity',
+        id: entityId,
+        classPresentation: createCanvasEntityClassPresentationFromViewpointPolicy(entityId, state.index, presentationPolicy),
+      },
       planEntityInsertion(canvasNodes, state.index, entity, {
         anchorEntityId,
         selectedScopeId: state.selectedScopeId,
@@ -122,7 +134,13 @@ export function addDependenciesToCanvas(state: BrowserSessionState, entityId: st
       .map((edge) => edge.relationshipId),
   );
 
-  let canvasNodes = upsertCanvasNode(state.canvasNodes, { kind: 'entity', id: entityId, pinned: true }, planEntityNodePosition(state, entityId));
+  const presentationPolicy = resolveBrowserStateViewpointPresentationPolicy(state);
+  let canvasNodes = upsertCanvasNode(state.canvasNodes, {
+    kind: 'entity',
+    id: entityId,
+    pinned: true,
+    classPresentation: createCanvasEntityClassPresentationFromViewpointPolicy(entityId, state.index, presentationPolicy),
+  }, planEntityNodePosition(state, entityId));
   let canvasEdges = [...state.canvasEdges];
   const neighborsToInsert = uniqueValues(
     neighborhood.edges

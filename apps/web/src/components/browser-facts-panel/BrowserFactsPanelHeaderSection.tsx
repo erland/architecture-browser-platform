@@ -24,11 +24,18 @@ export function FactsPanelHeader({ header, onClose }: Pick<BrowserFactsPanelProp
   );
 }
 
-export function FactsPanelActions({ actions, onAddEntities, onTogglePinNode, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onAddEntities' | 'onTogglePinNode' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
+export function FactsPanelActions({ actions, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onAddEntities' | 'onTogglePinNode' | 'onSetClassPresentationMode' | 'onToggleClassPresentationMembers' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
   return (
     <div className="browser-facts-panel__actions">
       {actions.addEntityAction ? (() => { const addAction = actions.addEntityAction; return <button type="button" className="button-secondary" onClick={() => onAddEntities([addAction.entityId])}>{addAction.label}</button>; })() : null}
       {actions.pinEntityAction ? (() => { const pinAction = actions.pinEntityAction; return <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: pinAction.entityId })}>{pinAction.label}</button>; })() : null}
+      {actions.classPresentationActions ? (() => { const classActions = actions.classPresentationActions; return <>
+        <button type="button" className="button-secondary" onClick={() => onSetClassPresentationMode(classActions.entityIds, 'simple')} disabled={classActions.entityIds.length === 1 && classActions.mode === 'simple'}>Simple</button>
+        <button type="button" className="button-secondary" onClick={() => onSetClassPresentationMode(classActions.entityIds, 'compartments')} disabled={classActions.entityIds.length === 1 && classActions.mode === 'compartments'}>Compartments</button>
+        <button type="button" className="button-secondary" onClick={() => onSetClassPresentationMode(classActions.entityIds, 'expanded')} disabled={classActions.entityIds.length === 1 && classActions.mode === 'expanded'}>Expanded</button>
+        <button type="button" className="button-secondary" onClick={() => onToggleClassPresentationMembers(classActions.entityIds, 'fields')}>{classActions.showFields ? 'Hide fields' : 'Show fields'}</button>
+        <button type="button" className="button-secondary" onClick={() => onToggleClassPresentationMembers(classActions.entityIds, 'functions')}>{classActions.showFunctions ? 'Hide functions' : 'Show functions'}</button>
+      </>; })() : null}
       {actions.canIsolateSelection ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
       {actions.canRemoveSelection ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}
     </div>

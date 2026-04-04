@@ -10,7 +10,16 @@ import {
   upsertPinnedCanvasNode,
   upsertSelectedEntityIds,
 } from './nodes';
+import { normalizeBrowserClassPresentationPolicy } from '../model/classPresentation';
 import { deriveFactsPanelModeFromFocus, normalizeFocusedBrowserContext } from '../navigation/invariants';
+
+function withConservativePresentationRefresh(state: BrowserSessionState): BrowserSessionState {
+  return {
+    ...state,
+    routeRefreshRequestedAt: new Date().toISOString(),
+  };
+}
+
 
 export function removeEntityFromCanvas(state: BrowserSessionState, entityId: string): BrowserSessionState {
   const canvasNodes = state.canvasNodes.filter((node) => !(node.kind === 'entity' && node.id === entityId));
@@ -164,11 +173,11 @@ export function reconcileCanvasNodePositions(
   }
 
   return changed
-    ? {
+    ? withConservativePresentationRefresh({
         ...state,
         canvasNodes,
         appliedViewpoint: null,
-      }
+      })
     : state;
 }
 
@@ -180,4 +189,74 @@ export function toggleCanvasNodePin(state: BrowserSessionState, node: { kind: Br
     canvasNodes: upsertPinnedCanvasNode(state.canvasNodes, node.kind, node.id, nextPinned),
     appliedViewpoint: null,
   };
+}
+
+
+export function setCanvasEntityClassPresentationMode(
+  state: BrowserSessionState,
+  entityIds: string[],
+  mode: BrowserSessionState['canvasNodes'][number]['classPresentation'] extends infer _T ? import('../model/types').BrowserClassPresentationMode : never,
+): BrowserSessionState {
+  if (entityIds.length === 0) {
+    return state;
+  }
+  let changed = false;
+  const targets = new Set(entityIds);
+  const canvasNodes = state.canvasNodes.map((node) => {
+    if (node.kind !== 'entity' || !targets.has(node.id) || !node.classPresentation) {
+      return node;
+    }
+    if (node.classPresentation.mode === mode) {
+      return node;
+    }
+    changed = true;
+    return {
+      ...node,
+      classPresentation: {
+        ...normalizeBrowserClassPresentationPolicy(node.classPresentation),
+        mode,
+      },
+    };
+  });
+  return changed
+    ? withConservativePresentationRefresh({
+        ...state,
+        canvasNodes,
+        appliedViewpoint: null,
+      })
+    : state;
+}
+
+export function toggleCanvasEntityClassPresentationMembers(
+  state: BrowserSessionState,
+  entityIds: string[],
+  memberKind: 'fields' | 'functions',
+): BrowserSessionState {
+  if (entityIds.length === 0) {
+    return state;
+  }
+  let changed = false;
+  const key = memberKind === 'fields' ? 'showFields' : 'showFunctions';
+  const targets = new Set(entityIds);
+  const canvasNodes = state.canvasNodes.map((node) => {
+    if (node.kind !== 'entity' || !targets.has(node.id) || !node.classPresentation) {
+      return node;
+    }
+    const normalized = normalizeBrowserClassPresentationPolicy(node.classPresentation);
+    changed = true;
+    return {
+      ...node,
+      classPresentation: {
+        ...normalized,
+        [key]: !normalized[key],
+      },
+    };
+  });
+  return changed
+    ? {
+        ...state,
+        canvasNodes,
+        appliedViewpoint: null,
+      }
+    : state;
 }

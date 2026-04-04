@@ -1,4 +1,5 @@
 import type { FullSnapshotViewpoint } from '../../app-model';
+import { resolveBrowserStateViewpointPresentationPolicy } from '../../browser-graph/presentation';
 import { getViewpointById } from '../../browser-snapshot';
 import type {
   BrowserSessionState,
@@ -18,6 +19,7 @@ import {
 } from './helpers';
 import { planEntityInsertion } from '../../browser-canvas-placement';
 import type { BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browser-snapshot';
+import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../model/classPresentation';
 
 function updateAppliedViewpoint(
   state: BrowserSessionState,
@@ -111,7 +113,12 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
     }
     canvasNodes = upsertCanvasNode(
       canvasNodes,
-      { kind: 'entity', id: entityId, pinned: false },
+      {
+        kind: 'entity',
+        id: entityId,
+        pinned: false,
+        classPresentation: createCanvasEntityClassPresentationFromViewpointPolicy(entityId, state.index, resolveBrowserStateViewpointPresentationPolicy(state)),
+      },
       planEntityInsertion(canvasNodes, state.index, entity, {
         anchorEntityId: graph.seedEntityIds[0] ?? null,
         selectedScopeId: state.selectedScopeId,

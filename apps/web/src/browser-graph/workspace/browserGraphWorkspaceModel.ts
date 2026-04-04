@@ -7,6 +7,11 @@ import { buildWorkspaceNodes, compareWorkspaceNodes, normalizeProjectionEdgesFor
 import { buildWorkspaceRouting, compareWorkspaceEdges } from './browserGraphWorkspaceRouting';
 
 export type BrowserWorkspaceNodeModel = {
+  classPresentationMode?: 'simple' | 'compartments' | 'expanded';
+  classVisibleCompartmentKinds?: ('attributes' | 'operations')[];
+  isExpandedClassMember?: boolean;
+  parentClassEntityId?: string;
+  memberKind?: string;
   id: string;
   kind: 'scope' | 'entity' | 'uml-class';
   badgeLabel: string;

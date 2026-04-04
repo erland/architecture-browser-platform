@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session';
 import { buildBrowserFactsPanelPresentation } from './BrowserFactsPanel.presentation';
 import {
   DiagnosticsSection,
@@ -32,13 +32,15 @@ export type BrowserFactsPanelProps = {
   onFocusRelationship: (relationshipId: string) => void;
   onAddEntities: (entityIds: string[]) => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  onSetClassPresentationMode: (entityIds: string[], mode: BrowserClassPresentationMode) => void;
+  onToggleClassPresentationMembers: (entityIds: string[], memberKind: 'fields' | 'functions') => void;
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
   onClose: () => void;
 };
 
 export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
-  const { state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onIsolateSelection, onRemoveSelection, onClose } = props;
+  const { state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection, onClose } = props;
   const presentation = buildBrowserFactsPanelPresentation(state);
 
   if (!presentation) {
@@ -58,6 +60,8 @@ export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
         actions={presentation.header.actions}
         onAddEntities={onAddEntities}
         onTogglePinNode={onTogglePinNode}
+        onSetClassPresentationMode={onSetClassPresentationMode}
+        onToggleClassPresentationMembers={onToggleClassPresentationMembers}
         onIsolateSelection={onIsolateSelection}
         onRemoveSelection={onRemoveSelection}
       />

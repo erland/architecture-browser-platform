@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { FullSnapshotEntity } from '../../app-model';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type {
   BrowserEntitySelectionAction,
@@ -44,6 +44,9 @@ type ToolbarProps = {
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onShowScopeContainer: (scopeId?: string) => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  onSetClassPresentationMode: (entityIds: string[], mode: BrowserClassPresentationMode) => void;
+  onToggleClassPresentationMembers: (entityIds: string[], memberKind: 'fields' | 'functions') => void;
+  selectedClassEntityIds: string[];
   onEntityAction: (actionKey: string) => void;
 };
 

@@ -9,6 +9,8 @@ import {
   setCanvasViewport,
   setSelectedViewpoint,
   arrangeAllCanvasNodes,
+  setCanvasEntityClassPresentationMode,
+  toggleCanvasEntityClassPresentationMembers,
 } from '../../browser-session';
 import {
   createSavedCanvasDocumentFromBrowserSession,
@@ -53,6 +55,16 @@ function createPayloadWithChangedLocalIds(): FullSnapshotPayload {
     ],
     relationships: [
       { externalId: 'rel:browser-search:v2', kind: 'USES', fromEntityId: 'entity:browser:v2', toEntityId: 'entity:search:v2', label: 'uses', sourceRefs: [], metadata: {} },
+    ],
+  };
+}
+
+function createClassPayload(): FullSnapshotPayload {
+  return {
+    ...createPayload(),
+    entities: [
+      { externalId: 'entity:browser', kind: 'CLASS', origin: 'java', name: 'BrowserView', displayName: 'BrowserView', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:search', kind: 'CLASS', origin: 'java', name: 'SearchTab', displayName: 'SearchTab', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
     ],
   };
 }
@@ -103,7 +115,7 @@ describe('savedCanvasSessionMapping', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
-      payload: createPayload(),
+      payload: createClassPayload(),
     });
     state = addScopeToCanvas(state, 'scope:web');
     state = addEntityToCanvas(state, 'entity:browser');
@@ -124,7 +136,13 @@ describe('savedCanvasSessionMapping', () => {
     expect(document.content.nodes.map((node) => node.reference.targetType)).toEqual(expect.arrayContaining(['SCOPE', 'ENTITY']));
     expect(document.content.edges).toHaveLength(1);
     expect(document.content.edges[0].reference.targetType).toBe('RELATIONSHIP');
-    expect(document.content.nodes.find((node) => node.reference.targetType === 'ENTITY')?.reference.stableKey).not.toBe('entity:browser');
+    const savedEntityNode = document.content.nodes.find((node) => node.reference.targetType === 'ENTITY');
+    expect(savedEntityNode?.reference.stableKey).not.toBe('entity:browser');
+    expect(savedEntityNode?.presentation.classPresentation).toEqual({
+      mode: 'simple',
+      showFields: true,
+      showFunctions: true,
+    });
     expect(document.content.edges[0].reference.stableKey).not.toBe('rel:browser-search');
     expect(document.content.edges[0].reference.originalSnapshotLocalId).toBe('rel:browser-search');
   });
@@ -134,7 +152,7 @@ describe('savedCanvasSessionMapping', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
-      payload: createPayload(),
+      payload: createClassPayload(),
     });
     state = addEntityToCanvas(state, 'entity:browser');
     state = addDependenciesToCanvas(state, 'entity:browser');
@@ -219,6 +237,43 @@ describe('savedCanvasSessionMapping', () => {
         toEntityId: 'entity:search:v2',
       },
     ]);
+  });
+
+
+  test('round-trips saved class presentation policy for entity nodes', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createClassPayload(),
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = setCanvasEntityClassPresentationMode(state, ['entity:browser'], 'expanded');
+    state = toggleCanvasEntityClassPresentationMembers(state, ['entity:browser'], 'functions');
+
+    const document = createSavedCanvasDocumentFromBrowserSession({
+      state,
+      canvasId: 'canvas-class-policy-1',
+      name: 'Class policy canvas',
+    });
+
+    const savedNode = document.content.nodes.find((node) => node.canvasNodeId === 'entity:entity:browser');
+    expect(savedNode?.presentation.classPresentation).toEqual({
+      mode: 'expanded',
+      showFields: true,
+      showFunctions: false,
+    });
+
+    const restored = restoreSavedCanvasToBrowserSession({
+      document,
+      payload: createClassPayload(),
+    });
+
+    const restoredNode = restored.state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:browser');
+    expect(restoredNode?.classPresentation).toEqual({
+      mode: 'expanded',
+      showFields: true,
+      showFunctions: false,
+    });
   });
 
   test('reports unresolved items during restore when the target snapshot no longer contains them', () => {

@@ -1,5 +1,5 @@
 import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { BrowserCanvasNode, BrowserSessionState } from '../../browser-session';
+import type { BrowserCanvasNode, BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
 
@@ -23,6 +23,8 @@ export type BrowserGraphWorkspaceProps = {
   onRemoveSelection: () => void;
   onIsolateSelection: () => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+  onSetClassPresentationMode?: (entityIds: string[], mode: BrowserClassPresentationMode) => void;
+  onToggleClassPresentationMembers?: (entityIds: string[], memberKind: 'fields' | 'functions') => void;
   onMoveCanvasNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
   onReconcileCanvasNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;

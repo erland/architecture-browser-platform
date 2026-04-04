@@ -156,6 +156,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -204,6 +206,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -255,6 +259,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -354,6 +360,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -401,6 +409,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -452,6 +462,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -486,6 +498,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
       onRemoveSelection: () => {},
       onIsolateSelection: () => {},
       onTogglePinNode: () => {},
+      onSetClassPresentationMode: () => {},
+      onToggleClassPresentationMembers: () => {},
       onArrangeAllCanvasNodes: () => {},
       onArrangeCanvasAroundFocus: () => {},
       onClearCanvas: () => {},
@@ -504,4 +518,65 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
   });
 
 
+});
+
+
+test('renders class presentation controls for selected class entities in the toolbar', () => {
+  let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+    workspaceId: 'ws-1',
+    repositoryId: 'repo-1',
+    payload: createPayload(),
+  });
+  state = {
+    ...state,
+    index: {
+      ...state.index!,
+      entitiesById: new Map(state.index!.entitiesById),
+    },
+  };
+  const classEntity = state.index!.entitiesById.get('entity:module');
+  if (classEntity) {
+    state.index!.entitiesById.set('entity:module', { ...classEntity, kind: 'CLASS' });
+  }
+  state = {
+    ...state,
+    canvasNodes: [{ id: 'entity:module', kind: 'entity', x: 56, y: 64, classPresentation: { mode: 'simple', showFields: true, showFunctions: true } }],
+    focusedElement: { kind: 'entity', id: 'entity:module' },
+    selectedEntityIds: ['entity:module'],
+  };
+
+  const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+    state,
+    activeModeLabel: 'Analysis',
+    onShowScopeContainer: () => {},
+    onAddScopeAnalysis: () => {},
+    onAddContainedEntities: () => {},
+    onAddPeerEntities: () => {},
+    onFocusScope: () => {},
+    onFocusEntity: () => {},
+    onSelectEntity: () => {},
+    onFocusRelationship: () => {},
+    onExpandEntityDependencies: () => {},
+    onExpandInboundDependencies: () => {},
+    onExpandOutboundDependencies: () => {},
+    onRemoveEntity: () => {},
+    onRemoveSelection: () => {},
+    onIsolateSelection: () => {},
+    onTogglePinNode: () => {},
+    onSetClassPresentationMode: () => {},
+    onToggleClassPresentationMembers: () => {},
+    onArrangeAllCanvasNodes: () => {},
+    onArrangeCanvasAroundFocus: () => {},
+    onClearCanvas: () => {},
+    onFitView: () => {},
+    onMoveCanvasNode: () => {},
+    onReconcileCanvasNodePositions: () => {},
+    onSetCanvasViewport: () => {},
+  }));
+
+  expect(markup).toContain('Class presentation');
+  expect(markup).toContain('Compartments');
+  expect(markup).toContain('Expanded');
+  expect(markup).toContain('Hide fields');
+  expect(markup).toContain('Hide functions');
 });

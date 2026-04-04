@@ -17,6 +17,14 @@ export type BrowserFocusedElement =
   | { kind: 'relationship'; id: string }
   | null;
 
+export type BrowserClassPresentationMode = 'simple' | 'compartments' | 'expanded';
+
+export type BrowserClassPresentationPolicy = {
+  mode: BrowserClassPresentationMode;
+  showFields: boolean;
+  showFunctions: boolean;
+};
+
 export type BrowserCanvasNode = {
   kind: 'scope' | 'entity';
   id: string;
@@ -24,6 +32,7 @@ export type BrowserCanvasNode = {
   y: number;
   pinned?: boolean;
   manuallyPlaced?: boolean;
+  classPresentation?: BrowserClassPresentationPolicy;
 };
 
 export type BrowserCanvasLayoutMode = 'grid' | 'radial' | 'structure' | 'balanced' | 'flow' | 'hierarchy';

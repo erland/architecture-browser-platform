@@ -1,4 +1,5 @@
 import { getOrBuildBrowserSnapshotIndex } from '../../../browser-snapshot';
+import { normalizeBrowserClassPresentationPolicy } from '../../../browser-session/model/classPresentation';
 import { getSavedCanvasBrowserSessionLifecycle } from '../runtime';
 import type {
   SavedCanvasBrowserCanvasEdge,
@@ -101,6 +102,9 @@ function restoreSavedCanvasNode(
     y: node.position.y,
     pinned: node.presentation.pinned,
     manuallyPlaced: Boolean(node.metadata?.manuallyPlaced ?? true),
+    classPresentation: node.reference.targetType === 'ENTITY' && node.presentation.classPresentation
+      ? normalizeBrowserClassPresentationPolicy(node.presentation.classPresentation)
+      : undefined,
   };
 }
 

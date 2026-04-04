@@ -93,6 +93,7 @@ function mapBrowserCanvasNodeToSavedCanvasNode(
       hidden: false,
       collapsed: false,
       zIndex: null,
+      classPresentation: node.kind === 'entity' ? node.classPresentation ?? null : null,
     },
     annotationIds: [],
     metadata: {

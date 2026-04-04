@@ -56,6 +56,11 @@ describe("savedCanvasModel", () => {
             pinned: true,
             hidden: false,
             collapsed: false,
+            classPresentation: {
+              mode: 'compartments',
+              showFields: true,
+              showFunctions: false,
+            },
           },
           annotationIds: [],
           metadata: {},
@@ -69,6 +74,11 @@ describe("savedCanvasModel", () => {
     expect(document.content.nodes[0].position).toEqual({ x: 120, y: 240 });
     expect(document.content.nodes[0].reference.stableKey).toBe("entity:java:class:OrderService");
     expect(document.content.nodes[0].reference.originalSnapshotLocalId).toBe("entity-123");
+    expect(document.content.nodes[0].presentation.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: false,
+    });
   });
 
   it("represents unsynchronized local state", () => {

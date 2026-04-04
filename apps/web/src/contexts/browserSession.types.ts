@@ -3,6 +3,7 @@ import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScope
 import type { FullSnapshotPayload } from '../app-model';
 import type {
   BrowserCanvasViewport,
+  BrowserClassPresentationMode,
   BrowserFactsPanelLocation,
   BrowserFactsPanelMode,
   BrowserFocusedElement,
@@ -49,6 +50,8 @@ export type BrowserSessionActionGroups = {
     isolateSelection: () => void;
     removeSelection: () => void;
     toggleNodePin: (node: { kind: 'scope' | 'entity'; id: string }) => void;
+    setClassPresentationMode: (entityIds: string[], mode: BrowserClassPresentationMode) => void;
+    toggleClassPresentationMembers: (entityIds: string[], memberKind: 'fields' | 'functions') => void;
     moveNode: (node: { kind: 'scope' | 'entity'; id: string }, position: { x: number; y: number }) => void;
     reconcileNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
     setViewport: (viewport: Partial<BrowserCanvasViewport>) => void;

@@ -55,6 +55,26 @@ function createPayload(): FullSnapshotPayload {
   };
 }
 
+
+function createExpandedMemberEdgePayload(): FullSnapshotPayload {
+  const payload = createPayload();
+  return {
+    ...payload,
+    snapshot: {
+      ...payload.snapshot,
+      entityCount: 4,
+      relationshipCount: 4,
+    },
+    entities: [
+      ...payload.entities,
+      { externalId: 'entity:service', kind: 'SERVICE', origin: 'java', name: 'OrderService', displayName: 'OrderService', scopeId: 'scope:domain', sourceRefs: [], metadata: {} },
+    ],
+    relationships: [
+      ...payload.relationships,
+      { externalId: 'rel:service-field', kind: 'USES', fromEntityId: 'entity:service', toEntityId: 'entity:order:id', label: 'reads', sourceRefs: [], metadata: {} },
+    ],
+  };
+}
 describe('browserProjectionModel', () => {
   afterEach(() => {
     clearBrowserSnapshotIndex();
@@ -119,11 +139,11 @@ describe('browserProjectionModel', () => {
     const orderNode = projection.nodes.find((node) => node.source.kind === 'entity' && node.source.id === 'entity:order');
 
     expect(projection.presentationPolicy.mode).toBe('compact-uml');
-    expect(projection.suppressedEntityIds).toEqual(['entity:order:id', 'entity:order:save']);
+    expect(projection.suppressedEntityIds).toEqual(['entity:order:id']);
     expect(projection.nodes.map((node) => node.source.id)).toEqual(['entity:order']);
     expect(projection.edges).toEqual([]);
     expect(orderNode?.kind).toBe('uml-class');
-    expect(orderNode?.memberEntityIds).toEqual(['entity:order:id', 'entity:order:save']);
+    expect(orderNode?.memberEntityIds).toEqual(['entity:order:id']);
     expect(orderNode?.compartments).toEqual([
       {
         kind: 'attributes',
@@ -138,24 +158,54 @@ describe('browserProjectionModel', () => {
           },
         ],
       },
-      {
-        kind: 'operations',
-        items: [
-          {
-            entityId: 'entity:order:save',
-            kind: 'FUNCTION',
-            title: 'save',
-            subtitle: 'FUNCTION',
-            selected: false,
-            focused: false,
-          },
-        ],
-      },
     ]);
     expect((orderNode?.width ?? 0)).toBeGreaterThan(196);
     expect((orderNode?.height ?? 0)).toBeGreaterThan(84);
   });
 
+
+
+  test('materializes expanded class members as projected child nodes beneath the class node', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        {
+          kind: 'entity',
+          id: 'entity:order',
+          x: 40,
+          y: 60,
+          classPresentation: {
+            mode: 'expanded',
+            showFields: true,
+            showFunctions: true,
+          },
+        },
+        { kind: 'entity', id: 'entity:order:id', x: 360, y: 60 },
+      ],
+    };
+
+    const projection = buildBrowserProjectionModel(state);
+    const orderNode = projection.nodes.find((node) => node.source.kind === 'entity' && node.source.id === 'entity:order');
+    const fieldNode = projection.nodes.find((node) => node.source.kind === 'entity' && node.source.id === 'entity:order:id' && node.isExpandedClassMember);
+    const functionNode = projection.nodes.find((node) => node.source.kind === 'entity' && node.source.id === 'entity:order:save' && node.isExpandedClassMember);
+
+    expect(orderNode?.kind).toBe('uml-class');
+    expect(orderNode?.classPresentationMode).toBe('expanded');
+    expect(orderNode?.compartments).toEqual([]);
+    expect(projection.suppressedEntityIds).toEqual(['entity:order:id', 'entity:order:save']);
+    expect(projection.nodes.map((node) => node.source.id).sort()).toEqual(['entity:order', 'entity:order:id', 'entity:order:save'].sort());
+    expect(fieldNode?.parentClassEntityId).toBe('entity:order');
+    expect(functionNode?.parentClassEntityId).toBe('entity:order');
+    expect(fieldNode?.subtitle).toBe('Field');
+    expect(functionNode?.subtitle).toBe('Function');
+    expect((fieldNode?.y ?? 0)).toBeGreaterThan((orderNode?.y ?? 0) + (orderNode?.height ?? 0));
+    expect((functionNode?.y ?? 0)).toBeGreaterThan(fieldNode?.y ?? 0);
+  });
 
   test('surfaces member selection and focus state through compact uml projections', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
@@ -199,6 +249,75 @@ describe('browserProjectionModel', () => {
     const operationItem = orderNode?.compartments.find((compartment) => compartment.kind === 'operations')?.items[0];
     expect(attributeItem?.selected).toBe(true);
     expect(operationItem?.focused).toBe(true);
+  });
+
+
+  test('surfaces visible member-level edges when a class is expanded', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createExpandedMemberEdgePayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        {
+          kind: 'entity',
+          id: 'entity:order',
+          x: 40,
+          y: 60,
+          classPresentation: {
+            mode: 'expanded',
+            showFields: true,
+            showFunctions: false,
+          },
+        },
+        { kind: 'entity', id: 'entity:service', x: 360, y: 60 },
+      ],
+      canvasEdges: [],
+    };
+
+    const projection = buildBrowserProjectionModel(state);
+
+    expect(projection.nodes.map((node) => node.source.id).sort()).toEqual(['entity:order', 'entity:order:id', 'entity:service'].sort());
+    expect(projection.edges.map((edge) => edge.relationshipId).sort()).toEqual(['rel:contains:id', 'rel:service-field'].sort());
+    expect(projection.edges.find((edge) => edge.relationshipId === 'rel:service-field')).toMatchObject({
+      fromNodeId: 'entity:entity:service',
+      toNodeId: 'entity:entity:order:id',
+      fromEntityId: 'entity:service',
+      toEntityId: 'entity:order:id',
+    });
+  });
+
+  test('hides member-level edges when a class is compacted so no orphan edges remain', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createExpandedMemberEdgePayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        {
+          kind: 'entity',
+          id: 'entity:order',
+          x: 40,
+          y: 60,
+          classPresentation: {
+            mode: 'compartments',
+            showFields: true,
+            showFunctions: false,
+          },
+        },
+        { kind: 'entity', id: 'entity:service', x: 360, y: 60 },
+      ],
+      canvasEdges: [],
+    };
+
+    const projection = buildBrowserProjectionModel(state);
+
+    expect(projection.nodes.map((node) => node.source.id).sort()).toEqual(['entity:order', 'entity:service'].sort());
+    expect(projection.edges).toEqual([]);
   });
 
 });

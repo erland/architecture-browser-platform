@@ -22,6 +22,11 @@ export type BrowserProjectionCompartment = {
 };
 
 export type BrowserProjectionNode = {
+  classPresentationMode?: 'simple' | 'compartments' | 'expanded';
+  classVisibleCompartmentKinds?: BrowserProjectionCompartmentKind[];
+  isExpandedClassMember?: boolean;
+  parentClassEntityId?: string;
+  memberKind?: string;
   id: string;
   kind: BrowserProjectionNodeKind;
   source: BrowserProjectionSource;

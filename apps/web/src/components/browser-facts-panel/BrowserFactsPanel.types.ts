@@ -88,6 +88,12 @@ export type BrowserFactsPanelMetric = {
 export type BrowserFactsPanelActionsModel = {
   addEntityAction: { entityId: string; label: string } | null;
   pinEntityAction: { entityId: string; label: string } | null;
+  classPresentationActions: {
+    entityIds: string[];
+    mode: 'simple' | 'compartments' | 'expanded';
+    showFields: boolean;
+    showFunctions: boolean;
+  } | null;
   canIsolateSelection: boolean;
   canRemoveSelection: boolean;
 };
@@ -122,6 +128,12 @@ export type BrowserFactsPanelScopeSectionModel = {
   metrics: BrowserFactsPanelMetric[];
 };
 
+export type BrowserFactsPanelClassPresentationSummary = {
+  mode: 'simple' | 'compartments' | 'expanded';
+  hiddenDetails: string[];
+  visibleDetails: string[];
+};
+
 export type BrowserFactsPanelEntitySectionModel = {
   entityFacts: BrowserEntityFacts;
   inboundRelationships: FullSnapshotRelationship[];
@@ -129,6 +141,7 @@ export type BrowserFactsPanelEntitySectionModel = {
   scopeId: string | null;
   summary: string[];
   metrics: BrowserFactsPanelMetric[];
+  classPresentationSummary: BrowserFactsPanelClassPresentationSummary | null;
 };
 
 export type BrowserFactsPanelRelationshipConnectedEntity = {

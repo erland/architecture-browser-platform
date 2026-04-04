@@ -19,7 +19,7 @@ const AUTO_VISIBLE_RELATIONSHIP_KINDS = new Set([
   'ASSOCIATION',
 ]);
 
-function isRelationshipMeaningfulForCanvas(relationship: FullSnapshotRelationship) {
+export function isRelationshipMeaningfulForCanvas(relationship: FullSnapshotRelationship) {
   if (getArchitecturalSemantics(relationship).length > 0) {
     return true;
   }

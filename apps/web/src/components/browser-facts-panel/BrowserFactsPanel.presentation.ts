@@ -1,8 +1,10 @@
 import type { BrowserSessionState } from '../../browser-session';
+import { isClassLikeCanvasEntityKind, normalizeBrowserClassPresentationPolicy, resolveCanvasClassPresentationTargetEntityIds } from '../../browser-session/model/classPresentation';
 import { buildBrowserFactsPanelModel } from './BrowserFactsPanel.model';
 import type {
   BrowserFactsPanelActionsModel,
   BrowserFactsPanelDiagnosticsSectionModel,
+  BrowserFactsPanelClassPresentationSummary,
   BrowserFactsPanelEntitySectionModel,
   BrowserFactsPanelHeaderModel,
   BrowserFactsPanelPresentationModel,
@@ -30,6 +32,10 @@ function buildActionsModel(state: BrowserSessionState, model: NonNullable<Return
     ? state.canvasNodes.find((node) => node.kind === 'entity' && node.id === selectedEntityId)
     : null;
   const selectedCanvasEntityIds = state.selectedEntityIds.filter((entityId) => state.canvasNodes.some((node) => node.kind === 'entity' && node.id === entityId));
+  const classPresentationEntityIds = resolveCanvasClassPresentationTargetEntityIds(state);
+  const classPresentationNode = classPresentationEntityIds.length === 1
+    ? state.canvasNodes.find((node) => node.kind === 'entity' && node.id === classPresentationEntityIds[0])
+    : null;
   const focusedCanvasScopeNode = state.focusedElement?.kind === 'scope'
     ? state.canvasNodes.find((node) => node.kind === 'scope' && node.id === state.focusedElement?.id)
     : null;
@@ -47,8 +53,85 @@ function buildActionsModel(state: BrowserSessionState, model: NonNullable<Return
           label: selectedCanvasEntityNode.pinned ? 'Unpin entity' : 'Pin entity',
         }
       : null,
+    classPresentationActions: classPresentationEntityIds.length > 0 && classPresentationNode?.classPresentation
+      ? {
+          entityIds: classPresentationEntityIds,
+          mode: classPresentationNode.classPresentation.mode,
+          showFields: classPresentationNode.classPresentation.showFields,
+          showFunctions: classPresentationNode.classPresentation.showFunctions,
+        }
+      : null,
     canIsolateSelection: selectedCanvasEntityIds.length > 0 || Boolean(focusedCanvasScopeNode),
     canRemoveSelection: selectedCanvasEntityIds.length > 0 || Boolean(focusedCanvasScopeNode),
+  };
+}
+
+
+const FIELD_MEMBER_KINDS = new Set(['FIELD', 'PROPERTY']);
+const FUNCTION_MEMBER_KINDS = new Set(['FUNCTION', 'METHOD']);
+
+function countContainedMembersByKind(state: BrowserSessionState, entityId: string): { fields: number; functions: number } {
+  const containedIds = state.index?.containedEntityIdsByEntityId.get(entityId) ?? [];
+  let fields = 0;
+  let functions = 0;
+  for (const memberId of containedIds) {
+    const member = state.index?.entitiesById.get(memberId);
+    if (!member) {
+      continue;
+    }
+    if (FIELD_MEMBER_KINDS.has(member.kind)) {
+      fields += 1;
+      continue;
+    }
+    if (FUNCTION_MEMBER_KINDS.has(member.kind)) {
+      functions += 1;
+    }
+  }
+  return { fields, functions };
+}
+
+function buildClassPresentationSummary(
+  state: BrowserSessionState,
+  entityId: string,
+): BrowserFactsPanelClassPresentationSummary | null {
+  const entity = state.index?.entitiesById.get(entityId);
+  if (!isClassLikeCanvasEntityKind(entity?.kind)) {
+    return null;
+  }
+  const canvasNode = state.canvasNodes.find((node) => node.kind === 'entity' && node.id === entityId);
+  if (!canvasNode?.classPresentation) {
+    return null;
+  }
+
+  const classPresentation = normalizeBrowserClassPresentationPolicy(canvasNode.classPresentation);
+  const effectiveMode = classPresentation.showFields || classPresentation.showFunctions ? classPresentation.mode : 'simple';
+  const counts = countContainedMembersByKind(state, entityId);
+  const visibleDetails: string[] = [];
+  const hiddenDetails: string[] = [];
+
+  visibleDetails.push(`Canvas presentation ${effectiveMode}.`);
+
+  if (classPresentation.showFields) {
+    visibleDetails.push(counts.fields > 0 ? `Fields are available (${counts.fields}).` : 'No field members are available.');
+  } else if (counts.fields > 0) {
+    hiddenDetails.push(`Fields are hidden (${counts.fields} available).`);
+  }
+
+  if (classPresentation.showFunctions) {
+    visibleDetails.push(counts.functions > 0 ? `Functions are available (${counts.functions}).` : 'No function members are available.');
+  } else if (counts.functions > 0) {
+    hiddenDetails.push(`Functions are hidden (${counts.functions} available).`);
+  }
+
+  const visibleMemberCount = (classPresentation.showFields ? counts.fields : 0) + (classPresentation.showFunctions ? counts.functions : 0);
+  if (effectiveMode !== 'expanded' && visibleMemberCount > 0) {
+    hiddenDetails.push(`Member detail is compacted into the class node; switch to Expanded to show ${visibleMemberCount} member ${visibleMemberCount === 1 ? 'node' : 'nodes'}.`);
+  }
+
+  return {
+    mode: effectiveMode,
+    hiddenDetails,
+    visibleDetails,
   };
 }
 
@@ -110,6 +193,7 @@ function buildEntitySectionModel(state: BrowserSessionState, model: NonNullable<
   const scopeLabel = entityFacts.scope ? displayScopeName(entityFacts.scope) : 'the prepared snapshot';
   const architecturalRoles = getEntityArchitecturalRoles(entity);
   const onCanvas = state.canvasNodes.some((node) => node.kind === 'entity' && node.id === entity.externalId);
+  const classPresentationSummary = onCanvas ? buildClassPresentationSummary(state, entity.externalId) : null;
   return {
     entityFacts,
     inboundRelationships: entityFacts.inboundRelationships.slice(0, 8),
@@ -127,6 +211,7 @@ function buildEntitySectionModel(state: BrowserSessionState, model: NonNullable<
       { value: onCanvas ? 'Yes' : 'No', label: 'On canvas' },
       { value: String(entityFacts.sourceRefs.length), label: 'Source refs' },
     ],
+    classPresentationSummary,
   };
 }
 

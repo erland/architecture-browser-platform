@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { resolveCanvasClassPresentationTargetEntityIds } from '../../browser-session/model/classPresentation';
 import { buildBrowserGraphWorkspaceModel, buildBrowserGraphWorkspaceSummary } from '../../browser-graph/workspace';
 import { buildEntitySelectionActions } from './BrowserGraphWorkspace.actions';
 import { BrowserGraphWorkspaceCanvas, BrowserGraphWorkspaceToolbar } from './BrowserGraphWorkspace.sections';
@@ -27,6 +28,8 @@ export function BrowserGraphWorkspace({
   onRemoveSelection,
   onIsolateSelection,
   onTogglePinNode,
+  onSetClassPresentationMode = () => {},
+  onToggleClassPresentationMembers = () => {},
   onMoveCanvasNode,
   onReconcileCanvasNodePositions,
   onSetCanvasViewport,
@@ -52,6 +55,7 @@ export function BrowserGraphWorkspace({
     pinnedNodeCount,
   } = useMemo(() => buildBrowserGraphWorkspaceSummary(state), [state]);
   const entityActions = useMemo(() => buildEntitySelectionActions(state.index, focusedEntity), [state.index, focusedEntity]);
+  const selectedClassEntityIds = useMemo(() => resolveCanvasClassPresentationTargetEntityIds(state), [state]);
 
   const interactionHandlers = useBrowserGraphWorkspaceActionHandlers({
     focusedEntity,
@@ -67,6 +71,9 @@ export function BrowserGraphWorkspace({
     onExpandOutboundDependencies,
     onRemoveEntity,
     onTogglePinNode,
+    onSetClassPresentationMode,
+    onToggleClassPresentationMembers,
+    selectedClassEntityIds,
   });
 
   const { viewportRef, suppressClickRef, beginNodeDrag, beginViewportPan, handleViewportWheel } = useBrowserGraphWorkspaceInteractions({
@@ -103,6 +110,9 @@ export function BrowserGraphWorkspace({
         onSetCanvasViewport={onSetCanvasViewport}
         onShowScopeContainer={onShowScopeContainer}
         onTogglePinNode={onTogglePinNode}
+        onSetClassPresentationMode={onSetClassPresentationMode}
+        onToggleClassPresentationMembers={onToggleClassPresentationMembers}
+        selectedClassEntityIds={selectedClassEntityIds}
         onEntityAction={interactionHandlers.onEntityAction}
       />
       <BrowserGraphWorkspaceCanvas

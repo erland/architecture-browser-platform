@@ -6,79 +6,19 @@ import {
   UML_CLASS_MIN_WIDTH,
   UML_CLASS_ROW_HEIGHT,
 } from '../browser-graph/canvas';
-import { appliesCompactUmlPresentation, type BrowserViewpointPresentationPolicy } from '../browser-graph/presentation';
+import type { BrowserViewpointPresentationPolicy } from '../browser-graph/presentation';
 import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
+import { deriveBrowserClassRepresentation } from './classRepresentation';
 import { compareProjectionStrings, displayProjectionName, formatProjectionKindBadgeLabel, resolveProjectionSourceForCanvasNode } from './sourceMapping';
 import type {
   BrowserNodeFrame,
   BrowserProjectionCompartment,
-  BrowserProjectionCompartmentItem,
   BrowserProjectionNode,
 } from './types';
 
-const CLASSIFIER_KINDS = new Set(['CLASS', 'INTERFACE', 'ENUM', 'TYPE']);
-const ATTRIBUTE_MEMBER_KINDS = new Set(['FIELD', 'PROPERTY']);
-const OPERATION_MEMBER_KINDS = new Set(['FUNCTION', 'METHOD']);
-
-function isCompactUmlClassifierEntity(
-  entity: FullSnapshotEntity,
-  policy: BrowserViewpointPresentationPolicy,
-) {
-  return appliesCompactUmlPresentation(policy) && CLASSIFIER_KINDS.has(entity.kind);
-}
-
-function buildCompartmentItem(state: BrowserSessionState, entity: FullSnapshotEntity, subtitle: string): BrowserProjectionCompartmentItem {
-  return {
-    entityId: entity.externalId,
-    kind: entity.kind,
-    title: displayProjectionName(entity),
-    subtitle,
-    selected: state.selectedEntityIds.includes(entity.externalId),
-    focused: state.focusedElement?.kind === 'entity' && state.focusedElement.id === entity.externalId,
-  };
-}
-
-function buildCompactUmlCompartments(
-  state: BrowserSessionState,
-  entity: FullSnapshotEntity,
-  policy: BrowserViewpointPresentationPolicy,
-): BrowserProjectionCompartment[] {
-  const index = state.index;
-  if (!index) {
-    return [];
-  }
-
-  const allowedMemberKinds = new Set(policy.compactMemberKinds);
-  const containedMemberIds = index.containedEntityIdsByEntityId.get(entity.externalId) ?? [];
-  const members = containedMemberIds
-    .map((memberId) => index.entitiesById.get(memberId))
-    .filter((member): member is FullSnapshotEntity => Boolean(member))
-    .filter((member) => allowedMemberKinds.has(member.kind));
-
-  const compartments: BrowserProjectionCompartment[] = [];
-
-  if (policy.showAttributeCompartment) {
-    const attributes = members
-      .filter((member) => ATTRIBUTE_MEMBER_KINDS.has(member.kind))
-      .sort((left, right) => compareProjectionStrings(displayProjectionName(left), displayProjectionName(right)))
-      .map((member) => buildCompartmentItem(state, member, member.kind));
-    if (attributes.length > 0) {
-      compartments.push({ kind: 'attributes', items: attributes });
-    }
-  }
-
-  if (policy.showOperationCompartment) {
-    const operations = members
-      .filter((member) => OPERATION_MEMBER_KINDS.has(member.kind))
-      .sort((left, right) => compareProjectionStrings(displayProjectionName(left), displayProjectionName(right)))
-      .map((member) => buildCompartmentItem(state, member, member.kind));
-    if (operations.length > 0) {
-      compartments.push({ kind: 'operations', items: operations });
-    }
-  }
-
-  return compartments;
-}
+const EXPANDED_CLASS_MEMBER_INDENT = 28;
+const EXPANDED_CLASS_MEMBER_VERTICAL_GAP = 16;
+const EXPANDED_CLASS_MEMBER_ROW_GAP = 12;
 
 function getNodeFrame(node: BrowserCanvasNode): BrowserNodeFrame {
   if (node.kind === 'scope') {
@@ -129,36 +69,105 @@ function buildScopeProjectionNode(state: BrowserSessionState, canvasNode: Browse
     focused: state.focusedElement?.kind === 'scope' && state.focusedElement.id === canvasNode.id,
     memberEntityIds: [],
     compartments: [],
+    classPresentationMode: undefined,
+    classVisibleCompartmentKinds: [],
+    isExpandedClassMember: false,
+    parentClassEntityId: undefined,
+    memberKind: undefined,
   };
 }
 
-function buildEntityProjectionNode(
+function buildExpandedMemberProjectionNodes(
+  state: BrowserSessionState,
+  parentCanvasNode: BrowserCanvasNode,
+  parentFrame: BrowserNodeFrame,
+  expandedMemberEntityIds: string[],
+  parentEntityId: string,
+): BrowserProjectionNode[] {
+  const index = state.index;
+  if (!index || expandedMemberEntityIds.length === 0) {
+    return [];
+  }
+
+  const nodes: BrowserProjectionNode[] = [];
+
+  expandedMemberEntityIds.forEach((memberEntityId, indexPosition) => {
+      const member = index.entitiesById.get(memberEntityId);
+      if (!member) {
+        return null;
+      }
+
+      nodes.push({
+        id: `entity:${member.externalId}`,
+        kind: 'entity',
+        source: { kind: 'entity' as const, id: member.externalId },
+        badgeLabel: formatProjectionKindBadgeLabel(member.kind),
+        title: displayProjectionName(member),
+        subtitle: formatProjectionKindBadgeLabel(member.kind),
+        x: parentCanvasNode.x + EXPANDED_CLASS_MEMBER_INDENT,
+        y: parentFrame.y + parentFrame.height + EXPANDED_CLASS_MEMBER_VERTICAL_GAP + (indexPosition * (BROWSER_ENTITY_NODE_SIZE.height + EXPANDED_CLASS_MEMBER_ROW_GAP)),
+        width: BROWSER_ENTITY_NODE_SIZE.width,
+        height: BROWSER_ENTITY_NODE_SIZE.height,
+        pinned: Boolean(parentCanvasNode.pinned),
+        selected: state.selectedEntityIds.includes(member.externalId),
+        focused: state.focusedElement?.kind === 'entity' && state.focusedElement.id === member.externalId,
+        memberEntityIds: [],
+        compartments: [],
+        classPresentationMode: undefined,
+        classVisibleCompartmentKinds: [],
+        isExpandedClassMember: true,
+        parentClassEntityId: parentEntityId,
+        memberKind: member.kind,
+      } satisfies BrowserProjectionNode);
+    });
+
+  return nodes;
+}
+
+function buildEntityProjectionNodes(
   state: BrowserSessionState,
   canvasNode: BrowserCanvasNode,
   entity: FullSnapshotEntity,
   presentationPolicy: BrowserViewpointPresentationPolicy,
-): BrowserProjectionNode {
-  const compartments = isCompactUmlClassifierEntity(entity, presentationPolicy)
-    ? buildCompactUmlCompartments(state, entity, presentationPolicy)
-    : [];
-  const frame = compartments.length > 0 ? getCompactUmlNodeFrame(canvasNode, compartments) : getNodeFrame(canvasNode);
-  const memberEntityIds = compartments.flatMap((compartment) => compartment.items.map((item) => item.entityId));
-  const hasSelectedMember = compartments.some((compartment) => compartment.items.some((item) => item.selected));
-  const hasFocusedMember = compartments.some((compartment) => compartment.items.some((item) => item.focused));
-  return {
+): BrowserProjectionNode[] {
+  const classRepresentation = deriveBrowserClassRepresentation(state, canvasNode, entity, presentationPolicy);
+  const frame = classRepresentation.nodeKind === 'uml-class'
+    ? getCompactUmlNodeFrame(canvasNode, classRepresentation.compartments)
+    : getNodeFrame(canvasNode);
+  const parentNode: BrowserProjectionNode = {
     id: `entity:${canvasNode.id}`,
-    kind: compartments.length > 0 ? 'uml-class' : 'entity',
+    kind: classRepresentation.nodeKind,
     source: { kind: 'entity', id: canvasNode.id },
     badgeLabel: formatProjectionKindBadgeLabel(entity.kind),
     title: displayProjectionName(entity),
     subtitle: '',
     ...frame,
     pinned: Boolean(canvasNode.pinned),
-    selected: state.selectedEntityIds.includes(canvasNode.id) || hasSelectedMember,
-    focused: (state.focusedElement?.kind === 'entity' && state.focusedElement.id === canvasNode.id) || hasFocusedMember,
-    memberEntityIds,
-    compartments,
+    selected: state.selectedEntityIds.includes(canvasNode.id) || classRepresentation.selected,
+    focused: (state.focusedElement?.kind === 'entity' && state.focusedElement.id === canvasNode.id) || classRepresentation.focused,
+    memberEntityIds: classRepresentation.memberEntityIds,
+    compartments: classRepresentation.compartments,
+    classPresentationMode: classRepresentation.mode,
+    classVisibleCompartmentKinds: classRepresentation.compartments.map((compartment) => compartment.kind),
+    isExpandedClassMember: false,
+    parentClassEntityId: undefined,
+    memberKind: undefined,
   };
+
+  if (classRepresentation.mode !== 'expanded') {
+    return [parentNode];
+  }
+
+  return [
+    parentNode,
+    ...buildExpandedMemberProjectionNodes(
+      state,
+      canvasNode,
+      frame,
+      classRepresentation.expandedMemberEntityIds,
+      entity.externalId,
+    ),
+  ];
 }
 
 export function buildProjectionNodes(
@@ -166,31 +175,31 @@ export function buildProjectionNodes(
   presentationPolicy: BrowserViewpointPresentationPolicy,
 ): { nodes: BrowserProjectionNode[]; suppressedEntityIds: string[] } {
   const nodes = state.canvasNodes
-    .map((canvasNode) => {
+    .flatMap((canvasNode) => {
       const source = resolveProjectionSourceForCanvasNode(state, canvasNode);
       if (!source) {
-        return null;
+        return [];
       }
       return source.kind === 'scope'
-        ? buildScopeProjectionNode(state, canvasNode, source.scope)
-        : buildEntityProjectionNode(state, canvasNode, source.entity, presentationPolicy);
-    })
-    .filter((node): node is BrowserProjectionNode => Boolean(node));
+        ? [buildScopeProjectionNode(state, canvasNode, source.scope)]
+        : buildEntityProjectionNodes(state, canvasNode, source.entity, presentationPolicy);
+    });
 
   const suppressedEntityIds = new Set<string>();
-  if (appliesCompactUmlPresentation(presentationPolicy) && presentationPolicy.collapseMembersByDefault) {
-    for (const node of nodes) {
-      if (node.kind === 'uml-class') {
-        for (const memberEntityId of node.memberEntityIds) {
-          suppressedEntityIds.add(memberEntityId);
-        }
-      }
+  for (const canvasNode of state.canvasNodes) {
+    const source = resolveProjectionSourceForCanvasNode(state, canvasNode);
+    if (!source || source.kind !== 'entity') {
+      continue;
+    }
+    const classRepresentation = deriveBrowserClassRepresentation(state, canvasNode, source.entity, presentationPolicy);
+    for (const memberEntityId of [...classRepresentation.suppressedEntityIds, ...classRepresentation.expandedMemberEntityIds]) {
+      suppressedEntityIds.add(memberEntityId);
     }
   }
 
   return {
     nodes: nodes
-      .filter((node) => !(node.source.kind === 'entity' && suppressedEntityIds.has(node.source.id)))
+      .filter((node) => !(node.source.kind === 'entity' && suppressedEntityIds.has(node.source.id) && !node.isExpandedClassMember))
       .sort((left, right) => {
         if (left.kind !== right.kind) {
           return left.kind === 'scope' ? -1 : 1;

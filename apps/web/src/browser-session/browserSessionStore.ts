@@ -1,6 +1,8 @@
 export type {
   BrowserCanvasEdge,
   BrowserCanvasLayoutMode,
+  BrowserClassPresentationMode,
+  BrowserClassPresentationPolicy,
   BrowserCanvasNode,
   BrowserCanvasViewport,
   BrowserNavigationTreeViewState,
@@ -80,7 +82,9 @@ export {
   reconcileCanvasNodePositions,
   requestFitCanvasView,
   selectCanvasEntity,
+  setCanvasEntityClassPresentationMode,
   setCanvasViewport,
+  toggleCanvasEntityClassPresentationMembers,
   toggleCanvasNodePin,
 } from './canvas';
 

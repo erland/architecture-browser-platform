@@ -1,4 +1,5 @@
 import type { FullSnapshotPayload } from '../../app-model';
+import { resolveBrowserStateViewpointPresentationPolicy } from '../../browser-graph/presentation';
 import {
   type BrowserTreeMode,
   detectDefaultBrowserTreeMode,
@@ -8,6 +9,7 @@ import {
 import { syncMeaningfulCanvasEdges } from '../canvas/relationships';
 import { normalizeCanvasNodes } from '../canvas/nodes';
 import { createPersistedBrowserSessionState, hydrateBrowserSessionState } from '../model/state';
+import { applyCanvasNodeClassPresentationDefaults } from '../model/classPresentation';
 import { normalizeFocusedBrowserContext, normalizeSearchScopeId, recomputeBrowserSearchState } from '../navigation/invariants';
 import type {
   BrowserSessionSnapshot,
@@ -38,7 +40,25 @@ export function openSnapshotSession(
     ? nextState.selectedScopeId
     : args.payload.scopes[0]?.externalId ?? null;
   const selectedEntityIds = nextState.selectedEntityIds.filter((entityId) => index.entitiesById.has(entityId));
-  const canvasNodes = normalizeCanvasNodes(nextState.canvasNodes.filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id)));
+  const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)
+    ? nextState.viewpointSelection.viewpointId
+    : null;
+  const initialPresentationPolicy = resolveBrowserStateViewpointPresentationPolicy({
+    ...nextState,
+    payload: args.payload,
+    index,
+    appliedViewpoint: null,
+    viewpointSelection: {
+      ...nextState.viewpointSelection,
+      viewpointId: selectedViewpointId,
+    },
+  });
+  const canvasNodes = normalizeCanvasNodes(
+    nextState.canvasNodes
+      .filter((node) => node.kind === 'scope' ? index.scopesById.has(node.id) : index.entitiesById.has(node.id))
+      .map((node) => applyCanvasNodeClassPresentationDefaults(node, index, initialPresentationPolicy)),
+    index,
+  );
   const persistedCanvasEdges = nextState.canvasEdges.filter((edge) => index.relationshipsById.has(edge.relationshipId));
   const searchScopeId = normalizeSearchScopeId({ ...nextState, index }, nextState.searchScopeId);
   const canvasEdges = syncMeaningfulCanvasEdges({
@@ -57,9 +77,6 @@ export function openSnapshotSession(
     expandedEntityIds: nextState.navigationTreeState.expandedEntityIds.filter((entityId) => index.entitiesById.has(entityId)),
     expandedChildListNodeIds: [...nextState.navigationTreeState.expandedChildListNodeIds],
   };
-  const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)
-    ? nextState.viewpointSelection.viewpointId
-    : null;
 
   const reopenedState: BrowserSessionState = {
     ...nextState,
@@ -78,16 +95,22 @@ export function openSnapshotSession(
     navigationTreeState: normalizedNavigationTreeState,
     canvasViewport: nextState.canvasViewport,
   };
+  const presentationPolicy = resolveBrowserStateViewpointPresentationPolicy(reopenedState);
+  const normalizedCanvasNodes = reopenedState.canvasNodes.map((node) => applyCanvasNodeClassPresentationDefaults(node, index, presentationPolicy));
+  const normalizedReopenedState: BrowserSessionState = {
+    ...reopenedState,
+    canvasNodes: normalizedCanvasNodes,
+  };
 
   return {
-    ...reopenedState,
-    ...normalizeFocusedBrowserContext(reopenedState, {
+    ...normalizedReopenedState,
+    ...normalizeFocusedBrowserContext(normalizedReopenedState, {
       selectedEntityIds,
       canvasEdges,
       fallbackScopeId: selectedScopeId,
     }),
-    ...recomputeBrowserSearchState(reopenedState, {
-      query: reopenedState.searchQuery,
+    ...recomputeBrowserSearchState(normalizedReopenedState, {
+      query: normalizedReopenedState.searchQuery,
       searchScopeId,
     }),
   };

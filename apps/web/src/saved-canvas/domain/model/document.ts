@@ -56,6 +56,11 @@ export type SavedCanvasNodePresentation = {
   hidden: boolean;
   collapsed: boolean;
   zIndex?: number | null;
+  classPresentation?: {
+    mode: 'simple' | 'compartments' | 'expanded';
+    showFields: boolean;
+    showFunctions: boolean;
+  } | null;
 };
 
 export type SavedCanvasEdgePresentation = {

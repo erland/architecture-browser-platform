@@ -4,6 +4,7 @@ import {
   planScopeInsertion,
 } from '../../browser-canvas-placement';
 import type { BrowserSnapshotIndex } from '../../browser-snapshot';
+import { normalizeCanvasNodeClassPresentation } from '../model/classPresentation';
 import type {
   BrowserCanvasEdge,
   BrowserCanvasNode,
@@ -58,10 +59,14 @@ export function upsertCanvasNode(
   return updated;
 }
 
-export function normalizeCanvasNodes(nodes: BrowserCanvasNode[]) {
+export function normalizeCanvasNodes(nodes: BrowserCanvasNode[], index?: BrowserSnapshotIndex | null) {
   let normalized: BrowserCanvasNode[] = [];
   for (const node of nodes) {
-    normalized = upsertCanvasNode(normalized, node, getDefaultCanvasNodePosition(node.kind, normalized));
+    normalized = upsertCanvasNode(
+      normalized,
+      normalizeCanvasNodeClassPresentation(node, index),
+      getDefaultCanvasNodePosition(node.kind, normalized),
+    );
   }
   return normalized;
 }

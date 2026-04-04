@@ -153,6 +153,8 @@ export function BrowserInspectorPanel({
               }
             }}
             onTogglePinNode={browserSession.canvas.toggleNodePin}
+            onSetClassPresentationMode={browserSession.canvas.setClassPresentationMode}
+            onToggleClassPresentationMembers={browserSession.canvas.toggleClassPresentationMembers}
             onIsolateSelection={browserSession.canvas.isolateSelection}
             onRemoveSelection={browserSession.canvas.removeSelection}
             onClose={() => browserSession.factsPanel.open('hidden', 'right')}

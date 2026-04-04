@@ -277,6 +277,52 @@ describe('browserGraphWorkspaceModel', () => {
 
 
 
+
+  test('carries expanded class members into the workspace model as class child nodes', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: {
+        ...createPayload(),
+        entities: [
+          { externalId: 'entity:order', kind: 'CLASS', origin: 'java', name: 'Order', displayName: 'Order', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:id', kind: 'FIELD', origin: 'java', name: 'id', displayName: 'id', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+          { externalId: 'entity:order:save', kind: 'FUNCTION', origin: 'java', name: 'save', displayName: 'save', scopeId: 'scope:web', sourceRefs: [], metadata: {} },
+        ],
+        relationships: [
+          { externalId: 'rel:contains:id', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:id', label: null, sourceRefs: [], metadata: {} },
+          { externalId: 'rel:contains:save', kind: 'CONTAINS', fromEntityId: 'entity:order', toEntityId: 'entity:order:save', label: null, sourceRefs: [], metadata: {} },
+        ],
+      },
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        {
+          kind: 'entity',
+          id: 'entity:order',
+          x: 32,
+          y: 48,
+          classPresentation: {
+            mode: 'expanded',
+            showFields: true,
+            showFunctions: true,
+          },
+        },
+      ],
+    };
+
+    const model = buildBrowserGraphWorkspaceModel(state);
+    const orderNode = model.nodes.find((node) => node.id === 'entity:order');
+    const memberNodes = model.nodes.filter((node) => node.isExpandedClassMember);
+
+    expect(orderNode?.kind).toBe('uml-class');
+    expect(orderNode?.classPresentationMode).toBe('expanded');
+    expect(memberNodes.map((node) => node.id).sort()).toEqual(['entity:order:id', 'entity:order:save'].sort());
+    expect(memberNodes.every((node) => node.parentClassEntityId === 'entity:order')).toBe(true);
+    expect(memberNodes.map((node) => node.memberKind).sort()).toEqual(['FIELD', 'FUNCTION']);
+  });
+
   test('respects conservative routing flags by allowing straight fallback rendering', () => {
     const payload = createPayload();
 

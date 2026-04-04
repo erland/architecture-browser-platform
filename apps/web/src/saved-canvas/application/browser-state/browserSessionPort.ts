@@ -1,4 +1,5 @@
 import type { FullSnapshotPayload } from '../../../app-model';
+import type { BrowserClassPresentationPolicy } from '../../../browser-session';
 import type { BrowserSnapshotIndex } from '../../../browser-snapshot';
 
 /**
@@ -13,6 +14,7 @@ export type SavedCanvasBrowserCanvasNode = {
   y: number;
   pinned?: boolean;
   manuallyPlaced?: boolean;
+  classPresentation?: BrowserClassPresentationPolicy;
 };
 
 export type SavedCanvasBrowserCanvasEdge = {
