@@ -23,6 +23,8 @@ export function BrowserView(props: BrowserViewProps) {
           onExpand={page.layout.expandRail}
           onCollapse={page.layout.collapseRail}
           onAddScopeEntitiesToCanvas={page.rail.onAddScopeEntitiesToCanvas}
+          onSelectEntity={page.rail.onSelectEntity}
+          onAddEntityToCanvas={page.rail.onAddEntityToCanvas}
           onOpenViewpoints={page.rail.onOpenViewpoints}
         />
 

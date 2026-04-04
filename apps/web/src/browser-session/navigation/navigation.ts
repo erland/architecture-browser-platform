@@ -1,5 +1,5 @@
 import { getViewpointById } from '../../browser-snapshot';
-import type { BrowserSessionState } from '../model/types';
+import type { BrowserNavigationTreeViewState, BrowserSessionState } from '../model/types';
 import { buildAppliedViewpointGraph } from '../viewpoints/helpers';
 import { recomputeBrowserSearchState } from './invariants';
 import type { BrowserTreeMode } from '../../browser-snapshot';
@@ -35,5 +35,18 @@ export function setBrowserTreeMode(state: BrowserSessionState, treeMode: Browser
   return {
     ...state,
     treeMode,
+  };
+}
+
+
+export function setBrowserNavigationTreeState(state: BrowserSessionState, navigationTreeState: BrowserNavigationTreeViewState): BrowserSessionState {
+  return {
+    ...state,
+    navigationTreeState: {
+      expandedScopeIds: [...navigationTreeState.expandedScopeIds],
+      expandedCategories: [...navigationTreeState.expandedCategories],
+      expandedEntityIds: [...navigationTreeState.expandedEntityIds],
+      expandedChildListNodeIds: [...navigationTreeState.expandedChildListNodeIds],
+    },
   };
 }

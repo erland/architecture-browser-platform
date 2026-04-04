@@ -24,9 +24,10 @@ export function FactsPanelHeader({ header, onClose }: Pick<BrowserFactsPanelProp
   );
 }
 
-export function FactsPanelActions({ actions, onTogglePinNode, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onTogglePinNode' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
+export function FactsPanelActions({ actions, onAddEntities, onTogglePinNode, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onAddEntities' | 'onTogglePinNode' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
   return (
     <div className="browser-facts-panel__actions">
+      {actions.addEntityAction ? (() => { const addAction = actions.addEntityAction; return <button type="button" className="button-secondary" onClick={() => onAddEntities([addAction.entityId])}>{addAction.label}</button>; })() : null}
       {actions.pinEntityAction ? (() => { const pinAction = actions.pinEntityAction; return <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: pinAction.entityId })}>{pinAction.label}</button>; })() : null}
       {actions.canIsolateSelection ? <button type="button" className="button-secondary" onClick={onIsolateSelection}>Isolate</button> : null}
       {actions.canRemoveSelection ? <button type="button" className="button-secondary" onClick={onRemoveSelection}>Remove from canvas</button> : null}

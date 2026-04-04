@@ -56,13 +56,14 @@ export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
       <FactsPanelHeader header={presentation.header} onClose={onClose} />
       <FactsPanelActions
         actions={presentation.header.actions}
+        onAddEntities={onAddEntities}
         onTogglePinNode={onTogglePinNode}
         onIsolateSelection={onIsolateSelection}
         onRemoveSelection={onRemoveSelection}
       />
       <ViewpointSection section={presentation.viewpoint} onFocusEntity={onFocusEntity} />
       <ScopeSections section={presentation.scope} onSelectScope={onSelectScope} onFocusEntity={onFocusEntity} onAddEntities={onAddEntities} />
-      <EntitySections section={presentation.entity} onSelectScope={onSelectScope} onFocusRelationship={onFocusRelationship} />
+      <EntitySections section={presentation.entity} onSelectScope={onSelectScope} onFocusRelationship={onFocusRelationship} onAddEntities={onAddEntities} />
       <RelationshipSections section={presentation.relationship} onFocusEntity={onFocusEntity} />
       <DiagnosticsSection section={presentation.diagnostics} />
       <SourceRefsSection section={presentation.sourceRefs} />

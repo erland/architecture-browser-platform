@@ -22,7 +22,7 @@ import {
 } from '../canvas';
 import { focusBrowserElement, openFactsPanel } from '../facts-panel/actions';
 import { openSnapshotSession } from '../lifecycle/lifecycle';
-import { selectBrowserScope, setBrowserSearch, setBrowserTreeMode } from '../navigation/navigation';
+import { selectBrowserScope, setBrowserNavigationTreeState, setBrowserSearch, setBrowserTreeMode } from '../navigation/navigation';
 import {
   applySelectedViewpoint,
   setSelectedViewpoint,
@@ -40,6 +40,7 @@ export const browserSessionNavigationMutations = {
   selectBrowserScope,
   setBrowserSearch,
   setBrowserTreeMode,
+  setBrowserNavigationTreeState,
 };
 
 export const browserSessionViewpointMutations = {

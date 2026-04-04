@@ -48,11 +48,13 @@ export function openFactsPanel(state: BrowserSessionState, mode: BrowserFactsPan
 }
 
 export function selectCanvasEntity(state: BrowserSessionState, entityId: string, additive = false): BrowserSessionState {
-  if (!state.index?.entitiesById.has(entityId)) {
+  const entity = state.index?.entitiesById.get(entityId);
+  if (!entity) {
     return state;
   }
   return {
     ...state,
+    selectedScopeId: entity.scopeId ?? state.selectedScopeId,
     selectedEntityIds: upsertSelectedEntityIds(state.selectedEntityIds, entityId, additive),
     focusedElement: { kind: 'entity', id: entityId },
     factsPanelMode: 'entity',

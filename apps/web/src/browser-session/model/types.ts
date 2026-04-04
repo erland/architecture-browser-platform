@@ -28,6 +28,14 @@ export type BrowserCanvasNode = {
 
 export type BrowserCanvasLayoutMode = 'grid' | 'radial' | 'structure' | 'balanced' | 'flow' | 'hierarchy';
 
+
+export type BrowserNavigationTreeViewState = {
+  expandedScopeIds: string[];
+  expandedCategories: string[];
+  expandedEntityIds: string[];
+  expandedChildListNodeIds: string[];
+};
+
 export type BrowserCanvasViewport = {
   zoom: number;
   offsetX: number;
@@ -106,6 +114,7 @@ export type BrowserSessionState = {
   viewpointPresentationPreference: BrowserViewpointPresentationPreference;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
+  navigationTreeState: BrowserNavigationTreeViewState;
   canvasViewport: BrowserCanvasViewport;
   fitViewRequestedAt: string | null;
   routeRefreshRequestedAt: string | null;
@@ -128,6 +137,7 @@ export type PersistedBrowserSessionState = {
   viewpointPresentationPreference: BrowserViewpointPresentationPreference;
   canvasLayoutMode: BrowserCanvasLayoutMode;
   treeMode: BrowserTreeMode;
+  navigationTreeState: BrowserNavigationTreeViewState;
   canvasViewport: BrowserCanvasViewport;
   routingLayoutConfig: BrowserRoutingLayoutConfig;
 };

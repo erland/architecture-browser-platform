@@ -28,6 +28,7 @@ export type BrowserSessionActionGroups = {
     selectScope: (scopeId: string | null) => void;
     setSearch: (query: string, scopeId?: string | null) => void;
     setTreeMode: (treeMode: BrowserTreeMode) => void;
+    setNavigationTreeState: (navigationTreeState: BrowserSessionState['navigationTreeState']) => void;
   };
   viewpoint: {
     setSelectedViewpoint: (viewpointId: string | null) => void;

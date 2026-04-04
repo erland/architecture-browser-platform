@@ -86,6 +86,7 @@ export type BrowserFactsPanelMetric = {
 };
 
 export type BrowserFactsPanelActionsModel = {
+  addEntityAction: { entityId: string; label: string } | null;
   pinEntityAction: { entityId: string; label: string } | null;
   canIsolateSelection: boolean;
   canRemoveSelection: boolean;
@@ -126,6 +127,8 @@ export type BrowserFactsPanelEntitySectionModel = {
   inboundRelationships: FullSnapshotRelationship[];
   outboundRelationships: FullSnapshotRelationship[];
   scopeId: string | null;
+  summary: string[];
+  metrics: BrowserFactsPanelMetric[];
 };
 
 export type BrowserFactsPanelRelationshipConnectedEntity = {

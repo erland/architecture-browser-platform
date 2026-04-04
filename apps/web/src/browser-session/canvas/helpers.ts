@@ -3,8 +3,9 @@ import type { BrowserCanvasNode, BrowserSessionState } from '../model/types';
 import { uniqueValues } from '../model/collections';
 import { upsertCanvasNode } from './nodes';
 
-export function createEntityCanvasFocusState(state: BrowserSessionState, entityId: string) {
+export function createEntityCanvasFocusState(state: BrowserSessionState, entityId: string, selectedScopeId?: string | null) {
   return {
+    selectedScopeId: selectedScopeId ?? state.selectedScopeId,
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, entityId]),
     focusedElement: { kind: 'entity' as const, id: entityId },
     factsPanelMode: 'entity' as const,

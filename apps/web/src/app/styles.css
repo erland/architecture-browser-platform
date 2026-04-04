@@ -2310,6 +2310,47 @@ dd {
   min-width: 0;
 }
 
+.browser-tree__node-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.browser-tree__node-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.58);
+  color: #cbd5e1;
+  font-size: 0.64rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.browser-tree__node-kind--entity {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(96, 165, 250, 0.28);
+  color: #bfdbfe;
+}
+
+.browser-tree__node-badge {
+  white-space: nowrap;
+}
+
+.browser-tree__node-badge--entity {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
 .browser-tree__node-title {
   display: block;
   overflow: hidden;
@@ -2317,6 +2358,21 @@ dd {
   white-space: nowrap;
   font-size: 0.95rem;
   line-height: 1.25;
+}
+
+.browser-tree__row {
+  container-type: inline-size;
+}
+
+@container (max-width: 220px) {
+  .browser-tree__node-kind,
+  .browser-tree__node-badge--viewpoint {
+    display: none;
+  }
+
+  .browser-tree__node-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .browser-tree__canvas-button {
@@ -2343,6 +2399,27 @@ dd {
 .browser-tree__canvas-button:focus-visible {
   background: rgba(37, 99, 235, 0.18);
   border-color: rgba(96, 165, 250, 0.4);
+}
+
+.browser-tree__row--entity {
+  background: rgba(15, 23, 42, 0.2);
+  border-style: dashed;
+}
+
+.browser-tree__toggle--entity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.45;
+}
+
+.browser-tree__node-button--entity {
+  cursor: default;
+}
+
+.browser-tree__canvas-button--placeholder {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 940px) {
@@ -2718,4 +2795,38 @@ dd {
 .browser-canvas__menu-summary--disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+
+.browser-navigation-tree__search-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+
+.browser-tree__item--overflow {
+  list-style: none;
+}
+
+.browser-tree__show-more {
+  margin: 0.2rem 0 0.2rem 2rem;
+  border: 1px dashed var(--border-color, #c7ccd6);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-color, #516070);
+  padding: 0.2rem 0.65rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.browser-tree__show-more:hover {
+  background: rgba(127, 140, 160, 0.08);
+}
+
+.browser-tree__node-badge--viewpoint {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-muted) 70%, white);
 }

@@ -1,8 +1,19 @@
 import {
+  canExpandEntityInNavigationTree,
   collectVisibleAncestorScopeIds,
   detectDefaultBrowserTreeMode,
+  getArchitecturalRoles,
+  getApiSurfaceRolePriority,
+  getExpandableNavigationChildrenForEntity,
+  getEligibleDirectEntitiesForScope,
+  getIntegrationMapRolePriority,
+  getModuleDependenciesRolePriority,
+  getPersistenceModelRolePriority,
+  getRequestHandlingRolePriority,
   getScopeTreeNodesForMode,
+  getUiNavigationRolePriority,
   isScopeVisibleInTreeMode,
+  type BrowserSearchResult,
   type BrowserSnapshotIndex,
   type BrowserScopeTreeNode,
   type BrowserTreeMode,
@@ -13,6 +24,258 @@ export type BrowserScopeCategoryGroup = {
   label: string;
   nodes: BrowserScopeTreeNode[];
 };
+
+
+export type BrowserNavigationScopeNode = {
+  nodeType: 'scope';
+  nodeId: string;
+  scopeId: string;
+  parentScopeId: string | null;
+  kind: string;
+  name: string;
+  displayName: string;
+  path: string;
+  depth: number;
+  childScopeIds: string[];
+  directEntityIds: string[];
+  descendantScopeCount: number;
+  descendantEntityCount: number;
+  badgeLabel: string;
+  icon: 'scope';
+};
+
+export type BrowserNavigationEntityNode = {
+  nodeType: 'entity';
+  nodeId: string;
+  entityId: string;
+  scopeId: string;
+  parentScopeId: string;
+  parentEntityId: string | null;
+  kind: string;
+  name: string;
+  displayName: string;
+  path: string;
+  depth: number;
+  badgeLabel: string;
+  icon: 'entity';
+  expandable: boolean;
+  viewpointPriority: number;
+  isViewpointPreferred: boolean;
+  viewpointBadgeLabel: string | null;
+};
+
+export type BrowserNavigationChildNode = BrowserNavigationScopeNode | BrowserNavigationEntityNode;
+
+
+export type BrowserNavigationSearchVisibility = {
+  scopeIds: Set<string>;
+  entityIds: Set<string>;
+};
+
+const VIEWPOINT_BIAS_BADGE_LABEL: Record<string, string> = {
+  'api-surface': 'API focus',
+  'request-handling': 'Flow focus',
+  'persistence-model': 'Persistence focus',
+  'integration-map': 'Integration focus',
+  'module-dependencies': 'Module focus',
+  'ui-navigation': 'UI focus',
+};
+
+function getViewpointEntityBias(index: BrowserSnapshotIndex, entityId: string, viewpointId: string | null | undefined) {
+  const entity = index.entitiesById.get(entityId);
+  if (!entity || !viewpointId) {
+    return { priority: 999, preferred: false, badgeLabel: null as string | null };
+  }
+  const roles = new Set(getArchitecturalRoles(entity));
+  const priority = viewpointId === 'api-surface'
+    ? getApiSurfaceRolePriority(entity)
+    : viewpointId === 'request-handling'
+      ? getRequestHandlingRolePriority(entity)
+      : viewpointId === 'persistence-model'
+        ? getPersistenceModelRolePriority(entity)
+        : viewpointId === 'integration-map'
+          ? getIntegrationMapRolePriority(entity)
+          : viewpointId === 'module-dependencies'
+            ? getModuleDependenciesRolePriority(entity)
+            : viewpointId === 'ui-navigation'
+              ? getUiNavigationRolePriority(entity)
+              : 999;
+  const preferred = viewpointId === 'api-surface'
+    ? roles.has('api-entrypoint') || roles.has('application-service') || roles.has('integration-adapter') || roles.has('external-dependency')
+    : viewpointId === 'request-handling'
+      ? roles.has('api-entrypoint') || roles.has('application-service')
+      : viewpointId === 'persistence-model'
+        ? roles.has('persistence-access') || roles.has('persistent-entity') || roles.has('datastore')
+        : viewpointId === 'integration-map'
+          ? roles.has('integration-adapter') || roles.has('external-dependency')
+          : viewpointId === 'module-dependencies'
+            ? roles.has('module-boundary') || entity.kind === 'MODULE' || entity.kind === 'PACKAGE'
+            : viewpointId === 'ui-navigation'
+              ? roles.has('ui-layout') || roles.has('ui-page') || roles.has('ui-navigation-node')
+              : false;
+  return {
+    priority,
+    preferred,
+    badgeLabel: preferred ? (VIEWPOINT_BIAS_BADGE_LABEL[viewpointId] ?? 'Viewpoint') : null,
+  };
+}
+
+function toNavigationScopeNode(node: BrowserScopeTreeNode): BrowserNavigationScopeNode {
+  return {
+    nodeType: 'scope',
+    nodeId: `scope-node:${node.scopeId}`,
+    scopeId: node.scopeId,
+    parentScopeId: node.parentScopeId,
+    kind: node.kind,
+    name: node.name,
+    displayName: node.displayName,
+    path: node.path,
+    depth: node.depth,
+    childScopeIds: node.childScopeIds,
+    directEntityIds: node.directEntityIds,
+    descendantScopeCount: node.descendantScopeCount,
+    descendantEntityCount: node.descendantEntityCount,
+    badgeLabel: toCategoryLabel(node.kind),
+    icon: 'scope',
+  };
+}
+
+function toNavigationEntityNode(
+  index: BrowserSnapshotIndex,
+  scopeId: string,
+  entityId: string,
+  options?: {
+    parentEntityId?: string | null;
+    parentPath?: string;
+    depth?: number;
+    viewpointId?: string | null;
+  },
+): BrowserNavigationEntityNode | null {
+  const entity = index.entitiesById.get(entityId);
+  if (!entity || !entity.scopeId) {
+    return null;
+  }
+  const scopePath = index.scopePathById.get(scopeId) ?? scopeId;
+  const parentEntityId = options?.parentEntityId ?? null;
+  const displayName = entity.displayName ?? entity.name;
+  const path = options?.parentPath ? `${options.parentPath} / ${displayName}` : `${scopePath} / ${displayName}`;
+  const viewpointBias = getViewpointEntityBias(index, entity.externalId, options?.viewpointId);
+  return {
+    nodeType: 'entity',
+    nodeId: parentEntityId ? `entity-node:${parentEntityId}>${entity.externalId}` : `entity-node:${entity.externalId}`,
+    entityId: entity.externalId,
+    scopeId: entity.scopeId,
+    parentScopeId: scopeId,
+    parentEntityId,
+    kind: entity.kind,
+    name: entity.name,
+    displayName,
+    path,
+    depth: options?.depth ?? ((index.scopesById.get(scopeId) ? (index.scopeNodesByParentId.get(index.scopesById.get(scopeId)?.parentScopeId ?? null)?.find((candidate) => candidate.scopeId === scopeId)?.depth ?? 0) : 0) + 1),
+    badgeLabel: toCategoryLabel(entity.kind),
+    icon: 'entity',
+    expandable: canExpandEntityInNavigationTree(index, entity.externalId),
+    viewpointPriority: viewpointBias.priority,
+    isViewpointPreferred: viewpointBias.preferred,
+    viewpointBadgeLabel: viewpointBias.badgeLabel,
+  };
+}
+
+function sortNavigationEntityNodes(left: BrowserNavigationEntityNode, right: BrowserNavigationEntityNode) {
+  if (left.viewpointPriority !== right.viewpointPriority) return left.viewpointPriority - right.viewpointPriority;
+  if (left.isViewpointPreferred !== right.isViewpointPreferred) return left.isViewpointPreferred ? -1 : 1;
+  if (left.kind !== right.kind) return left.kind.localeCompare(right.kind, undefined, { sensitivity: 'base' });
+  return left.displayName.localeCompare(right.displayName, undefined, { sensitivity: 'base' });
+}
+
+export function buildNavigationEntityChildNodes(index: BrowserSnapshotIndex, parentEntityId: string, scopeId: string, parentDepth: number, parentPath: string, visibleEntityIds?: Set<string> | null, viewpointId?: string | null) {
+  return getExpandableNavigationChildrenForEntity(index, parentEntityId)
+    .filter((entity) => !visibleEntityIds || visibleEntityIds.has(entity.externalId))
+    .map((entity) => toNavigationEntityNode(index, scopeId, entity.externalId, {
+      parentEntityId,
+      parentPath,
+      depth: parentDepth + 1,
+      viewpointId,
+    }))
+    .filter((node): node is BrowserNavigationEntityNode => Boolean(node))
+    .sort(sortNavigationEntityNodes);
+}
+
+export function buildNavigationChildNodes(index: BrowserSnapshotIndex, parentScopeId: string | null, treeMode: BrowserTreeMode, options?: { visibleScopeIds?: Set<string> | null; visibleEntityIds?: Set<string> | null; viewpointId?: string | null }): BrowserNavigationChildNode[] {
+  const scopeNodes = getScopeTreeNodesForMode(index, parentScopeId, treeMode)
+    .filter((node) => !options?.visibleScopeIds || options.visibleScopeIds.has(node.scopeId))
+    .map(toNavigationScopeNode);
+  if (!parentScopeId) {
+    return scopeNodes;
+  }
+  const entityNodes = getEligibleDirectEntitiesForScope(index, parentScopeId)
+    .filter((entity) => !options?.visibleEntityIds || options.visibleEntityIds.has(entity.externalId))
+    .map((entity) => toNavigationEntityNode(index, parentScopeId, entity.externalId, { viewpointId: options?.viewpointId }))
+    .filter((node): node is BrowserNavigationEntityNode => Boolean(node))
+    .sort(sortNavigationEntityNodes);
+  return [...scopeNodes, ...entityNodes];
+}
+
+
+
+export function collectSingleChildAutoExpansion(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, expandedScopeIds: Iterable<string>, expandedEntityIds: Iterable<string>, options?: { visibleScopeIds?: Set<string> | null; visibleEntityIds?: Set<string> | null; viewpointId?: string | null }) {
+  const nextScopeIds = new Set<string>();
+  const nextEntityIds = new Set<string>();
+  const queuedScopeIds = [...new Set(expandedScopeIds as Iterable<string>)];
+  const queuedEntityIds = [...new Set(expandedEntityIds as Iterable<string>)];
+  const processedScopeIds = new Set<string>();
+  const processedEntityIds = new Set<string>();
+
+  while (queuedScopeIds.length > 0 || queuedEntityIds.length > 0) {
+    const scopeId = queuedScopeIds.shift();
+    if (scopeId && !processedScopeIds.has(scopeId)) {
+      processedScopeIds.add(scopeId);
+      const children = buildNavigationChildNodes(index, scopeId, treeMode, options);
+      if (children.length === 1) {
+        const [onlyChild] = children;
+        if (onlyChild.nodeType === 'scope') {
+          if (!nextScopeIds.has(onlyChild.scopeId)) {
+            nextScopeIds.add(onlyChild.scopeId);
+            queuedScopeIds.push(onlyChild.scopeId);
+          }
+        } else if (!nextEntityIds.has(onlyChild.entityId)) {
+          nextEntityIds.add(onlyChild.entityId);
+          if (onlyChild.expandable) {
+            queuedEntityIds.push(onlyChild.entityId);
+          }
+        }
+      }
+    }
+
+    const entityId = queuedEntityIds.shift();
+    if (entityId && !processedEntityIds.has(entityId)) {
+      processedEntityIds.add(entityId);
+      const entity = index.entitiesById.get(entityId);
+      if (!entity?.scopeId) {
+        continue;
+      }
+      const entityNode = toNavigationEntityNode(index, entity.scopeId, entityId, { viewpointId: options?.viewpointId });
+      if (!entityNode?.expandable) {
+        continue;
+      }
+      const children = buildNavigationEntityChildNodes(index, entityId, entity.scopeId, entityNode.depth, entityNode.path, options?.visibleEntityIds, options?.viewpointId);
+      if (children.length === 1) {
+        const [onlyChild] = children;
+        if (!nextEntityIds.has(onlyChild.entityId)) {
+          nextEntityIds.add(onlyChild.entityId);
+          if (onlyChild.expandable) {
+            queuedEntityIds.push(onlyChild.entityId);
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    scopeIds: [...nextScopeIds],
+    entityIds: [...nextEntityIds],
+  };
+}
 
 export const TREE_MODE_META: Record<BrowserTreeMode, { label: string; description: string }> = {
   filesystem: { label: 'Filesystem', description: 'Directory and file structure' },
@@ -49,6 +312,27 @@ export function computeDefaultExpandedScopeIds(index: BrowserSnapshotIndex | nul
   const rootIds = getScopeTreeNodesForMode(index, null, treeMode).map((node) => node.scopeId);
   const selectedIds = selectedScopeId && isScopeVisibleInTreeMode(index, selectedScopeId, treeMode) ? [selectedScopeId] : [];
   return [...new Set([...rootIds, ...collectAncestorScopeIds(index, selectedScopeId, treeMode), ...selectedIds])];
+}
+
+export function collectSafeNavigationAncestorEntityIds(index: BrowserSnapshotIndex, entityId: string) {
+  const ancestors: string[] = [];
+  const seen = new Set<string>();
+  let currentId = entityId;
+  while (!seen.has(currentId)) {
+    seen.add(currentId);
+    const containers = index.containerEntityIdsByEntityId.get(currentId) ?? [];
+    const nextContainerId = containers.find((containerId) => canExpandEntityInNavigationTree(index, containerId));
+    if (!nextContainerId) {
+      break;
+    }
+    ancestors.unshift(nextContainerId);
+    currentId = nextContainerId;
+  }
+  return ancestors;
+}
+
+export function collectAllExpandableEntityIds(index: BrowserSnapshotIndex) {
+  return [...index.entitiesById.keys()].filter((entityId) => canExpandEntityInNavigationTree(index, entityId));
 }
 
 export function buildScopeCategoryGroups(nodes: BrowserScopeTreeNode[]) {
@@ -111,4 +395,69 @@ export function buildNavigationTreeSummary(index: BrowserSnapshotIndex, treeMode
     totalDirectEntities: roots.reduce((sum, node) => sum + node.directEntityIds.length, 0),
     defaultTreeMode: detectDefaultBrowserTreeMode(index),
   };
+}
+
+
+export function collectNavigationSearchVisibility(
+  index: BrowserSnapshotIndex,
+  treeMode: BrowserTreeMode,
+  searchResults: BrowserSearchResult[],
+): BrowserNavigationSearchVisibility {
+  const scopeIds = new Set<string>();
+  const entityIds = new Set<string>();
+
+  const addScopePath = (scopeId: string | null) => {
+    if (!scopeId || !isScopeVisibleInTreeMode(index, scopeId, treeMode)) {
+      return;
+    }
+    scopeIds.add(scopeId);
+    for (const ancestorId of collectAncestorScopeIds(index, scopeId, treeMode)) {
+      scopeIds.add(ancestorId);
+    }
+  };
+
+  const addEntityPath = (entityId: string) => {
+    const entity = index.entitiesById.get(entityId);
+    if (!entity) {
+      return;
+    }
+    entityIds.add(entityId);
+    addScopePath(entity.scopeId);
+    for (const ancestorEntityId of collectSafeNavigationAncestorEntityIds(index, entityId)) {
+      entityIds.add(ancestorEntityId);
+      const ancestorEntity = index.entitiesById.get(ancestorEntityId);
+      if (ancestorEntity?.scopeId) {
+        addScopePath(ancestorEntity.scopeId);
+      }
+    }
+  };
+
+  for (const result of searchResults) {
+    if (result.kind === 'entity') {
+      addEntityPath(result.id);
+      continue;
+    }
+    if (result.kind === 'scope') {
+      addScopePath(result.id);
+      continue;
+    }
+    addScopePath(result.scopeId);
+  }
+
+  return { scopeIds, entityIds };
+}
+
+export function filterCategoryGroupsForSearch(
+  groups: BrowserScopeCategoryGroup[],
+  visibleScopeIds: Set<string> | null,
+) {
+  if (!visibleScopeIds) {
+    return groups;
+  }
+  return groups
+    .map((group) => ({
+      ...group,
+      nodes: group.nodes.filter((node) => visibleScopeIds.has(node.scopeId)),
+    }))
+    .filter((group) => group.nodes.length > 0);
 }

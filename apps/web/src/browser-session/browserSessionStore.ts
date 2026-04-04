@@ -3,6 +3,7 @@ export type {
   BrowserCanvasLayoutMode,
   BrowserCanvasNode,
   BrowserCanvasViewport,
+  BrowserNavigationTreeViewState,
   BrowserFactsPanelLocation,
   BrowserFactsPanelMode,
   BrowserFocusedElement,
@@ -19,9 +20,11 @@ export type {
 } from './model/types';
 
 export {
+  createEmptyBrowserNavigationTreeViewState,
   createEmptyBrowserSessionState,
   createPersistedBrowserSessionState,
   hydrateBrowserSessionState,
+  normalizeBrowserNavigationTreeViewState,
 } from './model/state';
 
 export {
@@ -37,6 +40,7 @@ export { openSnapshotSession } from './lifecycle/lifecycle';
 
 export {
   selectBrowserScope,
+  setBrowserNavigationTreeState,
   setBrowserSearch,
   setBrowserTreeMode,
 } from './navigation/navigation';

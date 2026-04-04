@@ -28,6 +28,9 @@ export function createBoundBrowserSessionActionGroups(
       setTreeMode: bindBrowserSessionMutationGroup(setState, {
         setTreeMode: browserSessionNavigationMutations.setBrowserTreeMode,
       }).setTreeMode,
+      setNavigationTreeState: bindBrowserSessionMutationGroup(setState, {
+        setNavigationTreeState: browserSessionNavigationMutations.setBrowserNavigationTreeState,
+      }).setNavigationTreeState,
     },
     viewpoint: {
       setSelectedViewpoint: bindBrowserSessionMutationGroup(setState, {

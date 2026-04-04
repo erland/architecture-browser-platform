@@ -8,6 +8,8 @@ export type BrowserViewActions = {
   effectiveTopSearchScopeId: string | null;
   handleTopSearchResult: (action: BrowserTopSearchResultAction) => void;
   handleAddPrimaryScopeEntitiesToCanvas: (scopeId: string) => void;
+  handleSelectEntity: (entityId: string, scopeId?: string) => void;
+  handleAddEntityToCanvas: (entityId: string, scopeId?: string) => void;
   handleAddScopeAnalysisToCanvas: (scopeId: string, mode: 'primary' | 'direct' | 'subtree' | 'children-primary', kinds?: string[], childScopeKinds?: string[]) => void;
   handleAddContainedEntitiesToCanvas: (entityId: string, kinds?: string[]) => void;
   handleAddPeerEntitiesToCanvas: (entityId: string, containerKinds?: string[], peerKinds?: string[]) => void;
@@ -54,6 +56,27 @@ export function useBrowserViewActions({
     handleAddScopeAnalysisToCanvas(scopeId, 'primary');
   }, [handleAddScopeAnalysisToCanvas]);
 
+
+  const handleSelectEntity = useCallback((entityId: string, scopeId?: string) => {
+    if (scopeId) {
+      browserSession.navigation.selectScope(scopeId);
+    }
+    browserSession.canvas.addEntityToCanvas(entityId);
+    browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+    browserSession.factsPanel.open('entity', 'right');
+    setActiveTab('search');
+  }, [browserSession.canvas, browserSession.factsPanel, browserSession.navigation, setActiveTab]);
+
+  const handleAddEntityToCanvas = useCallback((entityId: string, scopeId?: string) => {
+    if (scopeId) {
+      browserSession.navigation.selectScope(scopeId);
+    }
+    browserSession.canvas.addEntityToCanvas(entityId);
+    browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
+    browserSession.factsPanel.open('entity', 'right');
+    setActiveTab('search');
+  }, [browserSession.canvas, browserSession.factsPanel, browserSession.navigation, setActiveTab]);
+
   const handleAddContainedEntitiesToCanvas = useCallback((entityId: string, kinds?: string[]) => {
     runContainedEntitiesCommand(browserSession.state.index, focusPorts, entityId, kinds);
   }, [browserSession.state.index, focusPorts]);
@@ -74,6 +97,8 @@ export function useBrowserViewActions({
     effectiveTopSearchScopeId,
     handleTopSearchResult,
     handleAddPrimaryScopeEntitiesToCanvas,
+    handleSelectEntity,
+    handleAddEntityToCanvas,
     handleAddScopeAnalysisToCanvas,
     handleAddContainedEntitiesToCanvas,
     handleAddPeerEntitiesToCanvas,

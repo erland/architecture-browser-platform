@@ -27,7 +27,7 @@ export function addEntityToCanvas(state: BrowserSessionState, entityId: string):
     ...state,
     canvasNodes,
     canvasEdges,
-    ...createEntityCanvasFocusState(state, entityId),
+    ...createEntityCanvasFocusState(state, entityId, entity.scopeId ?? state.selectedScopeId),
   };
 }
 
@@ -65,6 +65,7 @@ export function addEntitiesToCanvas(state: BrowserSessionState, entityIds: strin
     ...state,
     canvasNodes,
     canvasEdges,
+    selectedScopeId: state.index.entitiesById.get(focusEntityId)?.scopeId ?? state.selectedScopeId,
     selectedEntityIds: uniqueValues([...state.selectedEntityIds, ...validEntityIds]),
     focusedElement: { kind: 'entity', id: focusEntityId },
     factsPanelMode: 'entity',

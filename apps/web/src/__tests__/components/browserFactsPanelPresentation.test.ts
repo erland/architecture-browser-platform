@@ -83,4 +83,32 @@ describe('BrowserFactsPanel presentation', () => {
     expect(presentation?.header.actions.pinEntityAction).toEqual({ entityId: 'entity:component', label: 'Pin entity' });
     expect(presentation?.entity?.outboundRelationships.map((relationship) => relationship.externalId)).toEqual(['rel:contains']);
   });
+
+  test('shows kind-specific entity summary and add action for tree-selected entities that are not on the canvas', () => {
+    const payload = createPayload();
+    payload.entities[0] = {
+      ...payload.entities[0],
+      kind: 'PAGE',
+      displayName: 'OrdersPage',
+      name: 'OrdersPage',
+    };
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
+
+    const presentation = buildBrowserFactsPanelPresentation(state);
+
+    expect(presentation?.header.actions.addEntityAction).toEqual({ entityId: 'entity:component', label: 'Add entity to canvas' });
+    expect(presentation?.header.actions.pinEntityAction).toBeNull();
+    expect(presentation?.header.actions.canRemoveSelection).toBe(false);
+    expect(presentation?.entity?.summary).toContain('OrdersPage is a UI page in src/components/BrowserFactsPanel.tsx.');
+    expect(presentation?.entity?.summary).toContain('Selected from the tree only; not yet added to the canvas.');
+    expect(presentation?.entity?.metrics.map((metric) => `${metric.label}:${metric.value}`)).toEqual([
+      'Kind:PAGE',
+      'Origin:react',
+      'On canvas:No',
+      'Source refs:0',
+    ]);
+  });
+
 });

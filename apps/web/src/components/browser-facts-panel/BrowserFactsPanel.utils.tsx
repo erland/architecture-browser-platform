@@ -66,3 +66,38 @@ export function renderEntityButtonLabel(group: BrowserFactsPanelEntityGroup, sco
   }
   return `Add subtree ${group.kind.toLocaleLowerCase()}${group.count === 1 ? '' : 's'}`;
 }
+
+
+export function formatEntityKindLabel(kind: string) {
+  return kind.toLocaleLowerCase().replace(/_/g, ' ');
+}
+
+export function getEntityArchitecturalRoles(entity: FullSnapshotEntity): string[] {
+  const value = entity.metadata?.architecturalRoles;
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
+}
+
+export function buildEntitySummaryHeadline(entity: FullSnapshotEntity, scopeLabel: string) {
+  const name = displayEntityName(entity);
+  const roles = new Set(getEntityArchitecturalRoles(entity));
+  const kind = entity.kind.toUpperCase();
+  if (roles.has('api-entrypoint') || kind === 'ENDPOINT' || kind === 'RESOURCE' || kind === 'CONTROLLER') {
+    return `${name} is an API entrypoint in ${scopeLabel}.`;
+  }
+  if (roles.has('persistence-access') || kind === 'REPOSITORY' || kind === 'DATASTORE') {
+    return `${name} is a persistence access ${formatEntityKindLabel(entity.kind)} in ${scopeLabel}.`;
+  }
+  if (kind === 'PAGE' || kind === 'ROUTE' || kind === 'LAYOUT' || kind === 'VIEW') {
+    return `${name} is a UI ${formatEntityKindLabel(entity.kind)} in ${scopeLabel}.`;
+  }
+  if (kind === 'COMPONENT') {
+    return `${name} is a UI component in ${scopeLabel}.`;
+  }
+  if (kind === 'CLASS') {
+    return `${name} is a class in ${scopeLabel}.`;
+  }
+  if (kind === 'MODULE') {
+    return `${name} is a module in ${scopeLabel}.`;
+  }
+  return `${name} is a ${formatEntityKindLabel(entity.kind)} in ${scopeLabel}.`;
+}

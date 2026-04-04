@@ -87,6 +87,8 @@ export function useBrowserViewPageSections(controller: BrowserViewApplicationCor
     rail: {
       browserSession,
       onAddScopeEntitiesToCanvas: browserActions.handleAddPrimaryScopeEntitiesToCanvas,
+      onSelectEntity: browserActions.handleSelectEntity,
+      onAddEntityToCanvas: browserActions.handleAddEntityToCanvas,
       onOpenViewpoints: dialogs.openViewpointDialog,
     },
     center: {

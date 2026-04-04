@@ -184,4 +184,28 @@ describe('BrowserFactsPanel model', () => {
     expect(model?.viewpointExplanation?.seedEntities.map((entity) => entity.id)).toContain('entity:controller');
     expect(model?.viewpointExplanation?.scopeLabel).toContain('info.example.browser');
   });
+
+  test('builds entity facts for a tree-selected repository before it has been added to the canvas', () => {
+    const payload = createPayload();
+    payload.entities.push({
+      externalId: 'entity:repository',
+      kind: 'CLASS',
+      origin: 'java',
+      name: 'BrowserRepository',
+      displayName: 'BrowserRepository',
+      scopeId: 'scope:pkg',
+      sourceRefs: [{ path: 'src/main/java/info/example/browser/BrowserRepository.java', startLine: 1, endLine: 1, snippet: null, metadata: {} }],
+      metadata: { architecturalRoles: ['persistence-access'] },
+    });
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:repository' });
+
+    const model = buildBrowserFactsPanelModel(state);
+
+    expect(model?.mode).toBe('entity');
+    expect(model?.title).toBe('BrowserRepository');
+    expect(model?.summary).toContain('Scope Platform / info.example.browser');
+  });
+
 });

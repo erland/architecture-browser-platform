@@ -10,6 +10,8 @@ export type BrowserRailPanelProps = {
   onExpand: () => void;
   onCollapse: () => void;
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
+  onSelectEntity: (entityId: string, scopeId: string) => void;
+  onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
   onOpenViewpoints: () => void;
 };
 
@@ -19,6 +21,8 @@ export function BrowserRailPanel({
   onExpand,
   onCollapse,
   onAddScopeEntitiesToCanvas,
+  onSelectEntity,
+  onAddEntityToCanvas,
   onOpenViewpoints,
 }: BrowserRailPanelProps) {
   const navigationSummary = browserSession.state.index
@@ -52,8 +56,16 @@ export function BrowserRailPanel({
             selectedScopeId={browserSession.state.selectedScopeId}
             treeMode={browserSession.state.treeMode}
             onSelectScope={browserSession.navigation.selectScope}
+            selectedEntityIds={browserSession.state.selectedEntityIds}
             onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
+            onSelectEntity={onSelectEntity}
+            onAddEntityToCanvas={onAddEntityToCanvas}
             onTreeModeChange={browserSession.navigation.setTreeMode}
+            persistedTreeState={browserSession.state.navigationTreeState}
+            onTreeStateChange={browserSession.navigation.setNavigationTreeState}
+            searchQuery={browserSession.state.searchQuery}
+            searchResults={browserSession.state.searchResults}
+            selectedViewpointId={browserSession.state.appliedViewpoint?.viewpoint.id ?? browserSession.state.viewpointSelection.viewpointId}
           />
 
 

@@ -130,6 +130,22 @@ describe('browser architecture workflow', () => {
     expect(facts?.diagnostics).toHaveLength(1);
   });
 
+
+  test('entity selection keeps the owning scope aligned for tree, canvas, and facts state', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:tree');
+
+    expect(state.selectedScopeId).toBe('scope:web');
+    expect(state.selectedEntityIds).toContain('entity:tree');
+    expect(state.focusedElement).toEqual({ kind: 'entity', id: 'entity:tree' });
+    expect(state.factsPanelMode).toBe('entity');
+  });
+
   test('scope search hits separate navigation from analysis seeding', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',

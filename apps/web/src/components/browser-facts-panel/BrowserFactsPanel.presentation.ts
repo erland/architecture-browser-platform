@@ -12,7 +12,7 @@ import type {
   BrowserFactsPanelScopeSectionModel,
   BrowserFactsPanelViewpointSectionModel,
 } from './BrowserFactsPanel.types';
-import { displayScopeName } from './BrowserFactsPanel.utils';
+import { buildEntitySummaryHeadline, displayScopeName, formatEntityKindLabel, getEntityArchitecturalRoles } from './BrowserFactsPanel.utils';
 
 function buildHeaderModel(state: BrowserSessionState, model: NonNullable<ReturnType<typeof buildBrowserFactsPanelModel>>): BrowserFactsPanelHeaderModel {
   return {
@@ -29,16 +29,26 @@ function buildActionsModel(state: BrowserSessionState, model: NonNullable<Return
   const selectedCanvasEntityNode = model.mode === 'entity' && selectedEntityId
     ? state.canvasNodes.find((node) => node.kind === 'entity' && node.id === selectedEntityId)
     : null;
+  const selectedCanvasEntityIds = state.selectedEntityIds.filter((entityId) => state.canvasNodes.some((node) => node.kind === 'entity' && node.id === entityId));
+  const focusedCanvasScopeNode = state.focusedElement?.kind === 'scope'
+    ? state.canvasNodes.find((node) => node.kind === 'scope' && node.id === state.focusedElement?.id)
+    : null;
 
   return {
-    pinEntityAction: model.mode === 'entity' && model.entityFacts
+    addEntityAction: model.mode === 'entity' && model.entityFacts && !selectedCanvasEntityNode
       ? {
           entityId: model.entityFacts.entity.externalId,
-          label: selectedCanvasEntityNode?.pinned ? 'Unpin entity' : 'Pin entity',
+          label: 'Add entity to canvas',
         }
       : null,
-    canIsolateSelection: state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope',
-    canRemoveSelection: state.selectedEntityIds.length > 0 || state.focusedElement?.kind === 'scope',
+    pinEntityAction: model.mode === 'entity' && model.entityFacts && selectedCanvasEntityNode
+      ? {
+          entityId: model.entityFacts.entity.externalId,
+          label: selectedCanvasEntityNode.pinned ? 'Unpin entity' : 'Pin entity',
+        }
+      : null,
+    canIsolateSelection: selectedCanvasEntityIds.length > 0 || Boolean(focusedCanvasScopeNode),
+    canRemoveSelection: selectedCanvasEntityIds.length > 0 || Boolean(focusedCanvasScopeNode),
   };
 }
 
@@ -91,15 +101,32 @@ function buildScopeSectionModel(model: NonNullable<ReturnType<typeof buildBrowse
   };
 }
 
-function buildEntitySectionModel(model: NonNullable<ReturnType<typeof buildBrowserFactsPanelModel>>): BrowserFactsPanelEntitySectionModel | null {
+function buildEntitySectionModel(state: BrowserSessionState, model: NonNullable<ReturnType<typeof buildBrowserFactsPanelModel>>): BrowserFactsPanelEntitySectionModel | null {
   if (!model.entityFacts) {
     return null;
   }
+  const entityFacts = model.entityFacts;
+  const entity = entityFacts.entity;
+  const scopeLabel = entityFacts.scope ? displayScopeName(entityFacts.scope) : 'the prepared snapshot';
+  const architecturalRoles = getEntityArchitecturalRoles(entity);
+  const onCanvas = state.canvasNodes.some((node) => node.kind === 'entity' && node.id === entity.externalId);
   return {
-    entityFacts: model.entityFacts,
-    inboundRelationships: model.entityFacts.inboundRelationships.slice(0, 8),
-    outboundRelationships: model.entityFacts.outboundRelationships.slice(0, 8),
-    scopeId: model.entityFacts.scope?.externalId ?? null,
+    entityFacts,
+    inboundRelationships: entityFacts.inboundRelationships.slice(0, 8),
+    outboundRelationships: entityFacts.outboundRelationships.slice(0, 8),
+    scopeId: entityFacts.scope?.externalId ?? null,
+    summary: [
+      buildEntitySummaryHeadline(entity, scopeLabel),
+      entityFacts.path ? `Path ${entityFacts.path}` : 'No scope path exported for this entity.',
+      onCanvas ? 'Already present on the analysis canvas.' : 'Selected from the tree only; not yet added to the canvas.',
+      architecturalRoles.length > 0 ? `Roles ${architecturalRoles.join(', ')}` : `Kind ${formatEntityKindLabel(entity.kind)}`,
+    ],
+    metrics: [
+      { value: entity.kind, label: 'Kind' },
+      { value: entity.origin ?? 'local', label: 'Origin' },
+      { value: onCanvas ? 'Yes' : 'No', label: 'On canvas' },
+      { value: String(entityFacts.sourceRefs.length), label: 'Source refs' },
+    ],
   };
 }
 
@@ -146,7 +173,7 @@ export function buildBrowserFactsPanelPresentation(state: BrowserSessionState): 
     header: buildHeaderModel(state, model),
     viewpoint: buildViewpointSectionModel(model),
     scope: buildScopeSectionModel(model),
-    entity: buildEntitySectionModel(model),
+    entity: buildEntitySectionModel(state, model),
     relationship: buildRelationshipSectionModel(state, model),
     diagnostics: buildDiagnosticsSectionModel(model),
     sourceRefs: buildSourceRefsSectionModel(model),

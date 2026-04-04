@@ -51,6 +51,12 @@ export function openSnapshotSession(
     canvasEdges: persistedCanvasEdges,
   }, canvasNodes);
   const treeMode: BrowserTreeMode = args.keepViewState ? nextState.treeMode : detectDefaultBrowserTreeMode(index);
+  const normalizedNavigationTreeState = {
+    expandedScopeIds: nextState.navigationTreeState.expandedScopeIds.filter((scopeId) => index.scopesById.has(scopeId)),
+    expandedCategories: [...nextState.navigationTreeState.expandedCategories],
+    expandedEntityIds: nextState.navigationTreeState.expandedEntityIds.filter((entityId) => index.entitiesById.has(entityId)),
+    expandedChildListNodeIds: [...nextState.navigationTreeState.expandedChildListNodeIds],
+  };
   const selectedViewpointId = nextState.viewpointSelection.viewpointId && getViewpointById(index, nextState.viewpointSelection.viewpointId)
     ? nextState.viewpointSelection.viewpointId
     : null;
@@ -69,6 +75,7 @@ export function openSnapshotSession(
     },
     appliedViewpoint: null,
     treeMode,
+    navigationTreeState: normalizedNavigationTreeState,
     canvasViewport: nextState.canvasViewport,
   };
 

@@ -1,4 +1,4 @@
-import { createEmptyBrowserSessionState, addEntityToCanvas, openFactsPanel, openSnapshotSession, requestFitCanvasView } from '../../browser-session';
+import { createEmptyBrowserSessionState, addEntityToCanvas, openFactsPanel, openSnapshotSession, requestFitCanvasView, setBrowserNavigationTreeState } from '../../browser-session';
 import { persistBrowserSession, readPersistedBrowserSession } from '../../browser-session';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 
@@ -54,7 +54,12 @@ describe('browser session persistence safety net', () => {
       repositoryId: 'repo-1',
       payload: createPayload(),
     });
-    state = requestFitCanvasView(openFactsPanel(addEntityToCanvas(state, 'entity:browser'), 'entity', 'right'));
+    state = setBrowserNavigationTreeState(requestFitCanvasView(openFactsPanel(addEntityToCanvas(state, 'entity:browser'), 'entity', 'right')), {
+      expandedScopeIds: ['scope:web'],
+      expandedCategories: ['MODULE'],
+      expandedEntityIds: ['entity:browser'],
+      expandedChildListNodeIds: ['scope-node:scope:web'],
+    });
 
     const storage = {
       setItem: jest.fn(),
@@ -75,6 +80,12 @@ describe('browser session persistence safety net', () => {
     });
     expect(persisted.canvasNodes.map((node: { id: string }) => node.id)).toEqual(['entity:browser']);
     expect(persisted.factsPanelMode).toBe('entity');
+    expect(persisted.navigationTreeState).toEqual({
+      expandedScopeIds: ['scope:web'],
+      expandedCategories: ['MODULE'],
+      expandedEntityIds: ['entity:browser'],
+      expandedChildListNodeIds: ['scope-node:scope:web'],
+    });
     expect(persisted.fitViewRequestedAt).toBeUndefined();
     expect(persisted.payload).toBeUndefined();
     expect(persisted.index).toBeUndefined();

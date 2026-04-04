@@ -94,6 +94,168 @@ function filterEntitiesByKinds(entities: FullSnapshotEntity[], kinds?: string[])
   return entities.filter((entity) => allowedKinds.has(entity.kind));
 }
 
+const NAVIGATION_TREE_ELIGIBLE_ENTITY_KINDS = new Set([
+  'CLASS',
+  'INTERFACE',
+  'ENUM',
+  'RECORD',
+  'COMPONENT',
+  'SERVICE',
+  'REPOSITORY',
+  'RESOURCE',
+  'CONTROLLER',
+  'ENDPOINT',
+  'MODULE',
+  'HOOK',
+  'FUNCTION',
+  'SYSTEM',
+  'PERSISTENCE_ADAPTER',
+]);
+
+const NAVIGATION_TREE_ELIGIBLE_ARCHITECTURAL_ROLES = new Set([
+  'api-entrypoint',
+  'application-service',
+  'persistence-access',
+  'persistent-entity',
+  'integration-adapter',
+  'external-dependency',
+  'module-boundary',
+  'ui-layout',
+  'ui-page',
+  'ui-navigation-node',
+]);
+
+const NAVIGATION_TREE_SAFE_EXPANDABLE_CONTAINER_KINDS = new Set([
+  'MODULE',
+  'COMPONENT',
+  'SYSTEM',
+  'SERVICE',
+]);
+
+const NAVIGATION_TREE_MEMBER_LIKE_ENTITY_KINDS = new Set([
+  'ATTRIBUTE',
+  'CONSTRUCTOR',
+  'FIELD',
+  'FUNCTION',
+  'HOOK',
+  'METHOD',
+  'PROPERTY',
+]);
+
+function getEntityArchitecturalRoles(entity: FullSnapshotEntity) {
+  const roles = entity.metadata?.architecturalRoles;
+  return Array.isArray(roles)
+    ? roles.filter((role): role is string => typeof role === 'string' && role.trim().length > 0)
+    : [];
+}
+
+const NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS = new Set([
+  'DIRECTORY',
+  'FILE',
+  'MODULE',
+  'PACKAGE',
+]);
+
+function normalizeStructuralContainerLabel(value: string | null | undefined) {
+  return (value ?? '')
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/^[a-z-]+\s*:\s*/, '')
+    .replace(/^(package|module|file|directory)\s+/, '')
+    .replace(/\\/g, '/')
+    .replace(/\s+/g, ' ');
+}
+
+function collectStructuralContainerCandidates(item: { kind: string; name: string; displayName: string | null }) {
+  const rawValues = [displayNameOf(item), item.name]
+    .map((value) => normalizeStructuralContainerLabel(value))
+    .filter((value) => value.length > 0);
+
+  const candidates = new Set(rawValues);
+  for (const value of rawValues) {
+    if (value.includes('/')) {
+      const segments = value.split('/').filter(Boolean);
+      const basename = segments[segments.length - 1];
+      if (basename) candidates.add(basename);
+    }
+    if (value.includes('.')) {
+      const segments = value.split('.').filter(Boolean);
+      const tail = segments[segments.length - 1];
+      if (tail) candidates.add(tail);
+    }
+  }
+
+  return candidates;
+}
+
+function isScopeSemanticMirrorEntity(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
+  if (!NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS.has(entity.kind)) return false;
+  const scopeCandidates = collectStructuralContainerCandidates(scope);
+  const entityCandidates = collectStructuralContainerCandidates(entity);
+  for (const candidate of entityCandidates) {
+    if (scopeCandidates.has(candidate)) return true;
+  }
+  return false;
+}
+
+function isScopeDuplicateEntityKind(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
+  if (NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS.has(entity.kind) && entity.kind === scope.kind) return true;
+  if (entity.kind === 'MODULE' && scope.kind === 'FILE') return true;
+  if ((scope.kind === 'PACKAGE' || scope.kind === 'FILE' || scope.kind === 'DIRECTORY' || scope.kind === 'MODULE') && isScopeSemanticMirrorEntity(scope, entity)) return true;
+  return false;
+}
+
+function isEntityUsefulForNavigationTree(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
+  if (isScopeDuplicateEntityKind(scope, entity)) return false;
+  if (NAVIGATION_TREE_ELIGIBLE_ENTITY_KINDS.has(entity.kind)) return true;
+  return getEntityArchitecturalRoles(entity).some((role) => NAVIGATION_TREE_ELIGIBLE_ARCHITECTURAL_ROLES.has(role));
+}
+
+function hasEligibleContainerAtTreeLevel(index: BrowserSnapshotIndex, scope: FullSnapshotScope, entity: FullSnapshotEntity) {
+  const containerIds = index.containerEntityIdsByEntityId.get(entity.externalId) ?? [];
+  return containerIds.some((containerId) => {
+    const container = index.entitiesById.get(containerId);
+    return Boolean(container && container.scopeId === scope.externalId && isEntityUsefulForNavigationTree(scope, container));
+  });
+}
+
+export function isEntityEligibleForNavigationTree(index: BrowserSnapshotIndex, scopeId: string, entityId: string) {
+  const scope = index.scopesById.get(scopeId);
+  const entity = index.entitiesById.get(entityId);
+  if (!scope || !entity || entity.scopeId !== scopeId) return false;
+  if (!isEntityUsefulForNavigationTree(scope, entity)) return false;
+  if (hasEligibleContainerAtTreeLevel(index, scope, entity)) return false;
+  return true;
+}
+
+export function getEligibleDirectEntitiesForScope(index: BrowserSnapshotIndex, scopeId: string) {
+  return getDirectEntitiesForScope(index, scopeId).filter((entity) => isEntityEligibleForNavigationTree(index, scopeId, entity.externalId));
+}
+
+function isEntitySafeContainerForNavigationTreeExpansion(entity: FullSnapshotEntity) {
+  return NAVIGATION_TREE_SAFE_EXPANDABLE_CONTAINER_KINDS.has(entity.kind)
+    || getEntityArchitecturalRoles(entity).some((role) => NAVIGATION_TREE_ELIGIBLE_ARCHITECTURAL_ROLES.has(role));
+}
+
+function isMemberLikeNavigationTreeEntity(entity: FullSnapshotEntity) {
+  return NAVIGATION_TREE_MEMBER_LIKE_ENTITY_KINDS.has(entity.kind);
+}
+
+export function getExpandableNavigationChildrenForEntity(index: BrowserSnapshotIndex, entityId: string) {
+  const entity = index.entitiesById.get(entityId);
+  if (!entity || !entity.scopeId || !isEntitySafeContainerForNavigationTreeExpansion(entity)) return [];
+  const scope = index.scopesById.get(entity.scopeId);
+  if (!scope) return [];
+  return getContainedEntitiesForEntity(index, entityId)
+    .filter((child) => child.scopeId === entity.scopeId)
+    .filter((child) => isEntityUsefulForNavigationTree(scope, child))
+    .filter((child) => !isMemberLikeNavigationTreeEntity(child));
+}
+
+export function canExpandEntityInNavigationTree(index: BrowserSnapshotIndex, entityId: string) {
+  return getExpandableNavigationChildrenForEntity(index, entityId).length > 0;
+}
+
 export function getDirectEntitiesForScopeByKind(index: BrowserSnapshotIndex, scopeId: string, kinds?: string[]) {
   return filterEntitiesByKinds(getDirectEntitiesForScope(index, scopeId), kinds);
 }

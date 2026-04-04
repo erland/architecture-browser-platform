@@ -1,9 +1,30 @@
 import type {
+  BrowserNavigationTreeViewState,
   BrowserSessionState,
   PersistedBrowserSessionState,
 } from './types';
 import { createDefaultBrowserRoutingLayoutConfig, normalizeBrowserRoutingLayoutConfig } from '../../browser-graph/routing';
 import { normalizeCanvasNodes } from '../canvas/nodes';
+
+
+export function createEmptyBrowserNavigationTreeViewState(): BrowserNavigationTreeViewState {
+  return {
+    expandedScopeIds: [],
+    expandedCategories: [],
+    expandedEntityIds: [],
+    expandedChildListNodeIds: [],
+  };
+}
+
+export function normalizeBrowserNavigationTreeViewState(value?: Partial<BrowserNavigationTreeViewState> | null): BrowserNavigationTreeViewState {
+  const defaults = createEmptyBrowserNavigationTreeViewState();
+  return {
+    expandedScopeIds: [...(value?.expandedScopeIds ?? defaults.expandedScopeIds)],
+    expandedCategories: [...(value?.expandedCategories ?? defaults.expandedCategories)],
+    expandedEntityIds: [...(value?.expandedEntityIds ?? defaults.expandedEntityIds)],
+    expandedChildListNodeIds: [...(value?.expandedChildListNodeIds ?? defaults.expandedChildListNodeIds)],
+  };
+}
 
 export function createEmptyBrowserSessionState(): BrowserSessionState {
   return {
@@ -31,6 +52,7 @@ export function createEmptyBrowserSessionState(): BrowserSessionState {
     viewpointPresentationPreference: 'auto',
     canvasLayoutMode: 'grid',
     treeMode: 'filesystem',
+    navigationTreeState: createEmptyBrowserNavigationTreeViewState(),
     canvasViewport: {
       zoom: 1,
       offsetX: 0,
@@ -59,6 +81,7 @@ export function createPersistedBrowserSessionState(state: BrowserSessionState): 
     viewpointPresentationPreference: state.viewpointPresentationPreference,
     canvasLayoutMode: state.canvasLayoutMode,
     treeMode: state.treeMode,
+    navigationTreeState: normalizeBrowserNavigationTreeViewState(state.navigationTreeState),
     canvasViewport: { ...state.canvasViewport },
     routingLayoutConfig: {
       features: { ...state.routingLayoutConfig.features },
@@ -95,6 +118,7 @@ export function hydrateBrowserSessionState(persisted?: Partial<PersistedBrowserS
     viewpointPresentationPreference: persisted.viewpointPresentationPreference ?? state.viewpointPresentationPreference,
     canvasLayoutMode: persisted.canvasLayoutMode ?? state.canvasLayoutMode,
     treeMode: persisted.treeMode ?? state.treeMode,
+    navigationTreeState: normalizeBrowserNavigationTreeViewState(persisted.navigationTreeState),
     canvasViewport: {
       zoom: typeof persisted.canvasViewport?.zoom === 'number' && Number.isFinite(persisted.canvasViewport.zoom) ? persisted.canvasViewport.zoom : state.canvasViewport.zoom,
       offsetX: typeof persisted.canvasViewport?.offsetX === 'number' && Number.isFinite(persisted.canvasViewport.offsetX) ? persisted.canvasViewport.offsetX : state.canvasViewport.offsetX,
