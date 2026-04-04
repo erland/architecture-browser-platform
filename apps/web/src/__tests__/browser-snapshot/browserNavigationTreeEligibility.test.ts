@@ -18,7 +18,7 @@ const snapshotSummary: SnapshotSummary = {
   sourceBranch: 'main',
   importedAt: '2026-04-04T00:00:00Z',
   scopeCount: 4,
-  entityCount: 12,
+  entityCount: 11,
   relationshipCount: 2,
   diagnosticCount: 0,
   indexedFileCount: 2,
@@ -69,7 +69,6 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'entity:file-module', kind: 'MODULE', origin: 'react', name: 'OrdersModule', displayName: 'OrdersModule', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['module-boundary'] } },
       { externalId: 'entity:file-self', kind: 'FILE', origin: 'react', name: 'apps/web/src/orders.tsx', displayName: 'orders.tsx', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['module-boundary'] } },
       { externalId: 'entity:pkg-module', kind: 'MODULE', origin: 'java', name: 'OrdersSupportModule', displayName: 'OrdersSupportModule', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['application-service'] } },
-      { externalId: 'entity:pkg-module-duplicate', kind: 'MODULE', origin: 'java', name: 'com.example.orders', displayName: 'package com.example.orders', scopeId: 'scope:pkg', sourceRefs: [], metadata: { architecturalRoles: ['module-boundary'] } },
       { externalId: 'entity:pkg-self', kind: 'PACKAGE', origin: 'java', name: 'com.example.orders', displayName: 'com.example.orders', scopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
       { externalId: 'entity:other-service', kind: 'SERVICE', origin: 'java', name: 'OtherService', displayName: 'OtherService', scopeId: 'scope:other', sourceRefs: [], metadata: {} },
     ],
@@ -98,7 +97,6 @@ describe('browser navigation tree entity eligibility', () => {
     expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:order:id')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:order:save')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:pkg-self')).toBe(false);
-    expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:pkg-module-duplicate')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:file', 'entity:file-module')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:file', 'entity:file-self')).toBe(false);
   });

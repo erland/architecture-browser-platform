@@ -31,6 +31,7 @@ export type BrowserGraphWorkspaceProps = {
   onArrangeCanvasAroundFocus: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;
+  onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
 };
 
 export type BrowserEntitySelectionAction = {

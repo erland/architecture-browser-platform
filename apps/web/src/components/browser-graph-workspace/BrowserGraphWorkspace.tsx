@@ -37,6 +37,7 @@ export function BrowserGraphWorkspace({
   onArrangeCanvasAroundFocus,
   onClearCanvas,
   onFitView,
+  onReceiveTreeEntitiesDrop,
 }: BrowserGraphWorkspaceProps) {
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
   const {
@@ -112,6 +113,7 @@ export function BrowserGraphWorkspace({
         suppressClickRef={suppressClickRef}
         viewportRef={viewportRef}
         interactionHandlers={interactionHandlers}
+        onReceiveTreeEntitiesDrop={onReceiveTreeEntitiesDrop}
       />
     </section>
   );

@@ -123,6 +123,16 @@ export function BrowserViewCenterContent({
         onArrangeCanvasAroundFocus={browserSession.canvas.arrangeAroundFocus}
         onClearCanvas={browserSession.canvas.clear}
         onFitView={browserSession.canvas.fitView}
+        onReceiveTreeEntitiesDrop={(entityIds) => {
+          browserSession.canvas.addEntitiesToCanvas(entityIds);
+          const focusEntityId = entityIds[0];
+          if (!focusEntityId) {
+            return;
+          }
+          browserSession.canvas.selectEntity(focusEntityId);
+          browserSession.factsPanel.focusElement({ kind: 'entity', id: focusEntityId });
+          browserSession.factsPanel.open('entity', 'right');
+        }}
       />
     </div>
   );

@@ -156,52 +156,9 @@ const NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS = new Set([
   'PACKAGE',
 ]);
 
-function normalizeStructuralContainerLabel(value: string | null | undefined) {
-  return (value ?? '')
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/^[a-z-]+\s*:\s*/, '')
-    .replace(/^(package|module|file|directory)\s+/, '')
-    .replace(/\\/g, '/')
-    .replace(/\s+/g, ' ');
-}
-
-function collectStructuralContainerCandidates(item: { kind: string; name: string; displayName: string | null }) {
-  const rawValues = [displayNameOf(item), item.name]
-    .map((value) => normalizeStructuralContainerLabel(value))
-    .filter((value) => value.length > 0);
-
-  const candidates = new Set(rawValues);
-  for (const value of rawValues) {
-    if (value.includes('/')) {
-      const segments = value.split('/').filter(Boolean);
-      const basename = segments[segments.length - 1];
-      if (basename) candidates.add(basename);
-    }
-    if (value.includes('.')) {
-      const segments = value.split('.').filter(Boolean);
-      const tail = segments[segments.length - 1];
-      if (tail) candidates.add(tail);
-    }
-  }
-
-  return candidates;
-}
-
-function isScopeSemanticMirrorEntity(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
-  if (!NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS.has(entity.kind)) return false;
-  const scopeCandidates = collectStructuralContainerCandidates(scope);
-  const entityCandidates = collectStructuralContainerCandidates(entity);
-  for (const candidate of entityCandidates) {
-    if (scopeCandidates.has(candidate)) return true;
-  }
-  return false;
-}
-
 function isScopeDuplicateEntityKind(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
   if (NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS.has(entity.kind) && entity.kind === scope.kind) return true;
   if (entity.kind === 'MODULE' && scope.kind === 'FILE') return true;
-  if ((scope.kind === 'PACKAGE' || scope.kind === 'FILE' || scope.kind === 'DIRECTORY' || scope.kind === 'MODULE') && isScopeSemanticMirrorEntity(scope, entity)) return true;
   return false;
 }
 

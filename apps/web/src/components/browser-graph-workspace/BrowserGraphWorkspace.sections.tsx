@@ -88,6 +88,7 @@ type CanvasProps = {
   viewportRef: React.MutableRefObject<HTMLDivElement | null>;
   interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
   onReconcileCanvasNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
+  onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
 };
 
 export function BrowserGraphWorkspaceCanvas({
@@ -98,6 +99,7 @@ export function BrowserGraphWorkspaceCanvas({
   viewportRef,
   interactionHandlers,
   onReconcileCanvasNodePositions,
+  onReceiveTreeEntitiesDrop,
 }: CanvasProps) {
   useBrowserGraphWorkspaceCanvasReconciliation({
     model,
@@ -116,6 +118,7 @@ export function BrowserGraphWorkspaceCanvas({
       state={state}
       viewportHandlers={viewportHandlers}
       viewportRef={viewportRef}
+      onReceiveTreeEntitiesDrop={onReceiveTreeEntitiesDrop}
     >
       <BrowserGraphWorkspaceLayers
         model={model}
@@ -141,10 +144,13 @@ type ViewportProps = {
   state: BrowserSessionState;
   viewportHandlers: ViewportEventHandlers;
   viewportRef: React.MutableRefObject<HTMLDivElement | null>;
+  onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
   children: ReactNode;
 };
 
-function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewportRef, children }: ViewportProps) {
+const TREE_DRAG_MIME_TYPE = 'application/x-architecture-browser-entities';
+
+function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewportRef, onReceiveTreeEntitiesDrop, children }: ViewportProps) {
   return (
     <div
       ref={viewportRef}
@@ -154,6 +160,30 @@ function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewpor
       ].filter(Boolean).join(' ')}
       onMouseDown={viewportHandlers.beginViewportPan}
       onWheel={viewportHandlers.handleViewportWheel}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes(TREE_DRAG_MIME_TYPE)) {
+          return;
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }}
+      onDrop={(event) => {
+        const payload = event.dataTransfer.getData(TREE_DRAG_MIME_TYPE);
+        if (!payload || !onReceiveTreeEntitiesDrop) {
+          return;
+        }
+        try {
+          const parsed = JSON.parse(payload) as { entityIds?: string[] };
+          const entityIds = Array.isArray(parsed.entityIds) ? parsed.entityIds.filter((entityId): entityId is string => typeof entityId === 'string') : [];
+          if (entityIds.length === 0) {
+            return;
+          }
+          event.preventDefault();
+          onReceiveTreeEntitiesDrop(entityIds);
+        } catch {
+          // Ignore malformed drag payloads.
+        }
+      }}
     >
       <div
         className="browser-canvas__surface"

@@ -1,6 +1,6 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, canExpandEntityInNavigationTree, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
-import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, collectSingleChildAutoExpansion, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from '../../components/browser-navigation/BrowserNavigationTree';
+import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds } from '../../components/browser-navigation/BrowserNavigationTree';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-tree-1',
@@ -169,50 +169,6 @@ describe('browserNavigationTree helpers', () => {
     expect(detectDefaultBrowserTreeMode(index)).toBe('filesystem');
   });
 
-
-
-
-  test('collectSingleChildAutoExpansion expands single-child scope chains until branching', () => {
-    const index = buildBrowserSnapshotIndex({
-      ...createPayload(),
-      scopes: [
-        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
-        { externalId: 'scope:pkg:one', kind: 'PACKAGE', name: 'browser', displayName: 'browser', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
-        { externalId: 'scope:pkg:two', kind: 'PACKAGE', name: 'browser.ui', displayName: 'browser.ui', parentScopeId: 'scope:pkg:one', sourceRefs: [], metadata: {} },
-        { externalId: 'scope:file:a', kind: 'FILE', name: 'src/A.tsx', displayName: 'A.tsx', parentScopeId: 'scope:pkg:two', sourceRefs: [], metadata: {} },
-        { externalId: 'scope:file:b', kind: 'FILE', name: 'src/B.tsx', displayName: 'B.tsx', parentScopeId: 'scope:pkg:two', sourceRefs: [], metadata: {} },
-      ],
-      entities: [],
-      relationships: [],
-    });
-
-    expect(collectSingleChildAutoExpansion(index, 'advanced', ['scope:repo'], [])).toEqual({
-      scopeIds: ['scope:pkg:one', 'scope:pkg:two'],
-      entityIds: [],
-    });
-  });
-
-  test('collectSingleChildAutoExpansion continues from a single-child scope into entity containers', () => {
-    const index = buildBrowserSnapshotIndex({
-      ...createPayload(),
-      scopes: [
-        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
-        { externalId: 'scope:file', kind: 'FILE', name: 'src/App.tsx', displayName: 'App.tsx', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
-      ],
-      entities: [
-        { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'AppLayout', displayName: 'AppLayout', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-layout'] } },
-        { externalId: 'entity:page', kind: 'COMPONENT', origin: 'react', name: 'AppPage', displayName: 'AppPage', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-page'] } },
-      ],
-      relationships: [
-        { externalId: 'rel:layout-page', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:page', label: null, sourceRefs: [], metadata: {} },
-      ],
-    });
-
-    expect(collectSingleChildAutoExpansion(index, 'advanced', ['scope:repo', 'scope:file'], [])).toEqual({
-      scopeIds: ['scope:file'],
-      entityIds: ['entity:layout', 'entity:page'],
-    });
-  });
 
   test('buildNavigationChildNodes returns an empty collection for empty scopes', () => {
     const index = buildBrowserSnapshotIndex({

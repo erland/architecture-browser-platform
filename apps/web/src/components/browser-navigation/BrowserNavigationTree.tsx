@@ -17,7 +17,7 @@ type BrowserNavigationTreeProps = {
   onSelectScope: (scopeId: string) => void;
   selectedEntityIds: string[];
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
-  onSelectEntity: (entityId: string, scopeId: string) => void;
+  onSelectEntity: (entityId: string, scopeId: string, additive?: boolean) => void;
   onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
   onTreeModeChange: (treeMode: BrowserTreeMode) => void;
   persistedTreeState?: BrowserNavigationTreeViewState | null;
@@ -28,6 +28,7 @@ type BrowserNavigationTreeProps = {
 };
 
 const DEFAULT_VISIBLE_CHILDREN_LIMIT = 25;
+const TREE_DRAG_MIME_TYPE = 'application/x-architecture-browser-entities';
 
 function getNodeKindLabel(node: BrowserNavigationChildNode) {
   if (node.nodeType === 'scope') {
@@ -197,14 +198,16 @@ function BrowserNavigationEntityRow({
   isSelected,
   onSelectEntity,
   onAddEntityToCanvas,
+  selectedEntityIds,
 }: {
   node: BrowserNavigationEntityNode;
   hasChildren: boolean;
   isExpanded: boolean;
   onToggle: (entityId: string) => void;
   isSelected: boolean;
-  onSelectEntity: (entityId: string, scopeId: string) => void;
+  onSelectEntity: (entityId: string, scopeId: string, additive?: boolean) => void;
   onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
+  selectedEntityIds: string[];
 }) {
   return (
     <div className={isSelected ? 'browser-tree__row browser-tree__row--entity browser-tree__row--active' : 'browser-tree__row browser-tree__row--entity'} data-node-type="entity">
@@ -221,8 +224,15 @@ function BrowserNavigationEntityRow({
       <button
         type="button"
         className="browser-tree__node-button browser-tree__node-button--entity"
-        onClick={() => onSelectEntity(node.entityId, node.scopeId)}
+        onClick={(event) => onSelectEntity(node.entityId, node.scopeId, event.metaKey || event.ctrlKey)}
         onDoubleClick={() => onAddEntityToCanvas(node.entityId, node.scopeId)}
+        draggable
+        onDragStart={(event) => {
+          const dragEntityIds = isSelected && selectedEntityIds.length > 1 ? selectedEntityIds : [node.entityId];
+          event.dataTransfer.effectAllowed = 'copy';
+          event.dataTransfer.setData(TREE_DRAG_MIME_TYPE, JSON.stringify({ entityIds: dragEntityIds }));
+          event.dataTransfer.setData('text/plain', dragEntityIds.join(','));
+        }}
         title={`${node.displayName} — select entity`}
       >
         <span className="browser-tree__node-heading">
@@ -279,7 +289,7 @@ function TreeNode({
   onSelectScope: (scopeId: string) => void;
   selectedEntityIds: string[];
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
-  onSelectEntity: (entityId: string, scopeId: string) => void;
+  onSelectEntity: (entityId: string, scopeId: string, additive?: boolean) => void;
   onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
   visibleScopeIds: Set<string> | null;
   visibleEntityIds: Set<string> | null;
@@ -305,6 +315,7 @@ function TreeNode({
           isSelected={selectedEntityIds.includes(node.entityId)}
           onSelectEntity={onSelectEntity}
           onAddEntityToCanvas={onAddEntityToCanvas}
+          selectedEntityIds={selectedEntityIds}
         />
         {hasChildren && isExpanded ? (
           <ul className="browser-tree__children" role="group">
@@ -418,7 +429,7 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
     expandAll,
     collapseToSelection,
     searchVisibility,
-  } = useBrowserNavigationTreeState(index, selectedScopeId, selectedEntityIds, treeMode, persistedTreeState, onTreeStateChange, searchQuery, searchResults, selectedViewpointId);
+  } = useBrowserNavigationTreeState(index, selectedScopeId, selectedEntityIds, treeMode, persistedTreeState, onTreeStateChange, searchQuery, searchResults);
 
   const visibleScopeIds = searchVisibility?.scopeIds ?? null;
   const visibleEntityIds = searchVisibility?.entityIds ?? null;
@@ -446,6 +457,13 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
           <button type="button" className="button-secondary" onClick={collapseToSelection}>Focus</button>
         </div>
       </div>
+
+      {selectedEntityIds.length > 0 ? (
+        <div className="browser-navigation-tree__search-meta">
+          <span className="badge">{selectedEntityIds.length} selected</span>
+          <span className="muted">Drag selected entities into the canvas or use the row + button to add them.</span>
+        </div>
+      ) : null}
 
       {searchQuery.trim() ? (
         <div className="browser-navigation-tree__search-meta">
@@ -547,7 +565,6 @@ export {
   buildNavigationEntityChildNodes,
   buildScopeCategoryGroups,
   collectAncestorScopeIds,
-  collectSingleChildAutoExpansion,
   computeDefaultExpandedCategories,
   computeDefaultExpandedScopeIds,
 } from './browserNavigationTree.model';

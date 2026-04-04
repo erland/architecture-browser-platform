@@ -7,13 +7,12 @@ import {
   collectAllVisibleScopeIds,
   collectNavigationSearchVisibility,
   collectSafeNavigationAncestorEntityIds,
-  collectSingleChildAutoExpansion,
   computeDefaultExpandedCategories,
   computeDefaultExpandedScopeIds,
   filterCategoryGroupsForSearch,
 } from './browserNavigationTree.model';
 
-export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, selectedEntityIds: string[], treeMode: BrowserTreeMode, persistedTreeState: BrowserNavigationTreeViewState | null, onTreeStateChange: ((state: BrowserNavigationTreeViewState) => void) | undefined, searchQuery = '', searchResults: BrowserSearchResult[] = [], selectedViewpointId: string | null = null) {
+export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, selectedEntityIds: string[], treeMode: BrowserTreeMode, persistedTreeState: BrowserNavigationTreeViewState | null, onTreeStateChange: ((state: BrowserNavigationTreeViewState) => void) | undefined, searchQuery = '', searchResults: BrowserSearchResult[] = []) {
   const summary = useMemo(() => index ? buildNavigationTreeSummary(index, treeMode) : null, [index, treeMode]);
   const roots = summary?.roots ?? ([] as BrowserScopeTreeNode[]);
   const rawCategoryGroups = summary?.categoryGroups ?? [];
@@ -138,41 +137,6 @@ export function useBrowserNavigationTreeState(index: BrowserSnapshotIndex | null
     });
   }, [index, selectedEntityIds]);
 
-  useEffect(() => {
-    if (!index) {
-      return;
-    }
-    const { scopeIds, entityIds } = collectSingleChildAutoExpansion(index, treeMode, expandedScopeIds, expandedEntityIds, {
-      visibleScopeIds: searchVisibility?.scopeIds ?? null,
-      visibleEntityIds: searchVisibility?.entityIds ?? null,
-      viewpointId: selectedViewpointId,
-    });
-    if (scopeIds.length === 0 && entityIds.length === 0) {
-      return;
-    }
-    setExpandedScopeIds((current) => {
-      const next = new Set(current);
-      let changed = false;
-      for (const scopeId of scopeIds) {
-        if (!next.has(scopeId)) {
-          next.add(scopeId);
-          changed = true;
-        }
-      }
-      return changed ? [...next] : current;
-    });
-    setExpandedEntityIds((current) => {
-      const next = new Set(current);
-      let changed = false;
-      for (const entityId of entityIds) {
-        if (!next.has(entityId)) {
-          next.add(entityId);
-          changed = true;
-        }
-      }
-      return changed ? [...next] : current;
-    });
-  }, [expandedEntityIds, expandedScopeIds, index, searchVisibility, selectedViewpointId, treeMode]);
 
   useEffect(() => {
     if (!onTreeStateChange) {

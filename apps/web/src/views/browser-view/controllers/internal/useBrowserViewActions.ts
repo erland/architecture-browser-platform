@@ -8,7 +8,7 @@ export type BrowserViewActions = {
   effectiveTopSearchScopeId: string | null;
   handleTopSearchResult: (action: BrowserTopSearchResultAction) => void;
   handleAddPrimaryScopeEntitiesToCanvas: (scopeId: string) => void;
-  handleSelectEntity: (entityId: string, scopeId?: string) => void;
+  handleSelectEntity: (entityId: string, scopeId?: string, additive?: boolean) => void;
   handleAddEntityToCanvas: (entityId: string, scopeId?: string) => void;
   handleAddScopeAnalysisToCanvas: (scopeId: string, mode: 'primary' | 'direct' | 'subtree' | 'children-primary', kinds?: string[], childScopeKinds?: string[]) => void;
   handleAddContainedEntitiesToCanvas: (entityId: string, kinds?: string[]) => void;
@@ -57,11 +57,11 @@ export function useBrowserViewActions({
   }, [handleAddScopeAnalysisToCanvas]);
 
 
-  const handleSelectEntity = useCallback((entityId: string, scopeId?: string) => {
+  const handleSelectEntity = useCallback((entityId: string, scopeId?: string, additive = false) => {
     if (scopeId) {
       browserSession.navigation.selectScope(scopeId);
     }
-    browserSession.canvas.addEntityToCanvas(entityId);
+    browserSession.canvas.selectEntity(entityId, additive);
     browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
     browserSession.factsPanel.open('entity', 'right');
     setActiveTab('search');

@@ -10,7 +10,7 @@ export type BrowserRailPanelProps = {
   onExpand: () => void;
   onCollapse: () => void;
   onAddScopeEntitiesToCanvas: (scopeId: string) => void;
-  onSelectEntity: (entityId: string, scopeId: string) => void;
+  onSelectEntity: (entityId: string, scopeId: string, additive?: boolean) => void;
   onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
   onOpenViewpoints: () => void;
 };

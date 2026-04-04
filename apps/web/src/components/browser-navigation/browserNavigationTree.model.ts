@@ -216,67 +216,6 @@ export function buildNavigationChildNodes(index: BrowserSnapshotIndex, parentSco
   return [...scopeNodes, ...entityNodes];
 }
 
-
-
-export function collectSingleChildAutoExpansion(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, expandedScopeIds: Iterable<string>, expandedEntityIds: Iterable<string>, options?: { visibleScopeIds?: Set<string> | null; visibleEntityIds?: Set<string> | null; viewpointId?: string | null }) {
-  const nextScopeIds = new Set<string>();
-  const nextEntityIds = new Set<string>();
-  const queuedScopeIds = [...new Set(expandedScopeIds as Iterable<string>)];
-  const queuedEntityIds = [...new Set(expandedEntityIds as Iterable<string>)];
-  const processedScopeIds = new Set<string>();
-  const processedEntityIds = new Set<string>();
-
-  while (queuedScopeIds.length > 0 || queuedEntityIds.length > 0) {
-    const scopeId = queuedScopeIds.shift();
-    if (scopeId && !processedScopeIds.has(scopeId)) {
-      processedScopeIds.add(scopeId);
-      const children = buildNavigationChildNodes(index, scopeId, treeMode, options);
-      if (children.length === 1) {
-        const [onlyChild] = children;
-        if (onlyChild.nodeType === 'scope') {
-          if (!nextScopeIds.has(onlyChild.scopeId)) {
-            nextScopeIds.add(onlyChild.scopeId);
-            queuedScopeIds.push(onlyChild.scopeId);
-          }
-        } else if (!nextEntityIds.has(onlyChild.entityId)) {
-          nextEntityIds.add(onlyChild.entityId);
-          if (onlyChild.expandable) {
-            queuedEntityIds.push(onlyChild.entityId);
-          }
-        }
-      }
-    }
-
-    const entityId = queuedEntityIds.shift();
-    if (entityId && !processedEntityIds.has(entityId)) {
-      processedEntityIds.add(entityId);
-      const entity = index.entitiesById.get(entityId);
-      if (!entity?.scopeId) {
-        continue;
-      }
-      const entityNode = toNavigationEntityNode(index, entity.scopeId, entityId, { viewpointId: options?.viewpointId });
-      if (!entityNode?.expandable) {
-        continue;
-      }
-      const children = buildNavigationEntityChildNodes(index, entityId, entity.scopeId, entityNode.depth, entityNode.path, options?.visibleEntityIds, options?.viewpointId);
-      if (children.length === 1) {
-        const [onlyChild] = children;
-        if (!nextEntityIds.has(onlyChild.entityId)) {
-          nextEntityIds.add(onlyChild.entityId);
-          if (onlyChild.expandable) {
-            queuedEntityIds.push(onlyChild.entityId);
-          }
-        }
-      }
-    }
-  }
-
-  return {
-    scopeIds: [...nextScopeIds],
-    entityIds: [...nextEntityIds],
-  };
-}
-
 export const TREE_MODE_META: Record<BrowserTreeMode, { label: string; description: string }> = {
   filesystem: { label: 'Filesystem', description: 'Directory and file structure' },
   package: { label: 'Package', description: 'Package-focused structure' },
