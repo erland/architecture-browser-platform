@@ -158,7 +158,7 @@ const NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS = new Set([
 
 function isScopeDuplicateEntityKind(scope: FullSnapshotScope, entity: FullSnapshotEntity) {
   if (NAVIGATION_TREE_SCOPE_DUPLICATE_ENTITY_KINDS.has(entity.kind) && entity.kind === scope.kind) return true;
-  if (entity.kind === 'MODULE' && scope.kind === 'FILE') return true;
+  if (entity.kind === 'MODULE' && (scope.kind === 'FILE' || scope.kind === 'PACKAGE')) return true;
   return false;
 }
 

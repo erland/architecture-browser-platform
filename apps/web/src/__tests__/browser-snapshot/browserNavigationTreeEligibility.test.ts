@@ -87,7 +87,6 @@ describe('browser navigation tree entity eligibility', () => {
 
     expect(getEligibleDirectEntitiesForScope(index, 'scope:pkg').map((entity) => entity.externalId)).toEqual([
       'entity:order',
-      'entity:pkg-module',
     ]);
   });
 
@@ -99,6 +98,7 @@ describe('browser navigation tree entity eligibility', () => {
     expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:pkg-self')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:file', 'entity:file-module')).toBe(false);
     expect(isEntityEligibleForNavigationTree(index, 'scope:file', 'entity:file-self')).toBe(false);
+    expect(isEntityEligibleForNavigationTree(index, 'scope:pkg', 'entity:pkg-module')).toBe(false);
   });
 
   test('keeps top-level hooks and pages while rejecting entities from another scope', () => {
