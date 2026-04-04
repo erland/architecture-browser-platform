@@ -13,6 +13,8 @@ export {
   reconcileCanvasNodePositions,
   openFactsPanel,
   removeCanvasSelection,
+  clearCanvasSelection,
+  selectAllCanvasEntities,
   removeEntityFromCanvas,
   selectCanvasEntity,
   setCanvasEntityClassPresentationMode,

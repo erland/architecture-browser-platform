@@ -540,6 +540,70 @@ test('renders class presentation controls for selected class entities in the too
   }
   state = {
     ...state,
+    canvasNodes: [{ id: 'entity:module', kind: 'entity', x: 56, y: 64, classPresentation: { mode: 'compartments', showFields: true, showFunctions: true } }],
+    focusedElement: { kind: 'entity', id: 'entity:module' },
+    selectedEntityIds: ['entity:module'],
+  };
+
+  const markup = renderToStaticMarkup(createElement(BrowserGraphWorkspace, {
+    state,
+    activeModeLabel: 'Analysis',
+    onShowScopeContainer: () => {},
+    onAddScopeAnalysis: () => {},
+    onAddContainedEntities: () => {},
+    onAddPeerEntities: () => {},
+    onFocusScope: () => {},
+    onFocusEntity: () => {},
+    onSelectEntity: () => {},
+    onFocusRelationship: () => {},
+    onExpandEntityDependencies: () => {},
+    onExpandInboundDependencies: () => {},
+    onExpandOutboundDependencies: () => {},
+    onRemoveEntity: () => {},
+    onRemoveSelection: () => {},
+    onSelectAllEntities: () => {},
+    onIsolateSelection: () => {},
+    onTogglePinNode: () => {},
+    onSetClassPresentationMode: () => {},
+    onToggleClassPresentationMembers: () => {},
+    onArrangeAllCanvasNodes: () => {},
+    onArrangeCanvasAroundFocus: () => {},
+    onClearCanvas: () => {},
+    onFitView: () => {},
+    onMoveCanvasNode: () => {},
+    onReconcileCanvasNodePositions: () => {},
+    onSetCanvasViewport: () => {},
+  }));
+
+  expect(markup).toContain('Class presentation');
+  expect(markup).toContain('Select all');
+  expect(markup).not.toContain('>Compartments<');
+  expect(markup).toContain('>Simple<');
+  expect(markup).not.toContain('Expanded');
+  expect(markup).toContain('Hide fields');
+  expect(markup).toContain('Hide functions');
+});
+
+
+test('hides field and function toggles for a single selected class in simple mode', () => {
+  let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+    workspaceId: 'ws-1',
+    repositoryId: 'repo-1',
+    payload: createPayload(),
+  });
+  state = {
+    ...state,
+    index: {
+      ...state.index!,
+      entitiesById: new Map(state.index!.entitiesById),
+    },
+  };
+  const classEntity = state.index!.entitiesById.get('entity:module');
+  if (classEntity) {
+    state.index!.entitiesById.set('entity:module', { ...classEntity, kind: 'CLASS' });
+  }
+  state = {
+    ...state,
     canvasNodes: [{ id: 'entity:module', kind: 'entity', x: 56, y: 64, classPresentation: { mode: 'simple', showFields: true, showFunctions: true } }],
     focusedElement: { kind: 'entity', id: 'entity:module' },
     selectedEntityIds: ['entity:module'],
@@ -561,6 +625,7 @@ test('renders class presentation controls for selected class entities in the too
     onExpandOutboundDependencies: () => {},
     onRemoveEntity: () => {},
     onRemoveSelection: () => {},
+    onSelectAllEntities: () => {},
     onIsolateSelection: () => {},
     onTogglePinNode: () => {},
     onSetClassPresentationMode: () => {},
@@ -574,9 +639,9 @@ test('renders class presentation controls for selected class entities in the too
     onSetCanvasViewport: () => {},
   }));
 
-  expect(markup).toContain('Class presentation');
   expect(markup).toContain('Compartments');
-  expect(markup).toContain('Expanded');
-  expect(markup).toContain('Hide fields');
-  expect(markup).toContain('Hide functions');
+  expect(markup).not.toContain('Hide fields');
+  expect(markup).not.toContain('Show fields');
+  expect(markup).not.toContain('Hide functions');
+  expect(markup).not.toContain('Show functions');
 });

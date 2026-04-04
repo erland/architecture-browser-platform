@@ -81,6 +81,7 @@ export {
   removeEntityFromCanvas,
   reconcileCanvasNodePositions,
   requestFitCanvasView,
+  selectAllCanvasEntities,
   selectCanvasEntity,
   setCanvasEntityClassPresentationMode,
   setCanvasViewport,

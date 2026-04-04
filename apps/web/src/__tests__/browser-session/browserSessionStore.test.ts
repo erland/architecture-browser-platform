@@ -651,6 +651,32 @@ describe('browserSessionStore', () => {
     });
   });
 
+  test('setCanvasEntityClassPresentationMode enables fields when compartments is selected with both member toggles hidden', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createClassPayload(),
+    });
+
+    state = addEntityToCanvas(state, 'entity:order');
+    state = toggleCanvasEntityClassPresentationMembers(state, ['entity:order'], 'fields');
+    state = toggleCanvasEntityClassPresentationMembers(state, ['entity:order'], 'functions');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'simple',
+      showFields: false,
+      showFunctions: false,
+    });
+
+    state = setCanvasEntityClassPresentationMode(state, ['entity:order'], 'compartments');
+
+    expect(state.canvasNodes.find((node) => node.kind === 'entity' && node.id === 'entity:order')?.classPresentation).toEqual({
+      mode: 'compartments',
+      showFields: true,
+      showFunctions: false,
+    });
+  });
+
 
   test('request-handling defaults newly added classes to operation-focused compartments', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {

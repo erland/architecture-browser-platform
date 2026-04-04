@@ -36,6 +36,7 @@ type ToolbarProps = {
   onAddScopeAnalysis: (scopeId: string, mode: ScopeAnalysisMode, kinds?: string[], childScopeKinds?: string[]) => void;
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
+  onSelectAllEntities: () => void;
   onArrangeAllCanvasNodes: () => void;
   onArrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
@@ -91,6 +92,7 @@ type CanvasProps = {
   viewportRef: React.MutableRefObject<HTMLDivElement | null>;
   interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
   onReconcileCanvasNodePositions: (updates: Array<{ kind: 'scope' | 'entity'; id: string; x?: number; y?: number }>) => void;
+  onClearSelection?: () => void;
   onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
 };
 
@@ -102,6 +104,7 @@ export function BrowserGraphWorkspaceCanvas({
   viewportRef,
   interactionHandlers,
   onReconcileCanvasNodePositions,
+  onClearSelection,
   onReceiveTreeEntitiesDrop,
 }: CanvasProps) {
   useBrowserGraphWorkspaceCanvasReconciliation({
@@ -122,12 +125,14 @@ export function BrowserGraphWorkspaceCanvas({
       viewportHandlers={viewportHandlers}
       viewportRef={viewportRef}
       onReceiveTreeEntitiesDrop={onReceiveTreeEntitiesDrop}
+      onClearSelection={onClearSelection}
     >
       <BrowserGraphWorkspaceLayers
         model={model}
         suppressClickRef={suppressClickRef}
         viewportHandlers={viewportHandlers}
         interactionHandlers={interactionHandlers}
+        onClearSelection={onClearSelection}
       />
     </BrowserGraphWorkspaceViewport>
   );
@@ -148,12 +153,13 @@ type ViewportProps = {
   viewportHandlers: ViewportEventHandlers;
   viewportRef: React.MutableRefObject<HTMLDivElement | null>;
   onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
+  onClearSelection?: () => void;
   children: ReactNode;
 };
 
 const TREE_DRAG_MIME_TYPE = 'application/x-architecture-browser-entities';
 
-function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewportRef, onReceiveTreeEntitiesDrop, children }: ViewportProps) {
+function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewportRef, onReceiveTreeEntitiesDrop, onClearSelection, children }: ViewportProps) {
   return (
     <div
       ref={viewportRef}
@@ -169,6 +175,15 @@ function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewpor
         }
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+        if (viewportHandlers.isPanning || viewportHandlers.draggingNodeId) {
+          return;
+        }
+        onClearSelection?.();
       }}
       onDrop={(event) => {
         const payload = event.dataTransfer.getData(TREE_DRAG_MIME_TYPE);
@@ -190,6 +205,15 @@ function BrowserGraphWorkspaceViewport({ model, state, viewportHandlers, viewpor
     >
       <div
         className="browser-canvas__surface"
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) {
+            return;
+          }
+          if (viewportHandlers.isPanning || viewportHandlers.draggingNodeId) {
+            return;
+          }
+          onClearSelection?.();
+        }}
         style={{
           width: model.width,
           height: model.height,
@@ -208,12 +232,28 @@ type LayersProps = {
   suppressClickRef: React.MutableRefObject<boolean>;
   viewportHandlers: ViewportEventHandlers;
   interactionHandlers: BrowserGraphWorkspaceInteractionHandlers;
+  onClearSelection?: () => void;
 };
 
-function BrowserGraphWorkspaceLayers({ model, suppressClickRef, viewportHandlers, interactionHandlers }: LayersProps) {
+function BrowserGraphWorkspaceLayers({ model, suppressClickRef, viewportHandlers, interactionHandlers, onClearSelection }: LayersProps) {
   return (
     <>
-      <svg className="browser-canvas__edges" width={model.width} height={model.height} viewBox={`0 0 ${model.width} ${model.height}`} aria-hidden="true">
+      <svg
+        className="browser-canvas__edges"
+        width={model.width}
+        height={model.height}
+        viewBox={`0 0 ${model.width} ${model.height}`}
+        aria-hidden="true"
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) {
+            return;
+          }
+          if (viewportHandlers.isPanning || viewportHandlers.draggingNodeId) {
+            return;
+          }
+          onClearSelection?.();
+        }}
+      >
         <defs>
           <marker id="browser-canvas-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
             <path d="M0,0 L8,4 L0,8 z" className="browser-canvas__arrow" />

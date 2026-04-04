@@ -80,6 +80,12 @@ export function createBoundBrowserSessionActionGroups(
       removeSelection: bindBrowserSessionMutationGroup(setState, {
         removeSelection: browserSessionCanvasMutations.removeCanvasSelection,
       }).removeSelection,
+      clearSelection: bindBrowserSessionMutationGroup(setState, {
+        clearSelection: browserSessionCanvasMutations.clearCanvasSelection,
+      }).clearSelection,
+      selectAllEntities: bindBrowserSessionMutationGroup(setState, {
+        selectAllEntities: browserSessionCanvasMutations.selectAllCanvasEntities,
+      }).selectAllEntities,
       toggleNodePin: bindBrowserSessionMutationGroup(setState, {
         toggleNodePin: browserSessionCanvasMutations.toggleCanvasNodePin,
       }).toggleNodePin,

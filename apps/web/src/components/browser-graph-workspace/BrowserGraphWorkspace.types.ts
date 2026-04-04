@@ -21,6 +21,8 @@ export type BrowserGraphWorkspaceProps = {
   onExpandOutboundDependencies: (entityId: string) => void;
   onRemoveEntity: (entityId: string) => void;
   onRemoveSelection: () => void;
+  onClearSelection?: () => void;
+  onSelectAllEntities?: () => void;
   onIsolateSelection: () => void;
   onTogglePinNode: (node: { kind: 'scope' | 'entity'; id: string }) => void;
   onSetClassPresentationMode?: (entityIds: string[], mode: BrowserClassPresentationMode) => void;
@@ -42,12 +44,19 @@ export type BrowserEntitySelectionAction = {
   disabled?: boolean;
 };
 
+export type DragStateNode = {
+  node: Pick<BrowserCanvasNode, 'kind' | 'id'>;
+  startX: number;
+  startY: number;
+};
+
 export type DragState = {
   node: Pick<BrowserCanvasNode, 'kind' | 'id'>;
   startClientX: number;
   startClientY: number;
   startX: number;
   startY: number;
+  nodes: DragStateNode[];
 };
 
 export type PanState = {

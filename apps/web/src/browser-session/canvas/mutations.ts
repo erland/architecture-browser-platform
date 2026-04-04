@@ -71,6 +71,42 @@ export function selectCanvasEntity(state: BrowserSessionState, entityId: string,
   };
 }
 
+
+
+export function clearCanvasSelection(state: BrowserSessionState): BrowserSessionState {
+  if (state.selectedEntityIds.length === 0 && !state.focusedElement) {
+    return state;
+  }
+  return {
+    ...state,
+    selectedEntityIds: [],
+    focusedElement: null,
+    factsPanelMode: 'hidden',
+    appliedViewpoint: null,
+  };
+}
+
+export function selectAllCanvasEntities(state: BrowserSessionState): BrowserSessionState {
+  const selectedEntityIds = state.canvasNodes
+    .filter((node) => node.kind === 'entity')
+    .map((node) => node.id)
+    .filter((entityId) => state.index?.entitiesById.has(entityId));
+  if (selectedEntityIds.length === 0) {
+    return state;
+  }
+  const focusEntityId = state.focusedElement?.kind === 'entity' && selectedEntityIds.includes(state.focusedElement.id)
+    ? state.focusedElement.id
+    : selectedEntityIds[0];
+  const focusedEntity = focusEntityId ? { kind: 'entity' as const, id: focusEntityId } : state.focusedElement;
+  return {
+    ...state,
+    selectedEntityIds,
+    focusedElement: focusedEntity,
+    factsPanelMode: 'entity',
+    appliedViewpoint: null,
+  };
+}
+
 export function isolateCanvasSelection(state: BrowserSessionState): BrowserSessionState {
   const selectedEntityIds = state.selectedEntityIds.filter((entityId) => state.index?.entitiesById.has(entityId));
   const focusedScopeId = state.focusedElement?.kind === 'scope' ? state.focusedElement.id : state.selectedScopeId;
@@ -206,16 +242,29 @@ export function setCanvasEntityClassPresentationMode(
     if (node.kind !== 'entity' || !targets.has(node.id) || !node.classPresentation) {
       return node;
     }
-    if (node.classPresentation.mode === mode) {
+    const normalized = normalizeBrowserClassPresentationPolicy(node.classPresentation);
+    const nextPresentation = mode === 'compartments' && !normalized.showFields && !normalized.showFunctions
+      ? {
+          ...normalized,
+          mode,
+          showFields: true,
+          showFunctions: false,
+        }
+      : {
+          ...normalized,
+          mode,
+        };
+    if (
+      normalized.mode === nextPresentation.mode
+      && normalized.showFields === nextPresentation.showFields
+      && normalized.showFunctions === nextPresentation.showFunctions
+    ) {
       return node;
     }
     changed = true;
     return {
       ...node,
-      classPresentation: {
-        ...normalizeBrowserClassPresentationPolicy(node.classPresentation),
-        mode,
-      },
+      classPresentation: nextPresentation,
     };
   });
   return changed

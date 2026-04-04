@@ -147,7 +147,7 @@ describe('BrowserFactsPanel class presentation actions', () => {
       ],
       hiddenDetails: [
         'Fields are hidden (1 available).',
-        'Member detail is compacted into the class node; switch to Expanded to show 2 member nodes.',
+        'Member detail is compacted into the class node (2 visible in compartments).',
       ],
     });
   });

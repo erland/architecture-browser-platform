@@ -33,9 +33,8 @@ function buildActionsModel(state: BrowserSessionState, model: NonNullable<Return
     : null;
   const selectedCanvasEntityIds = state.selectedEntityIds.filter((entityId) => state.canvasNodes.some((node) => node.kind === 'entity' && node.id === entityId));
   const classPresentationEntityIds = resolveCanvasClassPresentationTargetEntityIds(state);
-  const classPresentationNode = classPresentationEntityIds.length === 1
-    ? state.canvasNodes.find((node) => node.kind === 'entity' && node.id === classPresentationEntityIds[0])
-    : null;
+  const classPresentationNodes = state.canvasNodes.filter((node) => node.kind === 'entity' && classPresentationEntityIds.includes(node.id) && node.classPresentation);
+  const classPresentationNode = classPresentationNodes[0] ?? null;
   const focusedCanvasScopeNode = state.focusedElement?.kind === 'scope'
     ? state.canvasNodes.find((node) => node.kind === 'scope' && node.id === state.focusedElement?.id)
     : null;
@@ -125,7 +124,7 @@ function buildClassPresentationSummary(
 
   const visibleMemberCount = (classPresentation.showFields ? counts.fields : 0) + (classPresentation.showFunctions ? counts.functions : 0);
   if (effectiveMode !== 'expanded' && visibleMemberCount > 0) {
-    hiddenDetails.push(`Member detail is compacted into the class node; switch to Expanded to show ${visibleMemberCount} member ${visibleMemberCount === 1 ? 'node' : 'nodes'}.`);
+    hiddenDetails.push(`Member detail is compacted into the class node (${visibleMemberCount} visible in compartments).`);
   }
 
   return {

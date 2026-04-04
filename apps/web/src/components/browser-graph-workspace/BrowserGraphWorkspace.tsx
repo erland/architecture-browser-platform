@@ -26,6 +26,8 @@ export function BrowserGraphWorkspace({
   onExpandOutboundDependencies,
   onRemoveEntity,
   onRemoveSelection,
+  onClearSelection = () => {},
+  onSelectAllEntities = () => {},
   onIsolateSelection,
   onTogglePinNode,
   onSetClassPresentationMode = () => {},
@@ -83,8 +85,28 @@ export function BrowserGraphWorkspace({
     onSetCanvasViewport,
   });
 
+  const hasCanvasEntities = state.canvasNodes.some((node) => node.kind === 'entity');
+
   return (
-    <section className="card browser-canvas" aria-label="Canvas graph workspace">
+    <section
+      className="card browser-canvas"
+      aria-label="Canvas graph workspace"
+      onKeyDownCapture={(event) => {
+        const target = event.target as HTMLElement | null;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        if ((event.key === 'Delete' || event.key === 'Backspace') && (selectedEntityCount > 0 || Boolean(focusedScopeId))) {
+          event.preventDefault();
+          onRemoveSelection();
+          return;
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a' && hasCanvasEntities) {
+          event.preventDefault();
+          onSelectAllEntities();
+        }
+      }}
+    >
       <BrowserGraphWorkspaceToolbar
         model={model}
         state={state}
@@ -101,6 +123,7 @@ export function BrowserGraphWorkspace({
         scopeChildCount={scopeChildCount}
         onAddScopeAnalysis={onAddScopeAnalysis}
         onIsolateSelection={onIsolateSelection}
+        onSelectAllEntities={onSelectAllEntities}
         onRemoveSelection={onRemoveSelection}
         onArrangeAllCanvasNodes={onArrangeAllCanvasNodes}
         onArrangeCanvasWithMode={onArrangeCanvasWithMode}
@@ -119,6 +142,7 @@ export function BrowserGraphWorkspace({
         model={model}
         state={state}
         onReconcileCanvasNodePositions={onReconcileCanvasNodePositions}
+        onClearSelection={onClearSelection}
         viewportHandlers={{ beginNodeDrag, beginViewportPan, handleViewportWheel }}
         suppressClickRef={suppressClickRef}
         viewportRef={viewportRef}

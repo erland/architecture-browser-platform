@@ -20,6 +20,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
   onAddScopeAnalysis,
   onIsolateSelection,
   onRemoveSelection,
+  onSelectAllEntities,
   onArrangeAllCanvasNodes,
   onArrangeCanvasWithMode,
   onArrangeCanvasAroundFocus,
@@ -47,6 +48,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
   onAddScopeAnalysis: (scopeId: string, mode: ScopeAnalysisMode, kinds?: string[], childScopeKinds?: string[]) => void;
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
+  onSelectAllEntities: () => void;
   onArrangeAllCanvasNodes: () => void;
   onArrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
@@ -75,10 +77,17 @@ export function BrowserGraphWorkspaceToolbarMenus({
   const canAddFocusedSubtree = Boolean(focusedScopeId) && scopeSubtreeEntityCount > 0;
   const canOpenAdvancedScopeMenu = Boolean(focusedScopeId);
   const canOpenClassPresentationMenu = selectedClassEntityIds.length > 0;
+  const selectedClassNodes = state.canvasNodes.filter((node) => node.kind === 'entity' && selectedClassEntityIds.includes(node.id) && node.classPresentation);
   const classPresentationState = selectedClassEntityIds.length === 1
-    ? state.canvasNodes.find((node) => node.kind === 'entity' && node.id === selectedClassEntityIds[0])?.classPresentation ?? null
+    ? selectedClassNodes[0]?.classPresentation ?? null
     : null;
-  const canOpenSelectionMenu = canIsolateOrRemove || canOpenEntityAction || Boolean(focusedScopeId) || canOpenClassPresentationMenu;
+  const allSelectedClassesAreSimple = selectedClassNodes.length > 0 && selectedClassNodes.every((node) => node.classPresentation?.mode === 'simple');
+  const allSelectedClassesAreCompartments = selectedClassNodes.length > 0 && selectedClassNodes.every((node) => node.classPresentation?.mode === 'compartments');
+  const showMemberToggleActions = selectedClassEntityIds.length > 1 || !classPresentationState || classPresentationState.mode === 'compartments';
+  const hasSelectableCanvasEntities = state.canvasNodes.some((node) => node.kind === 'entity');
+  const canOpenSelectionMenu = hasSelectableCanvasEntities || canIsolateOrRemove || canOpenEntityAction || Boolean(focusedScopeId) || canOpenClassPresentationMenu;
+  const showSimpleClassAction = !allSelectedClassesAreSimple;
+  const showCompartmentsClassAction = !allSelectedClassesAreCompartments;
 
   return (
     <>
@@ -97,6 +106,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
       </BrowserGraphWorkspaceMenu>
 
       <BrowserGraphWorkspaceMenu label="Selection" enabled={canOpenSelectionMenu}>
+        <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onSelectAllEntities)} disabled={!hasSelectableCanvasEntities}>Select all</button>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onIsolateSelection)} disabled={!canIsolateOrRemove}>Isolate</button>
         <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, onRemoveSelection)} disabled={!canIsolateOrRemove}>Remove</button>
         {focusedEntity ? (
@@ -118,15 +128,14 @@ export function BrowserGraphWorkspaceToolbarMenus({
             })}
             {canOpenClassPresentationMenu ? (
               <BrowserGraphWorkspaceMenu label="Class presentation" enabled inline>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))} disabled={classPresentationState?.mode === 'simple' && selectedClassEntityIds.length === 1}>Simple</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))} disabled={classPresentationState?.mode === 'compartments' && selectedClassEntityIds.length === 1}>Compartments</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'expanded'))} disabled={classPresentationState?.mode === 'expanded' && selectedClassEntityIds.length === 1}>Expanded</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
+                {showSimpleClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))}>Simple</button> : null}
+                {showCompartmentsClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))}>Compartments</button> : null}
+                {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
                   {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFields ? 'Hide fields' : 'Show fields') : 'Toggle fields'}
-                </button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
+                </button> : null}
+                {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
                   {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFunctions ? 'Hide functions' : 'Show functions') : 'Toggle functions'}
-                </button>
+                </button> : null}
               </BrowserGraphWorkspaceMenu>
             ) : null}
           </>
@@ -143,29 +152,27 @@ export function BrowserGraphWorkspaceToolbarMenus({
             </BrowserGraphWorkspaceMenu>
             {canOpenClassPresentationMenu ? (
               <BrowserGraphWorkspaceMenu label="Class presentation" enabled inline>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))} disabled={classPresentationState?.mode === 'simple'}>Simple</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))} disabled={classPresentationState?.mode === 'compartments' && selectedClassEntityIds.length === 1}>Compartments</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'expanded'))} disabled={classPresentationState?.mode === 'expanded' && selectedClassEntityIds.length === 1}>Expanded</button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
+                {showSimpleClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))}>Simple</button> : null}
+                {showCompartmentsClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))}>Compartments</button> : null}
+                {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
                   {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFields ? 'Hide fields' : 'Show fields') : 'Toggle fields'}
-                </button>
-                <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
+                </button> : null}
+                {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
                   {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFunctions ? 'Hide functions' : 'Show functions') : 'Toggle functions'}
-                </button>
+                </button> : null}
               </BrowserGraphWorkspaceMenu>
             ) : null}
           </>
         ) : canOpenClassPresentationMenu ? (
           <BrowserGraphWorkspaceMenu label="Class presentation" enabled inline>
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))} disabled={classPresentationState?.mode === 'simple' && selectedClassEntityIds.length === 1}>Simple</button>
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))} disabled={classPresentationState?.mode === 'compartments' && selectedClassEntityIds.length === 1}>Compartments</button>
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'expanded'))} disabled={classPresentationState?.mode === 'expanded' && selectedClassEntityIds.length === 1}>Expanded</button>
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
+            {showSimpleClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'simple'))}>Simple</button> : null}
+            {showCompartmentsClassAction ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onSetClassPresentationMode(selectedClassEntityIds, 'compartments'))}>Compartments</button> : null}
+            {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'fields'))}>
               {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFields ? 'Hide fields' : 'Show fields') : 'Toggle fields'}
-            </button>
-            <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
+            </button> : null}
+            {showMemberToggleActions ? <button type="button" className="button-secondary" onClick={(event) => runMenuAction(event, () => onToggleClassPresentationMembers(selectedClassEntityIds, 'functions'))}>
               {classPresentationState && selectedClassEntityIds.length === 1 ? (classPresentationState.showFunctions ? 'Hide functions' : 'Show functions') : 'Toggle functions'}
-            </button>
+            </button> : null}
           </BrowserGraphWorkspaceMenu>
         ) : (
           <>

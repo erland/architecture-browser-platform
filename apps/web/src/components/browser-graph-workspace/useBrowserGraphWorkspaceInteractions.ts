@@ -26,6 +26,8 @@ export function useBrowserGraphWorkspaceInteractions({
   const suppressClickRef = useRef(false);
   const { beginNodeDrag, draggingNodeId } = useBrowserGraphWorkspaceNodeDrag({
     zoom: state.canvasViewport.zoom,
+    canvasNodes: state.canvasNodes,
+    selectedEntityIds: state.selectedEntityIds,
     onMoveCanvasNode,
     suppressClickRef,
   });

@@ -81,7 +81,6 @@ export function BrowserViewCenterContent({
           browserSession.factsPanel.open('scope', 'right');
         }}
         onFocusEntity={(entityId) => {
-          browserSession.canvas.selectEntity(entityId);
           browserSession.factsPanel.focusElement({ kind: 'entity', id: entityId });
           browserSession.factsPanel.open('entity', 'right');
         }}
@@ -113,6 +112,8 @@ export function BrowserViewCenterContent({
         }}
         onRemoveEntity={(entityId) => browserSession.canvas.removeEntityFromCanvas(entityId)}
         onRemoveSelection={browserSession.canvas.removeSelection}
+        onClearSelection={browserSession.canvas.clearSelection}
+        onSelectAllEntities={browserSession.canvas.selectAllEntities}
         onIsolateSelection={browserSession.canvas.isolateSelection}
         onTogglePinNode={browserSession.canvas.toggleNodePin}
         onSetClassPresentationMode={browserSession.canvas.setClassPresentationMode}
