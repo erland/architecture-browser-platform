@@ -1,6 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, canExpandEntityInNavigationTree, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
 import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, computeCollapsedAutoExpandState, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds, computeFocusExpandedState, computeSingleChildAutoExpandState } from '../../components/browser-navigation/BrowserNavigationTree';
+import { collectNavigationSearchVisibility } from '../../components/browser-navigation/browserNavigationTree.model';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-tree-1',
@@ -172,6 +173,111 @@ describe('browserNavigationTree helpers', () => {
     });
 
     expect(computeFocusExpandedState(index, null, [], 'filesystem')).toEqual(computeCollapsedAutoExpandState(index, 'filesystem'));
+  });
+
+
+
+  test('computeFocusExpandedState keeps the selected scope path and expandable entity ancestors only', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'src/pages/Home.tsx', displayName: 'Home.tsx', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'HomeLayout', displayName: 'HomeLayout', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-layout'] } },
+        { externalId: 'entity:page', kind: 'COMPONENT', origin: 'react', name: 'HomePage', displayName: 'HomePage', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-page'] } },
+        { externalId: 'entity:route', kind: 'ENDPOINT', origin: 'react-router', name: 'homeRoute', displayName: 'homeRoute', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-navigation-node'] } },
+        { externalId: 'entity:hook', kind: 'HOOK', origin: 'react', name: 'useHomeData', displayName: 'useHomeData', scopeId: 'scope:file', sourceRefs: [], metadata: {} },
+      ],
+      relationships: [
+        { externalId: 'rel:layout-page', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:page', label: null, sourceRefs: [], metadata: {} },
+        { externalId: 'rel:layout-route', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:route', label: null, sourceRefs: [], metadata: {} },
+        { externalId: 'rel:layout-hook', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:hook', label: null, sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(computeFocusExpandedState(index, 'scope:file', ['entity:page'], 'filesystem')).toEqual({
+      scopeIds: ['scope:file'],
+      entityIds: ['entity:layout'],
+    });
+  });
+
+  test('computeSingleChildAutoExpandState stops at the first branching scope level', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg', kind: 'PACKAGE', name: 'browser', displayName: 'browser', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg:a', kind: 'PACKAGE', name: 'browser.a', displayName: 'browser.a', parentScopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+        { externalId: 'scope:pkg:b', kind: 'PACKAGE', name: 'browser.b', displayName: 'browser.b', parentScopeId: 'scope:pkg', sourceRefs: [], metadata: {} },
+      ],
+      entities: [],
+    });
+
+    expect(computeSingleChildAutoExpandState(index, 'advanced', { scopeId: 'scope:repo' })).toEqual({
+      scopeIds: ['scope:pkg'],
+      entityIds: [],
+    });
+  });
+
+  test('computeSingleChildAutoExpandState follows a single-child entity chain until branching occurs', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'src/pages/Home.tsx', displayName: 'Home.tsx', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'HomeLayout', displayName: 'HomeLayout', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-layout'] } },
+        { externalId: 'entity:routeGroup', kind: 'ENDPOINT', origin: 'react-router', name: 'homeRouteGroup', displayName: 'homeRouteGroup', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-navigation-node'] } },
+        { externalId: 'entity:routeA', kind: 'ENDPOINT', origin: 'react-router', name: 'homeRouteA', displayName: 'homeRouteA', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-navigation-node'] } },
+        { externalId: 'entity:routeB', kind: 'ENDPOINT', origin: 'react-router', name: 'homeRouteB', displayName: 'homeRouteB', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-navigation-node'] } },
+      ],
+      relationships: [
+        { externalId: 'rel:layout-group', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:routeGroup', label: null, sourceRefs: [], metadata: {} },
+        { externalId: 'rel:group-a', kind: 'CONTAINS', fromEntityId: 'entity:routeGroup', toEntityId: 'entity:routeA', label: null, sourceRefs: [], metadata: {} },
+        { externalId: 'rel:group-b', kind: 'CONTAINS', fromEntityId: 'entity:routeGroup', toEntityId: 'entity:routeB', label: null, sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    expect(computeSingleChildAutoExpandState(index, 'filesystem', { entityId: 'entity:layout' })).toEqual({
+      scopeIds: [],
+      entityIds: ['entity:routeGroup'],
+    });
+  });
+
+  test('collectNavigationSearchVisibility keeps the matched entity path visible through scope and entity ancestors', () => {
+    const index = buildBrowserSnapshotIndex({
+      ...createPayload(),
+      scopes: [
+        { externalId: 'scope:repo', kind: 'REPOSITORY', name: 'platform', displayName: 'Platform', parentScopeId: null, sourceRefs: [], metadata: {} },
+        { externalId: 'scope:file', kind: 'FILE', name: 'src/pages/Home.tsx', displayName: 'Home.tsx', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
+      ],
+      entities: [
+        { externalId: 'entity:layout', kind: 'COMPONENT', origin: 'react', name: 'HomeLayout', displayName: 'HomeLayout', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-layout'] } },
+        { externalId: 'entity:page', kind: 'COMPONENT', origin: 'react', name: 'HomePage', displayName: 'HomePage', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-page'] } },
+        { externalId: 'entity:route', kind: 'ENDPOINT', origin: 'react-router', name: 'homeRoute', displayName: 'homeRoute', scopeId: 'scope:file', sourceRefs: [], metadata: { architecturalRoles: ['ui-navigation-node'] } },
+      ],
+      relationships: [
+        { externalId: 'rel:layout-page', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:page', label: null, sourceRefs: [], metadata: {} },
+        { externalId: 'rel:layout-route', kind: 'CONTAINS', fromEntityId: 'entity:layout', toEntityId: 'entity:route', label: null, sourceRefs: [], metadata: {} },
+      ],
+    });
+
+    const visibility = collectNavigationSearchVisibility(index, 'filesystem', [
+      {
+        kind: 'entity',
+        id: 'entity:page',
+        title: 'HomePage',
+        subtitle: 'scope:file',
+        scopeId: 'scope:file',
+        score: 100,
+      },
+    ]);
+
+    expect([...visibility.scopeIds]).toEqual(['scope:file']);
+    expect([...visibility.entityIds]).toEqual(['entity:page', 'entity:layout']);
   });
 
   test('detects package mode as the default for Java/package-heavy snapshots', () => {

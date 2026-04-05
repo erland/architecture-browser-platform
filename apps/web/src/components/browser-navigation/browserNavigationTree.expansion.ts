@@ -1,0 +1,144 @@
+import {
+  canExpandEntityInNavigationTree,
+  collectVisibleAncestorScopeIds,
+  getScopeTreeNodesForMode,
+  isScopeVisibleInTreeMode,
+  type BrowserSnapshotIndex,
+  type BrowserScopeTreeNode,
+  type BrowserTreeMode,
+} from '../../browser-snapshot';
+import { computeSingleChildAutoExpandTraversalState, type BrowserNavigationAutoExpandState } from './browserNavigationTree.autoExpandTraversal';
+import { computeNavigationFocusRevealState } from './browserNavigationTree.focusPolicy';
+import { buildNavigationChildNodes } from './browserNavigationTree.nodes';
+import type { BrowserScopeCategoryGroup } from './browserNavigationTree.shared';
+import { toCategoryLabel } from './browserNavigationTree.shared';
+
+export function computeSingleChildAutoExpandState(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, parent: { scopeId?: string | null; entityId?: string | null } = {}): BrowserNavigationAutoExpandState {
+  return computeSingleChildAutoExpandTraversalState({
+    index,
+    treeMode,
+    parent,
+    getScopeChildren: (scopeId, currentTreeMode) => buildNavigationChildNodes(index, scopeId, currentTreeMode),
+  });
+}
+
+export function buildScopeCategoryGroups(nodes: BrowserScopeTreeNode[]) {
+  const grouped = new Map<string, BrowserScopeTreeNode[]>();
+  for (const node of nodes) {
+    const current = grouped.get(node.kind);
+    if (current) {
+      current.push(node);
+    } else {
+      grouped.set(node.kind, [node]);
+    }
+  }
+  return [...grouped.entries()]
+    .map(([kind, groupNodes]) => ({
+      kind,
+      label: toCategoryLabel(kind),
+      nodes: groupNodes,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }));
+}
+
+function findTopLevelVisibleScopeKind(index: BrowserSnapshotIndex, scopeId: string | null, treeMode: BrowserTreeMode) {
+  if (!scopeId) {
+    return null;
+  }
+  for (const root of getScopeTreeNodesForMode(index, null, treeMode)) {
+    if (root.scopeId === scopeId) {
+      return root.kind;
+    }
+    const descendants = getScopeTreeNodesForMode(index, root.scopeId, treeMode);
+    if (descendants.some((node) => node.scopeId === scopeId)) {
+      return root.kind;
+    }
+  }
+  return null;
+}
+
+export function computeDefaultExpandedCategories(groups: BrowserScopeCategoryGroup[], index: BrowserSnapshotIndex | null, selectedScopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
+  if (!groups.length) {
+    return [] as string[];
+  }
+  const selectedKind = index ? findTopLevelVisibleScopeKind(index, selectedScopeId, treeMode) : null;
+  if (!selectedKind) {
+    return groups.map((group) => group.kind);
+  }
+  return groups.map((group) => group.kind).filter((kind) => kind === selectedKind);
+}
+
+export function collectAncestorScopeIds(index: BrowserSnapshotIndex, scopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
+  if (!scopeId) {
+    return [] as string[];
+  }
+  if (treeMode === 'advanced') {
+    const ancestors: string[] = [];
+    const seen = new Set<string>();
+    let current = index.scopesById.get(scopeId);
+    while (current?.parentScopeId && !seen.has(current.parentScopeId)) {
+      seen.add(current.parentScopeId);
+      ancestors.unshift(current.parentScopeId);
+      current = index.scopesById.get(current.parentScopeId);
+    }
+    return ancestors;
+  }
+  return collectVisibleAncestorScopeIds(index, scopeId, treeMode);
+}
+
+export function computeDefaultExpandedScopeIds(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, treeMode: BrowserTreeMode = 'advanced') {
+  if (!index) {
+    return [] as string[];
+  }
+  const rootIds = getScopeTreeNodesForMode(index, null, treeMode).map((node) => node.scopeId);
+  const selectedIds = selectedScopeId && isScopeVisibleInTreeMode(index, selectedScopeId, treeMode) ? [selectedScopeId] : [];
+  return [...new Set([...rootIds, ...collectAncestorScopeIds(index, selectedScopeId, treeMode), ...selectedIds])];
+}
+
+export function collectSafeNavigationAncestorEntityIds(index: BrowserSnapshotIndex, entityId: string) {
+  const ancestors: string[] = [];
+  const seen = new Set<string>();
+  let currentId = entityId;
+  while (!seen.has(currentId)) {
+    seen.add(currentId);
+    const containers = index.containerEntityIdsByEntityId.get(currentId) ?? [];
+    const nextContainerId = containers.find((containerId) => canExpandEntityInNavigationTree(index, containerId));
+    if (!nextContainerId) {
+      break;
+    }
+    ancestors.unshift(nextContainerId);
+    currentId = nextContainerId;
+  }
+  return ancestors;
+}
+
+export function collectAllExpandableEntityIds(index: BrowserSnapshotIndex) {
+  return [...index.entitiesById.keys()].filter((entityId) => canExpandEntityInNavigationTree(index, entityId));
+}
+
+export function collectAllVisibleScopeIds(index: BrowserSnapshotIndex, treeMode: BrowserTreeMode, parentScopeId: string | null = null): string[] {
+  const nodes = getScopeTreeNodesForMode(index, parentScopeId, treeMode);
+  return nodes.flatMap((node) => [node.scopeId, ...collectAllVisibleScopeIds(index, treeMode, node.scopeId)]);
+}
+
+export function computeFocusExpandedState(index: BrowserSnapshotIndex | null, selectedScopeId: string | null, selectedEntityIds: string[], treeMode: BrowserTreeMode = 'advanced'): BrowserNavigationAutoExpandState {
+  const focusState = computeNavigationFocusRevealState({ index, selectedScopeId, selectedEntityIds, treeMode });
+  if (!focusState.hasExplicitFocusTarget) {
+    return computeCollapsedAutoExpandState(index, treeMode);
+  }
+  return {
+    scopeIds: focusState.scopeIds,
+    entityIds: focusState.entityIds,
+  };
+}
+
+export function computeCollapsedAutoExpandState(index: BrowserSnapshotIndex | null, treeMode: BrowserTreeMode = 'advanced'): BrowserNavigationAutoExpandState {
+  if (!index) {
+    return { scopeIds: [], entityIds: [] };
+  }
+  return computeSingleChildAutoExpandState(index, treeMode);
+}
+
+export function computeCollapsedScopeIds(index: BrowserSnapshotIndex | null, treeMode: BrowserTreeMode = 'advanced') {
+  return computeCollapsedAutoExpandState(index, treeMode).scopeIds;
+}

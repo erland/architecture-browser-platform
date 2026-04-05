@@ -1,6 +1,6 @@
 import { BrowserFactsPanel } from '../../components/browser-facts-panel/BrowserFactsPanel';
 import { BrowserNavigationTree } from '../../components/browser-navigation/BrowserNavigationTree';
-import { buildNavigationTreeSummary } from '../../components/browser-navigation/browserNavigationTree.model';
+import { buildNavigationTreeSummary } from '../../components/browser-navigation/browserNavigationTree.summary';
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
 
 

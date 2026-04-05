@@ -156,6 +156,49 @@ describe('BrowserNavigationTree entity-aware rendering', () => {
   });
 
 
+
+
+  test('renders only filesystem and package mode buttons and omits the legacy all-scopes mode button', () => {
+    const index = buildBrowserSnapshotIndex(createPayload());
+
+    const markup = renderToStaticMarkup(createElement(BrowserNavigationTree, {
+      index,
+      selectedScopeId: 'scope:file',
+      selectedEntityIds: [],
+      treeMode: 'advanced',
+      onSelectScope: () => {},
+      onAddScopeEntitiesToCanvas: () => {},
+      onSelectEntity: () => {},
+      onAddEntityToCanvas: () => {},
+      onTreeModeChange: () => {},
+    }));
+
+    expect(markup).toContain('Filesystem');
+    expect(markup).toContain('Package');
+    expect(markup).not.toContain('All scopes');
+  });
+
+  test('surfaces selected-entity multi-add guidance without hiding row add affordances', () => {
+    const index = buildBrowserSnapshotIndex(createPayload());
+
+    const markup = renderToStaticMarkup(createElement(BrowserNavigationTree, {
+      index,
+      selectedScopeId: 'scope:file',
+      selectedEntityIds: ['entity:layout', 'entity:page'],
+      treeMode: 'filesystem',
+      onSelectScope: () => {},
+      onAddScopeEntitiesToCanvas: () => {},
+      onSelectEntity: () => {},
+      onAddEntityToCanvas: () => {},
+      onTreeModeChange: () => {},
+    }));
+
+    expect(markup).toContain('2 selected');
+    expect(markup).toContain('Drag selected entities into the canvas or use the row + button to add them.');
+    expect(markup).toContain('Add HomeLayout to canvas');
+    expect(markup).toContain('Add HomePage to canvas');
+  });
+
   test('restores persisted tree expansion state when provided', () => {
     const index = buildBrowserSnapshotIndex(createPayload());
 
