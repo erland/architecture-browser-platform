@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { bootstrapPreparedBrowserSession } from '../../hooks/useBrowserSessionBootstrap';
+import { bootstrapPreparedBrowserSession } from '../../hooks/useBrowserSessionBootstrap.bootstrapPrepared';
 import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshotCache';
 import { createEmptyBrowserSessionState, openSnapshotSession, setBrowserSearch } from '../../browser-session';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
@@ -58,6 +58,58 @@ describe('browser session bootstrap', () => {
     clearBrowserSnapshotIndex();
   });
 
+
+  test('returns idle when there is no selected workspace or snapshot', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    let currentState = createEmptyBrowserSessionState();
+
+    const outcome = await bootstrapPreparedBrowserSession({
+      cache,
+      workspaceId: null,
+      repositoryId: 'repo-1',
+      snapshot: null,
+      currentState,
+      openSnapshotSession: (options) => {
+        currentState = openSnapshotSession(currentState, options);
+      },
+    });
+
+    expect(outcome).toEqual({
+      status: 'idle',
+      message: null,
+      opened: false,
+    });
+    expect(currentState.activeSnapshot).toBeNull();
+  });
+
+  test('returns ready without reopening when the selected snapshot is already open with index and payload', async () => {
+    const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
+    let currentState = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    const openSnapshotSessionSpy = jest.fn((options) => {
+      currentState = openSnapshotSession(currentState, options);
+    });
+
+    const outcome = await bootstrapPreparedBrowserSession({
+      cache,
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      snapshot: { ...snapshotSummary },
+      currentState,
+      openSnapshotSession: openSnapshotSessionSpy,
+    });
+
+    expect(outcome).toEqual({
+      status: 'ready',
+      message: 'Browser session ready for snapshot platform-main-bootstrap.',
+      opened: false,
+    });
+    expect(openSnapshotSessionSpy).not.toHaveBeenCalled();
+    expect(currentState.activeSnapshot?.snapshotId).toBe(snapshotSummary.id);
+  });
   test('opens a prepared local snapshot into the Browser session', async () => {
     const cache = createSnapshotCache(new InMemorySnapshotCacheStorage());
     await cache.putSnapshot({
