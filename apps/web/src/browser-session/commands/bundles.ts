@@ -6,7 +6,13 @@ import {
   browserSessionViewpointMutations,
 } from './mutations';
 
-// Backward-compatible command surface for callers that apply mutations directly to a state snapshot.
+/**
+ * Backward-compatible command aliases for callers that still use the older
+ * "commands" naming while applying the same mutation functions directly.
+ *
+ * Keep these as aliases only so the canonical grouped surfaces remain the
+ * focused mutation collections in mutations.ts.
+ */
 export const browserSessionLifecycleCommands = browserSessionLifecycleMutations;
 export const browserSessionNavigationCommands = browserSessionNavigationMutations;
 export const browserSessionViewpointCommands = browserSessionViewpointMutations;

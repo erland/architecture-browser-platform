@@ -4,27 +4,28 @@ import {
   addEntityToCanvas,
   addPrimaryEntitiesForScope,
   addScopeToCanvas,
-  arrangeAllCanvasNodesInteractive,
-  arrangeCanvasAroundFocus,
-  arrangeCanvasNodesInteractivelyWithMode,
-  clearCanvas,
+} from '../canvas/commands';
+import {
   clearCanvasSelection,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  panCanvasViewport,
-  reconcileCanvasNodePositions,
-  relayoutCanvas,
-  removeCanvasSelection,
+  focusBrowserElement,
   selectAllCanvasEntities,
-  removeEntityFromCanvas,
-  requestFitCanvasView,
   selectCanvasEntity,
-  setCanvasEntityClassPresentationMode,
-  setCanvasViewport,
-  toggleCanvasEntityClassPresentationMembers,
+} from '../canvas/mutations.selection';
+import {
+  isolateCanvasSelection,
+  removeCanvasSelection,
+  removeEntityFromCanvas,
+} from '../canvas/mutations.graph';
+import {
+  moveCanvasNode,
+  reconcileCanvasNodePositions,
   toggleCanvasNodePin,
-} from '../canvas';
-import { focusBrowserElement, openFactsPanel } from '../facts-panel/actions';
+} from '../canvas/mutations.nodes';
+import {
+  setCanvasEntityClassPresentationMode,
+  toggleCanvasEntityClassPresentationMembers,
+} from '../canvas/mutations.presentation';
+import { openFactsPanel } from '../facts-panel/actions';
 import { openSnapshotSession } from '../lifecycle/lifecycle';
 import { selectBrowserScope, setBrowserNavigationTreeState, setBrowserSearch, setBrowserTreeMode } from '../navigation/navigation';
 import {
@@ -35,6 +36,23 @@ import {
   setViewpointScopeMode,
   setViewpointVariant,
 } from '../viewpoints';
+import {
+  arrangeAllCanvasNodesInteractive,
+  arrangeCanvasAroundFocus,
+  arrangeCanvasNodesInteractivelyWithMode,
+  clearCanvas,
+  panCanvasViewport,
+  relayoutCanvas,
+  requestFitCanvasView,
+  setCanvasViewport,
+} from '../canvas/viewport';
+
+/**
+ * Canonical grouped browser-session mutation collections.
+ *
+ * Keep these objects focused on grouping already-owned commands.
+ * Do not route new internal code through the public canvas barrel here.
+ */
 
 export const browserSessionLifecycleMutations = {
   openSnapshotSession,
