@@ -52,6 +52,11 @@ function buildActionsModel(state: BrowserSessionState, model: NonNullable<Return
           label: selectedCanvasEntityNode.pinned ? 'Unpin entity' : 'Pin entity',
         }
       : null,
+    openSourceAction: model.sourceRefs.length > 0 && (model.mode === 'scope' || model.mode === 'entity' || model.mode === 'relationship')
+      ? {
+          label: 'View source',
+        }
+      : null,
     classPresentationActions: classPresentationEntityIds.length > 0 && classPresentationNode?.classPresentation
       ? {
           entityIds: classPresentationEntityIds,

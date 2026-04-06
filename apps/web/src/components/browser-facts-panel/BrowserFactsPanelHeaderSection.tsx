@@ -24,11 +24,12 @@ export function FactsPanelHeader({ header, onClose }: Pick<BrowserFactsPanelProp
   );
 }
 
-export function FactsPanelActions({ actions, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection }: Pick<BrowserFactsPanelProps, 'onAddEntities' | 'onTogglePinNode' | 'onSetClassPresentationMode' | 'onToggleClassPresentationMembers' | 'onIsolateSelection' | 'onRemoveSelection'> & { actions: BrowserFactsPanelActionsModel }) {
+export function FactsPanelActions({ actions, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection, onOpenSource }: Pick<BrowserFactsPanelProps, 'onAddEntities' | 'onTogglePinNode' | 'onSetClassPresentationMode' | 'onToggleClassPresentationMembers' | 'onIsolateSelection' | 'onRemoveSelection' | 'onOpenSource'> & { actions: BrowserFactsPanelActionsModel }) {
   return (
     <div className="browser-facts-panel__actions">
       {actions.addEntityAction ? (() => { const addAction = actions.addEntityAction; return <button type="button" className="button-secondary" onClick={() => onAddEntities([addAction.entityId])}>{addAction.label}</button>; })() : null}
       {actions.pinEntityAction ? (() => { const pinAction = actions.pinEntityAction; return <button type="button" className="button-secondary" onClick={() => onTogglePinNode({ kind: 'entity', id: pinAction.entityId })}>{pinAction.label}</button>; })() : null}
+      {actions.openSourceAction ? <button type="button" className="button-secondary" onClick={onOpenSource}>{actions.openSourceAction.label}</button> : null}
       {actions.classPresentationActions ? (() => { const classActions = actions.classPresentationActions; const showSimpleAction = classActions.entityIds.length !== 1 || classActions.mode !== 'simple'; const showCompartmentsAction = classActions.entityIds.length !== 1 || classActions.mode !== 'compartments'; const showMemberToggleActions = classActions.entityIds.length !== 1 || classActions.mode === 'compartments'; return <>
         {showSimpleAction ? <button type="button" className="button-secondary" onClick={() => onSetClassPresentationMode(classActions.entityIds, 'simple')}>Simple</button> : null}
         {showCompartmentsAction ? <button type="button" className="button-secondary" onClick={() => onSetClassPresentationMode(classActions.entityIds, 'compartments')}>Compartments</button> : null}

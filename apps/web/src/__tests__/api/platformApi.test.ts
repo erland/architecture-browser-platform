@@ -13,6 +13,27 @@ describe("platformApi", () => {
     );
   });
 
+
+  test("readSourceView posts selected-object source requests to the source-view endpoint", async () => {
+    const fetchJson = jest.fn(async () => ({ path: 'src/BrowserView.tsx' })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
+    const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });
+
+    await api.readSourceView('ws-1', {
+      snapshotId: 'snap-1',
+      selectedObjectType: 'ENTITY',
+      selectedObjectId: 'entity:browser',
+    });
+
+    expect(fetchJson).toHaveBeenCalledWith('/api/workspaces/ws-1/source-view/read', {
+      method: 'POST',
+      body: JSON.stringify({
+        snapshotId: 'snap-1',
+        selectedObjectType: 'ENTITY',
+        selectedObjectId: 'entity:browser',
+      }),
+    });
+  });
+
   test("createWorkspace posts the workspace form to the expected endpoint", async () => {
     const fetchJson = jest.fn(async () => ({ id: "ws-1" })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
     const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });

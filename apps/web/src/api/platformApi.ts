@@ -3,6 +3,7 @@ import type {
   RepositoryUpdateRequest,
   RunRequest,
   SavedCanvasUpsertRequest,
+  SourceViewReadRequest,
   WorkspaceCreateRequest,
   WorkspaceUpdateRequest,
 } from '../app-model';
@@ -17,6 +18,11 @@ export function createPlatformApi(client = httpClient) {
     getWorkspaceSnapshots: <T>(workspaceId: string) => client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots`, { method: 'GET' }),
     getFullSnapshotPayload: <T>(workspaceId: string, snapshotId: string) =>
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: 'GET' }),
+    readSourceView: <T>(workspaceId: string, payload: SourceViewReadRequest) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/source-view/read`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
     createWorkspace: <T>(payload: WorkspaceCreateRequest) =>
       client.fetchJson<T>('/api/workspaces', {
         method: 'POST',

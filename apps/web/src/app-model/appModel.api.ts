@@ -136,3 +136,28 @@ export type SnapshotOverview = {
   recentDiagnostics: DiagnosticSummary[];
   warnings: string[];
 };
+
+
+export type SourceViewSelectedObjectType = 'SCOPE' | 'ENTITY' | 'RELATIONSHIP' | 'DIAGNOSTIC';
+
+export type SourceViewReadRequest = {
+  sourceHandle?: string;
+  path?: string;
+  startLine?: number | null;
+  endLine?: number | null;
+  snapshotId?: string;
+  selectedObjectType?: SourceViewSelectedObjectType;
+  selectedObjectId?: string;
+  sourceRefIndex?: number | null;
+};
+
+export type SourceViewReadResponse = {
+  sourceHandle: string;
+  path: string;
+  language: string | null;
+  totalLineCount: number;
+  fileSizeBytes: number;
+  requestedStartLine: number | null;
+  requestedEndLine: number | null;
+  sourceText: string;
+};

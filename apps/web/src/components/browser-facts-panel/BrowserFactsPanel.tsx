@@ -36,11 +36,12 @@ export type BrowserFactsPanelProps = {
   onToggleClassPresentationMembers: (entityIds: string[], memberKind: 'fields' | 'functions') => void;
   onIsolateSelection: () => void;
   onRemoveSelection: () => void;
+  onOpenSource: () => void;
   onClose: () => void;
 };
 
 export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
-  const { state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection, onClose } = props;
+  const { state, onSelectScope, onFocusEntity, onFocusRelationship, onAddEntities, onTogglePinNode, onSetClassPresentationMode, onToggleClassPresentationMembers, onIsolateSelection, onRemoveSelection, onOpenSource, onClose } = props;
   const presentation = buildBrowserFactsPanelPresentation(state);
 
   if (!presentation) {
@@ -64,6 +65,7 @@ export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
         onToggleClassPresentationMembers={onToggleClassPresentationMembers}
         onIsolateSelection={onIsolateSelection}
         onRemoveSelection={onRemoveSelection}
+        onOpenSource={onOpenSource}
       />
       <ViewpointSection section={presentation.viewpoint} onFocusEntity={onFocusEntity} />
       <ScopeSections section={presentation.scope} onSelectScope={onSelectScope} onFocusEntity={onFocusEntity} onAddEntities={onAddEntities} />

@@ -30,6 +30,11 @@ class RemoteIndexerResponseMapperTest {
               "outputPath": "/tmp/output",
               "summary": {"files": 42},
               "manifest": {"version": "v1"},
+              "sourceAccess": {
+                "sourceHandle": "src_123",
+                "accessMode": "RETAINED_ROOT",
+                "retentionCategory": "git-retained-checkout"
+              },
               "document": {"entities": []}
             }
             """);
@@ -43,6 +48,29 @@ class RemoteIndexerResponseMapperTest {
         assertEquals("/tmp/output", metadata.path("outputPath").asText());
         assertEquals(42, metadata.path("workerSummary").path("files").asInt());
         assertEquals("v1", metadata.path("workerManifest").path("version").asText());
+        assertEquals("src_123", metadata.path("sourceAccess").path("sourceHandle").asText());
+        assertEquals("RETAINED_ROOT", metadata.path("sourceAccess").path("accessMode").asText());
+        assertEquals("git-retained-checkout", metadata.path("sourceAccess").path("retentionCategory").asText());
+    }
+
+
+    @Test
+    void leavesSourceAccessAbsentWhenWorkerDidNotReturnIt() throws Exception {
+        RemoteIndexerResponseMapper mapper = new RemoteIndexerResponseMapper();
+        mapper.objectMapper = new ObjectMapper();
+
+        HttpResponse<String> response = new StaticHttpResponse("""
+            {
+              "jobId": "job-456",
+              "status": "COMPLETED",
+              "document": {"entities": []}
+            }
+            """);
+
+        JsonNode document = mapper.requireDocument(response);
+
+        JsonNode metadata = document.path("runMetadata").path("metadata");
+        assertTrue(metadata.path("sourceAccess").isMissingNode());
     }
 
     @Test

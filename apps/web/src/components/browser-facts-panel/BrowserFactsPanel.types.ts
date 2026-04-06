@@ -88,6 +88,7 @@ export type BrowserFactsPanelMetric = {
 export type BrowserFactsPanelActionsModel = {
   addEntityAction: { entityId: string; label: string } | null;
   pinEntityAction: { entityId: string; label: string } | null;
+  openSourceAction: { label: string } | null;
   classPresentationActions: {
     entityIds: string[];
     mode: 'simple' | 'compartments' | 'expanded';

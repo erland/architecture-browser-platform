@@ -1,4 +1,8 @@
+import { useState } from 'react';
+import type { SourceViewReadResponse } from '../../app-model';
 import { BrowserFactsPanel } from '../../components/browser-facts-panel/BrowserFactsPanel';
+import { BrowserSourceViewDialog, type BrowserSourceViewStatus } from '../../components/browser-source-view';
+import { requestSelectedObjectSourceView } from './sourceView';
 import { BrowserNavigationTree } from '../../components/browser-navigation/BrowserNavigationTree';
 import { buildNavigationTreeSummary } from '../../components/browser-navigation/browserNavigationTree.summary';
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
@@ -101,6 +105,10 @@ export function BrowserInspectorPanel({
   onCollapse,
   onSetActiveTab,
 }: BrowserInspectorPanelProps) {
+  const [sourceView, setSourceView] = useState<SourceViewReadResponse | null>(null);
+  const [sourceViewStatus, setSourceViewStatus] = useState<BrowserSourceViewStatus>('idle');
+  const [sourceViewError, setSourceViewError] = useState<string | null>(null);
+
   return (
     <aside className={`browser-workspace__inspector ${isCollapsed ? 'browser-workspace__side-panel--collapsed' : ''}`}>
       {isCollapsed ? (
@@ -157,7 +165,36 @@ export function BrowserInspectorPanel({
             onToggleClassPresentationMembers={browserSession.canvas.toggleClassPresentationMembers}
             onIsolateSelection={browserSession.canvas.isolateSelection}
             onRemoveSelection={browserSession.canvas.removeSelection}
+            onOpenSource={async () => {
+              const workspaceId = browserSession.state.activeSnapshot?.workspaceId;
+              if (!workspaceId) {
+                return;
+              }
+              setSourceView(null);
+              setSourceViewError(null);
+              setSourceViewStatus('loading');
+              try {
+                const response = await requestSelectedObjectSourceView(workspaceId, browserSession.state);
+                setSourceView(response);
+                setSourceViewStatus('ready');
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to open source view.';
+                setSourceView(null);
+                setSourceViewError(message);
+                setSourceViewStatus('error');
+              }
+            }}
             onClose={() => browserSession.factsPanel.open('hidden', 'right')}
+          />
+          <BrowserSourceViewDialog
+            source={sourceView}
+            status={sourceViewStatus}
+            errorMessage={sourceViewError}
+            onClose={() => {
+              setSourceView(null);
+              setSourceViewError(null);
+              setSourceViewStatus('idle');
+            }}
           />
         </>
       )}

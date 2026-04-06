@@ -38,7 +38,7 @@ function createPayload(): FullSnapshotPayload {
       { externalId: 'scope:file', kind: 'FILE', name: 'BrowserFactsPanel.tsx', displayName: 'src/components/BrowserFactsPanel.tsx', parentScopeId: 'scope:repo', sourceRefs: [], metadata: {} },
     ],
     entities: [
-      { externalId: 'entity:component', kind: 'COMPONENT', origin: 'react', name: 'BrowserFactsPanel', displayName: 'BrowserFactsPanel', scopeId: 'scope:file', sourceRefs: [], metadata: {} },
+      { externalId: 'entity:component', kind: 'COMPONENT', origin: 'react', name: 'BrowserFactsPanel', displayName: 'BrowserFactsPanel', scopeId: 'scope:file', sourceRefs: [{ path: 'src/components/BrowserFactsPanel.tsx', startLine: 1, endLine: 20, snippet: null, metadata: {} }], metadata: {} },
       { externalId: 'entity:helper', kind: 'FUNCTION', origin: 'react', name: 'buildBrowserFactsPanelPresentation', displayName: 'buildBrowserFactsPanelPresentation', scopeId: 'scope:file', sourceRefs: [], metadata: {} },
       { externalId: 'entity:field', kind: 'FIELD', origin: 'react', name: 'presentation', displayName: 'presentation', scopeId: 'scope:file', sourceRefs: [], metadata: {} },
       { externalId: 'entity:method', kind: 'METHOD', origin: 'react', name: 'render', displayName: 'render', scopeId: 'scope:file', sourceRefs: [], metadata: {} },
@@ -85,6 +85,7 @@ describe('BrowserFactsPanel presentation', () => {
     const presentation = buildBrowserFactsPanelPresentation(state);
 
     expect(presentation?.header.actions.pinEntityAction).toEqual({ entityId: 'entity:component', label: 'Pin entity' });
+    expect(presentation?.header.actions.openSourceAction).toEqual({ label: 'View source' });
     expect(presentation?.header.actions.classPresentationActions).toBeNull();
     expect(presentation?.entity?.outboundRelationships.map((relationship) => relationship.externalId)).toEqual(['rel:contains-helper', 'rel:contains-field', 'rel:contains-method']);
   });
@@ -112,8 +113,24 @@ describe('BrowserFactsPanel presentation', () => {
       'Kind:PAGE',
       'Origin:react',
       'On canvas:No',
-      'Source refs:0',
+      'Source refs:1',
     ]);
+  });
+
+
+  test('hides the source action when the selected object has no source refs', () => {
+    const payload = createPayload();
+    payload.entities[0] = {
+      ...payload.entities[0],
+      sourceRefs: [],
+    };
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
+
+    const presentation = buildBrowserFactsPanelPresentation(state);
+
+    expect(presentation?.header.actions.openSourceAction).toBeNull();
   });
 
 });
