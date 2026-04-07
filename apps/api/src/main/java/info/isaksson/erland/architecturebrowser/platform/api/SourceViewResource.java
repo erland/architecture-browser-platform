@@ -9,6 +9,8 @@ import info.isaksson.erland.architecturebrowser.platform.service.sourceview.Sour
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewReadResponse;
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewSelectionRequest;
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewSelectionResolverService;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileLookupResult;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileLookupService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -30,6 +32,9 @@ public class SourceViewResource {
     @Inject
     SourceViewSelectionResolverService sourceViewSelectionResolverService;
 
+    @Inject
+    SnapshotSourceFileLookupService snapshotSourceFileLookupService;
+
     @POST
     @Path("/source-view/read")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -39,18 +44,10 @@ public class SourceViewResource {
             throw new ValidationException(List.of("Source view request body is required."));
         }
         try {
-            SourceViewReadRequest resolvedRequest = resolveRequest(workspaceId, request);
-            SourceViewReadResponse response = sourceViewProxyService.readSourceFile(resolvedRequest);
-            return new ReadSourceResponse(
-                response.sourceHandle(),
-                response.path(),
-                response.language(),
-                response.totalLineCount(),
-                response.fileSizeBytes(),
-                response.requestedStartLine(),
-                response.requestedEndLine(),
-                response.sourceText()
-            );
+            if (isDirectRequest(request)) {
+                return readFromWorker(request);
+            }
+            return readFromSnapshotStore(workspaceId, request);
         } catch (IllegalArgumentException exception) {
             throw new ValidationException(List.of(exception.getMessage()));
         } catch (IllegalStateException exception) {
@@ -61,17 +58,33 @@ public class SourceViewResource {
         }
     }
 
-    private SourceViewReadRequest resolveRequest(String workspaceId, ReadSourceRequest request) {
-        if ((request.sourceHandle() != null && !request.sourceHandle().isBlank())
-            || (request.path() != null && !request.path().isBlank())) {
-            return new SourceViewReadRequest(
-                request.sourceHandle(),
-                request.path(),
-                request.startLine(),
-                request.endLine()
-            );
-        }
-        return sourceViewSelectionResolverService.resolve(workspaceId, new SourceViewSelectionRequest(
+    private boolean isDirectRequest(ReadSourceRequest request) {
+        return (request.sourceHandle() != null && !request.sourceHandle().isBlank())
+            || (request.path() != null && !request.path().isBlank());
+    }
+
+    private ReadSourceResponse readFromWorker(ReadSourceRequest request) {
+        SourceViewReadRequest resolvedRequest = new SourceViewReadRequest(
+            request.sourceHandle(),
+            request.path(),
+            request.startLine(),
+            request.endLine()
+        );
+        SourceViewReadResponse response = sourceViewProxyService.readSourceFile(resolvedRequest);
+        return new ReadSourceResponse(
+            response.sourceHandle(),
+            response.path(),
+            response.language(),
+            response.totalLineCount(),
+            response.fileSizeBytes(),
+            response.requestedStartLine(),
+            response.requestedEndLine(),
+            response.sourceText()
+        );
+    }
+
+    private ReadSourceResponse readFromSnapshotStore(String workspaceId, ReadSourceRequest request) {
+        SourceViewReadRequest resolvedRequest = sourceViewSelectionResolverService.resolve(workspaceId, new SourceViewSelectionRequest(
             request.snapshotId(),
             request.selectedObjectType(),
             request.selectedObjectId(),
@@ -79,5 +92,20 @@ public class SourceViewResource {
             request.startLine(),
             request.endLine()
         ));
+        SnapshotSourceFileLookupResult result = snapshotSourceFileLookupService.requireFile(
+            workspaceId,
+            request.snapshotId(),
+            resolvedRequest.path()
+        );
+        return new ReadSourceResponse(
+            null,
+            result.relativePath(),
+            result.language(),
+            result.totalLineCount(),
+            result.sizeBytes(),
+            resolvedRequest.startLine(),
+            resolvedRequest.endLine(),
+            result.textContent()
+        );
     }
 }

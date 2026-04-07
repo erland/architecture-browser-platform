@@ -151,6 +151,13 @@ export type SourceViewReadRequest = {
   sourceRefIndex?: number | null;
 };
 
+export type SnapshotSourceFileReadRequest = {
+  snapshotId: string;
+  path: string;
+  startLine?: number | null;
+  endLine?: number | null;
+};
+
 export type SourceViewReadResponse = {
   sourceHandle: string;
   path: string;

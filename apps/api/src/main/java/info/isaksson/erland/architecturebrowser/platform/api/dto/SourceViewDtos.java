@@ -27,4 +27,12 @@ public final class SourceViewDtos {
         String sourceText
     ) {
     }
+
+    public record ReadSnapshotSourceFileRequest(
+        String snapshotId,
+        String path,
+        Integer startLine,
+        Integer endLine
+    ) {
+    }
 }

@@ -8,10 +8,13 @@ import info.isaksson.erland.architecturebrowser.platform.service.sourceview.Sour
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewReadResponse;
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewSelectionRequest;
 import info.isaksson.erland.architecturebrowser.platform.service.sourceview.SourceViewSelectionResolverService;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileLookupResult;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileLookupService;
 import jakarta.ws.rs.WebApplicationException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SourceViewResourceTest {
@@ -22,6 +25,7 @@ class SourceViewResourceTest {
             new SourceViewReadResponse("src_123", "src/App.tsx", "tsx", 120, 4096L, 10, 20, "export const app = true;")
         );
         resource.sourceViewSelectionResolverService = new ThrowingSelectionResolverService(new IllegalStateException("should not resolve selection"));
+        resource.snapshotSourceFileLookupService = new ThrowingSnapshotLookupService(new IllegalStateException("should not use snapshot lookup"));
 
         ReadSourceResponse response = resource.readSource("workspace-1", new ReadSourceRequest("src_123", "src/App.tsx", 10, 20, null, null, null, null));
 
@@ -40,30 +44,42 @@ class SourceViewResourceTest {
         assertEquals(20, proxy.lastRequest.endLine());
     }
 
-
     @Test
-    void resolvesSelectedObjectIntoSourceRequestBeforeProxying() {
+    void resolvesSelectedObjectAgainstStoredSnapshotSourceFile() {
         SourceViewResource resource = new SourceViewResource();
-        resource.sourceViewProxyService = new RecordingSourceViewProxyService(
-            new SourceViewReadResponse("src_resolved", "src/domain/Order.java", "java", 90, 2048L, 12, 24, "class Order {}")
-        );
+        resource.sourceViewProxyService = new RecordingSourceViewProxyService(null);
         resource.sourceViewSelectionResolverService = new RecordingSelectionResolverService(
-            new SourceViewReadRequest("src_resolved", "src/domain/Order.java", 12, 24)
+            new SourceViewReadRequest(null, "src/domain/Order.java", 12, 24)
+        );
+        resource.snapshotSourceFileLookupService = new RecordingSnapshotLookupService(
+            new SnapshotSourceFileLookupResult("snapshot-1", "src/domain/Order.java", "java", "text/x-java", 2048L, 90, "class Order {}")
         );
 
         ReadSourceResponse response = resource.readSource("workspace-1", new ReadSourceRequest(null, null, null, null,
             "snapshot-1", "ENTITY", "entity-1", null));
 
-        assertEquals("src_resolved", response.sourceHandle());
+        assertNull(response.sourceHandle());
+        assertEquals("src/domain/Order.java", response.path());
+        assertEquals("java", response.language());
+        assertEquals(90, response.totalLineCount());
+        assertEquals(2048L, response.fileSizeBytes());
+        assertEquals(12, response.requestedStartLine());
+        assertEquals(24, response.requestedEndLine());
+        assertEquals("class Order {}", response.sourceText());
+
         RecordingSelectionResolverService resolver = (RecordingSelectionResolverService) resource.sourceViewSelectionResolverService;
         assertEquals("snapshot-1", resolver.lastRequest.snapshotId());
         assertEquals("ENTITY", resolver.lastRequest.selectedObjectType());
         assertEquals("entity-1", resolver.lastRequest.selectedObjectId());
-        RecordingSourceViewProxyService proxy = (RecordingSourceViewProxyService) resource.sourceViewProxyService;
-        assertEquals("src_resolved", proxy.lastRequest.sourceHandle());
-        assertEquals("src/domain/Order.java", proxy.lastRequest.path());
-    }
 
+        RecordingSnapshotLookupService lookup = (RecordingSnapshotLookupService) resource.snapshotSourceFileLookupService;
+        assertEquals("workspace-1", lookup.lastWorkspaceId);
+        assertEquals("snapshot-1", lookup.lastSnapshotId);
+        assertEquals("src/domain/Order.java", lookup.lastRelativePath);
+
+        RecordingSourceViewProxyService proxy = (RecordingSourceViewProxyService) resource.sourceViewProxyService;
+        assertNull(proxy.lastRequest);
+    }
 
     @Test
     void mapsSelectionResolutionFailuresToValidationError() {
@@ -72,6 +88,7 @@ class SourceViewResourceTest {
         resource.sourceViewSelectionResolverService = new ThrowingSelectionResolverService(
             new IllegalArgumentException("Requested sourceRefIndex is out of range for the selected object.")
         );
+        resource.snapshotSourceFileLookupService = new ThrowingSnapshotLookupService(new IllegalStateException("should not use snapshot lookup"));
 
         ValidationException exception = assertThrows(ValidationException.class,
             () -> resource.readSource("workspace-1", new ReadSourceRequest(null, null, null, null,
@@ -85,6 +102,7 @@ class SourceViewResourceTest {
         SourceViewResource resource = new SourceViewResource();
         resource.sourceViewProxyService = new RecordingSourceViewProxyService(null);
         resource.sourceViewSelectionResolverService = new ThrowingSelectionResolverService(new IllegalStateException("should not resolve selection"));
+        resource.snapshotSourceFileLookupService = new ThrowingSnapshotLookupService(new IllegalStateException("should not use snapshot lookup"));
 
         ValidationException exception = assertThrows(ValidationException.class,
             () -> resource.readSource("workspace-1", null));
@@ -97,6 +115,7 @@ class SourceViewResourceTest {
         SourceViewResource resource = new SourceViewResource();
         resource.sourceViewProxyService = new ThrowingSourceViewProxyService(new IllegalArgumentException("Source view request field 'path' is required."));
         resource.sourceViewSelectionResolverService = new ThrowingSelectionResolverService(new IllegalStateException("should not resolve selection"));
+        resource.snapshotSourceFileLookupService = new ThrowingSnapshotLookupService(new IllegalStateException("should not use snapshot lookup"));
 
         ValidationException exception = assertThrows(ValidationException.class,
             () -> resource.readSource("workspace-1", new ReadSourceRequest("src_123", " ", null, null, null, null, null, null)));
@@ -109,6 +128,7 @@ class SourceViewResourceTest {
         SourceViewResource resource = new SourceViewResource();
         resource.sourceViewProxyService = new ThrowingSourceViewProxyService(new IllegalStateException("Indexer source view request returned HTTP 410: handle expired"));
         resource.sourceViewSelectionResolverService = new ThrowingSelectionResolverService(new IllegalStateException("should not resolve selection"));
+        resource.snapshotSourceFileLookupService = new ThrowingSnapshotLookupService(new IllegalStateException("should not use snapshot lookup"));
 
         WebApplicationException exception = assertThrows(WebApplicationException.class,
             () -> resource.readSource("workspace-1", new ReadSourceRequest("src_123", "src/App.tsx", null, null, null, null, null, null)));
@@ -168,6 +188,38 @@ class SourceViewResourceTest {
 
         @Override
         public SourceViewReadRequest resolve(String workspaceId, SourceViewSelectionRequest request) {
+            throw exception;
+        }
+    }
+
+    private static final class RecordingSnapshotLookupService extends SnapshotSourceFileLookupService {
+        private final SnapshotSourceFileLookupResult result;
+        private String lastWorkspaceId;
+        private String lastSnapshotId;
+        private String lastRelativePath;
+
+        private RecordingSnapshotLookupService(SnapshotSourceFileLookupResult result) {
+            this.result = result;
+        }
+
+        @Override
+        public SnapshotSourceFileLookupResult requireFile(String workspaceId, String snapshotId, String relativePath) {
+            this.lastWorkspaceId = workspaceId;
+            this.lastSnapshotId = snapshotId;
+            this.lastRelativePath = relativePath;
+            return result;
+        }
+    }
+
+    private static final class ThrowingSnapshotLookupService extends SnapshotSourceFileLookupService {
+        private final RuntimeException exception;
+
+        private ThrowingSnapshotLookupService(RuntimeException exception) {
+            this.exception = exception;
+        }
+
+        @Override
+        public SnapshotSourceFileLookupResult requireFile(String workspaceId, String snapshotId, String relativePath) {
             throw exception;
         }
     }

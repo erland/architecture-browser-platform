@@ -14,22 +14,24 @@ describe("platformApi", () => {
   });
 
 
-  test("readSourceView posts selected-object source requests to the source-view endpoint", async () => {
+  test("readSnapshotSourceFile posts snapshot-backed source requests to the snapshot source-file endpoint", async () => {
     const fetchJson = jest.fn(async () => ({ path: 'src/BrowserView.tsx' })) as unknown as <T>(input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
     const api = createPlatformApi({ fetchJson, fetchNoContent: jest.fn(async () => undefined) });
 
-    await api.readSourceView('ws-1', {
+    await api.readSnapshotSourceFile('ws-1', {
       snapshotId: 'snap-1',
-      selectedObjectType: 'ENTITY',
-      selectedObjectId: 'entity:browser',
+      path: 'src/browser/BrowserView.tsx',
+      startLine: 12,
+      endLine: 20,
     });
 
-    expect(fetchJson).toHaveBeenCalledWith('/api/workspaces/ws-1/source-view/read', {
+    expect(fetchJson).toHaveBeenCalledWith('/api/workspaces/ws-1/snapshot-source-files/read', {
       method: 'POST',
       body: JSON.stringify({
         snapshotId: 'snap-1',
-        selectedObjectType: 'ENTITY',
-        selectedObjectId: 'entity:browser',
+        path: 'src/browser/BrowserView.tsx',
+        startLine: 12,
+        endLine: 20,
       }),
     });
   });

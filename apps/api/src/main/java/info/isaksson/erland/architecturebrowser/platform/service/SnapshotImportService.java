@@ -8,6 +8,8 @@ import info.isaksson.erland.architecturebrowser.platform.domain.RepositoryRegist
 import info.isaksson.erland.architecturebrowser.platform.domain.WorkspaceEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.management.RepositoryManagementService;
 import info.isaksson.erland.architecturebrowser.platform.service.management.ValidationException;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileImportArtifact;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileSidecarReader;
 import info.isaksson.erland.architecturebrowser.platform.service.management.WorkspaceManagementService;
 import info.isaksson.erland.architecturebrowser.platform.service.runs.IndexRunLifecycleService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,6 +34,9 @@ public class SnapshotImportService {
 
     @Inject
     SnapshotImportPersistenceService snapshotPersistenceService;
+
+    @Inject
+    SnapshotSourceFileSidecarReader snapshotSourceFileSidecarReader;
 
     @Inject
     ImportedFactPersistenceService importedFactPersistenceService;
@@ -70,7 +75,8 @@ public class SnapshotImportService {
 
     private SnapshotImportResponse importDocument(WorkspaceEntity workspace, RepositoryRegistrationEntity repository, IndexRunEntity run, JsonNode payload) {
         ArchitectureIndexDocument document = documentParser.validateAndParse(payload);
-        SnapshotImportPersistedResult result = snapshotPersistenceService.persistSnapshot(workspace, repository, run, document, payload);
+        SnapshotSourceFileImportArtifact snapshotSourceFiles = snapshotSourceFileSidecarReader.readIfPresent(payload).orElse(null);
+        SnapshotImportPersistedResult result = snapshotPersistenceService.persistSnapshot(workspace, repository, run, document, payload, snapshotSourceFiles);
         importedFactPersistenceService.persistFacts(result.snapshot().id, document);
         auditRecorder.recordImported(workspace, repository, run, result.snapshot(), document, result.derivedRunOutcome());
         return responseFactory.create(result);

@@ -1,12 +1,9 @@
 package info.isaksson.erland.architecturebrowser.platform.service.sourceview;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import info.isaksson.erland.architecturebrowser.platform.contract.ArchitectureIndexDocument;
-import info.isaksson.erland.architecturebrowser.platform.domain.IndexRunEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.JsonSupport;
-import info.isaksson.erland.architecturebrowser.platform.service.runs.IndexRunLifecycleService;
 import info.isaksson.erland.architecturebrowser.platform.service.snapshots.SnapshotCatalogQueryService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,9 +19,6 @@ public class SourceViewSelectionResolverService {
     SnapshotCatalogQueryService snapshotCatalogQueryService;
 
     @Inject
-    IndexRunLifecycleService indexRunLifecycleService;
-
-    @Inject
     JsonSupport jsonSupport;
 
     @Inject
@@ -35,9 +29,8 @@ public class SourceViewSelectionResolverService {
         SnapshotEntity snapshot = snapshotCatalogQueryService.requireSnapshot(workspaceId, request.snapshotId().trim());
         ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
         ArchitectureIndexDocument.SourceReference sourceRef = selectSourceRef(document, request);
-        String sourceHandle = resolveSourceHandle(snapshot);
         return new SourceViewReadRequest(
-            sourceHandle,
+            null,
             sourceRef.path(),
             request.requestedStartLine() != null ? request.requestedStartLine() : sourceRef.startLine(),
             request.requestedEndLine() != null ? request.requestedEndLine() : sourceRef.endLine()
@@ -116,22 +109,6 @@ public class SourceViewSelectionResolverService {
             return usableRefs.get(index);
         }
         return usableRefs.getFirst();
-    }
-
-    private String resolveSourceHandle(SnapshotEntity snapshot) {
-        if (isBlank(snapshot.runId)) {
-            throw new IllegalStateException("Snapshot does not reference the run required for source access resolution.");
-        }
-        IndexRunEntity run = indexRunLifecycleService.requireRun(snapshot.runId);
-        if (isBlank(run.metadataJson)) {
-            throw new IllegalStateException("Run does not contain source access metadata for source view.");
-        }
-        JsonNode root = jsonSupport.readTree(run.metadataJson);
-        String sourceHandle = root.path("metadata").path("sourceAccess").path("sourceHandle").asText(null);
-        if (isBlank(sourceHandle)) {
-            throw new IllegalStateException("Run does not contain a sourceHandle for source view.");
-        }
-        return sourceHandle.trim();
     }
 
     private boolean isBlank(String value) {

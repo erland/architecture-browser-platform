@@ -6,15 +6,19 @@ import {
   selectBrowserScope,
 } from '../../browser-session';
 
-const readSourceView = jest.fn();
+const readSnapshotSourceFile = jest.fn();
 
 jest.mock('../../api', () => ({
   platformApi: {
-    readSourceView: (...args: unknown[]) => readSourceView(...args),
+    readSnapshotSourceFile: (...args: unknown[]) => readSnapshotSourceFile(...args),
   },
 }));
 
-import { buildSelectedObjectSourceViewRequest, requestSelectedObjectSourceView } from '../../views/browser-view/sourceView';
+import {
+  buildSelectedObjectSnapshotSourceFileRequest,
+  buildSelectedObjectSourceViewRequest,
+  requestSelectedObjectSourceView,
+} from '../../views/browser-view/sourceView';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-source-view-1',
@@ -127,7 +131,7 @@ const payload: FullSnapshotPayload = {
 
 describe('browser source view request helper', () => {
   beforeEach(() => {
-    readSourceView.mockReset();
+    readSnapshotSourceFile.mockReset();
   });
 
   test('builds an entity selection request from the focused element', () => {
@@ -145,9 +149,54 @@ describe('browser source view request helper', () => {
     });
   });
 
+  test('builds a snapshot-backed source-file request from the selected object source ref', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload,
+    });
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
+
+    expect(buildSelectedObjectSnapshotSourceFileRequest(state)).toEqual({
+      snapshotId: 'snap-source-view-1',
+      path: 'src/components/BrowserFactsPanel.tsx',
+      startLine: 1,
+      endLine: 20,
+    });
+  });
+
+
+  test('returns null snapshot-backed request when the selected object source ref path is not readable', () => {
+    const payloadWithInvalidPath = {
+      ...payload,
+      entities: [
+        {
+          ...payload.entities[0],
+          sourceRefs: [
+            {
+              path: '../outside.txt',
+              startLine: 1,
+              endLine: 2,
+              snippet: null,
+              metadata: {},
+            },
+          ],
+        },
+      ],
+    };
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: payloadWithInvalidPath,
+    });
+    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
+
+    expect(buildSelectedObjectSnapshotSourceFileRequest(state)).toBeNull();
+  });
   test('requests source view through the platform API for the selected object', async () => {
     const response: SourceViewReadResponse = {
-      sourceHandle: 'src-handle-1',
+      sourceHandle: 'snapshot-owned',
       path: 'src/components/BrowserFactsPanel.tsx',
       language: 'tsx',
       totalLineCount: 20,
@@ -156,7 +205,7 @@ describe('browser source view request helper', () => {
       requestedEndLine: 20,
       sourceText: 'export function BrowserFactsPanel() {}',
     };
-    readSourceView.mockResolvedValue(response);
+    readSnapshotSourceFile.mockResolvedValue(response);
 
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
@@ -166,10 +215,11 @@ describe('browser source view request helper', () => {
     state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
 
     await expect(requestSelectedObjectSourceView('ws-1', state)).resolves.toEqual(response);
-    expect(readSourceView).toHaveBeenCalledWith('ws-1', {
+    expect(readSnapshotSourceFile).toHaveBeenCalledWith('ws-1', {
       snapshotId: 'snap-source-view-1',
-      selectedObjectType: 'ENTITY',
-      selectedObjectId: 'entity:component',
+      path: 'src/components/BrowserFactsPanel.tsx',
+      startLine: 1,
+      endLine: 20,
     });
   });
 
@@ -179,7 +229,7 @@ describe('browser source view request helper', () => {
     await expect(requestSelectedObjectSourceView('ws-1', state)).rejects.toThrow(
       'No selected object is available for source view.',
     );
-    expect(readSourceView).not.toHaveBeenCalled();
+    expect(readSnapshotSourceFile).not.toHaveBeenCalled();
   });
 
   test('falls back to the selected scope when no focused element is available', () => {

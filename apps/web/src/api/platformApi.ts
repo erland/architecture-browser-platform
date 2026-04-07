@@ -3,6 +3,7 @@ import type {
   RepositoryUpdateRequest,
   RunRequest,
   SavedCanvasUpsertRequest,
+  SnapshotSourceFileReadRequest,
   SourceViewReadRequest,
   WorkspaceCreateRequest,
   WorkspaceUpdateRequest,
@@ -20,6 +21,11 @@ export function createPlatformApi(client = httpClient) {
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshots/${snapshotId}/full`, { method: 'GET' }),
     readSourceView: <T>(workspaceId: string, payload: SourceViewReadRequest) =>
       client.fetchJson<T>(`/api/workspaces/${workspaceId}/source-view/read`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    readSnapshotSourceFile: <T>(workspaceId: string, payload: SnapshotSourceFileReadRequest) =>
+      client.fetchJson<T>(`/api/workspaces/${workspaceId}/snapshot-source-files/read`, {
         method: 'POST',
         body: JSON.stringify(payload),
       }),

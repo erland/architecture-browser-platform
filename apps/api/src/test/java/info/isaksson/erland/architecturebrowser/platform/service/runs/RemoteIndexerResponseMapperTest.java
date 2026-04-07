@@ -35,6 +35,11 @@ class RemoteIndexerResponseMapperTest {
                 "accessMode": "RETAINED_ROOT",
                 "retentionCategory": "git-retained-checkout"
               },
+              "snapshotSourceFiles": {
+                "contractVersion": "snapshot-source-files/v1",
+                "files": [ ],
+                "metadata": { }
+              },
               "document": {"entities": []}
             }
             """);
@@ -51,6 +56,7 @@ class RemoteIndexerResponseMapperTest {
         assertEquals("src_123", metadata.path("sourceAccess").path("sourceHandle").asText());
         assertEquals("RETAINED_ROOT", metadata.path("sourceAccess").path("accessMode").asText());
         assertEquals("git-retained-checkout", metadata.path("sourceAccess").path("retentionCategory").asText());
+        assertEquals("snapshot-source-files/v1", metadata.path("snapshotSourceFiles").path("contractVersion").asText());
     }
 
 

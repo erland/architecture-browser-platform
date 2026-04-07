@@ -1,10 +1,8 @@
 package info.isaksson.erland.architecturebrowser.platform.service.sourceview;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import info.isaksson.erland.architecturebrowser.platform.domain.IndexRunEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import info.isaksson.erland.architecturebrowser.platform.service.JsonSupport;
-import info.isaksson.erland.architecturebrowser.platform.service.runs.IndexRunLifecycleService;
 import info.isaksson.erland.architecturebrowser.platform.service.snapshots.SnapshotCatalogQueryService;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SourceViewSelectionResolverServiceTest {
     @Test
-    void resolvesEntitySourceRefAndSourceHandleFromSnapshotAndRun() throws Exception {
+    void resolvesEntitySourceRefFromSnapshotPayload() throws Exception {
         SourceViewSelectionResolverService service = new SourceViewSelectionResolverService();
         service.snapshotCatalogQueryService = new StubSnapshotCatalogQueryService(snapshotWithPayload("""
             {
@@ -29,15 +27,6 @@ class SourceViewSelectionResolverServiceTest {
               ]
             }
             """));
-        service.indexRunLifecycleService = new StubIndexRunLifecycleService(runWithMetadata("""
-            {
-              "metadata": {
-                "sourceAccess": {
-                  "sourceHandle": "src_handle_123"
-                }
-              }
-            }
-            """));
         service.jsonSupport = jsonSupport();
         service.objectMapper = new ObjectMapper();
 
@@ -45,7 +34,7 @@ class SourceViewSelectionResolverServiceTest {
             "snapshot-1", "ENTITY", "entity-1", null, null, null
         ));
 
-        assertEquals("src_handle_123", request.sourceHandle());
+        assertEquals(null, request.sourceHandle());
         assertEquals("src/main/java/com/example/OrderService.java", request.path());
         assertEquals(12, request.startLine());
         assertEquals(34, request.endLine());
@@ -67,15 +56,6 @@ class SourceViewSelectionResolverServiceTest {
               ]
             }
             """));
-        service.indexRunLifecycleService = new StubIndexRunLifecycleService(runWithMetadata("""
-            {
-              "metadata": {
-                "sourceAccess": {
-                  "sourceHandle": "src_handle_456"
-                }
-              }
-            }
-            """));
         service.jsonSupport = jsonSupport();
         service.objectMapper = new ObjectMapper();
 
@@ -87,7 +67,6 @@ class SourceViewSelectionResolverServiceTest {
         assertEquals(22, request.startLine());
         assertEquals(23, request.endLine());
     }
-
 
     @Test
     void resolvesDiagnosticFallbackFilePathWhenExplicitSourceRefsAreMissing() throws Exception {
@@ -102,15 +81,6 @@ class SourceViewSelectionResolverServiceTest {
               ]
             }
             """));
-        service.indexRunLifecycleService = new StubIndexRunLifecycleService(runWithMetadata("""
-            {
-              "metadata": {
-                "sourceAccess": {
-                  "sourceHandle": "src_handle_diag"
-                }
-              }
-            }
-            """));
         service.jsonSupport = jsonSupport();
         service.objectMapper = new ObjectMapper();
 
@@ -118,34 +88,33 @@ class SourceViewSelectionResolverServiceTest {
             "snapshot-1", "DIAGNOSTIC", "diag-1", null, null, null
         ));
 
-        assertEquals("src_handle_diag", request.sourceHandle());
+        assertEquals(null, request.sourceHandle());
         assertEquals("src/main/resources/application.yml", request.path());
         assertEquals(null, request.startLine());
         assertEquals(null, request.endLine());
     }
 
     @Test
-    void rejectsSelectionWhenRunDoesNotContainSourceHandle() throws Exception {
+    void rejectsSelectionWhenObjectDoesNotContainReadableSourceRef() throws Exception {
         SourceViewSelectionResolverService service = new SourceViewSelectionResolverService();
         service.snapshotCatalogQueryService = new StubSnapshotCatalogQueryService(snapshotWithPayload("""
             {
-              "diagnostics": [
+              "entities": [
                 {
-                  "id": "diag-1",
-                  "filePath": "src/App.tsx"
+                  "id": "entity-1",
+                  "sourceRefs": []
                 }
               ]
             }
             """));
-        service.indexRunLifecycleService = new StubIndexRunLifecycleService(runWithMetadata("{}"));
         service.jsonSupport = jsonSupport();
         service.objectMapper = new ObjectMapper();
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> service.resolve("workspace-1", new SourceViewSelectionRequest(
-            "snapshot-1", "DIAGNOSTIC", "diag-1", null, null, null
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.resolve("workspace-1", new SourceViewSelectionRequest(
+            "snapshot-1", "ENTITY", "entity-1", null, null, null
         )));
 
-        assertEquals("Run does not contain a sourceHandle for source view.", exception.getMessage());
+        assertEquals("Selected object does not contain a readable source reference.", exception.getMessage());
     }
 
     private static SnapshotEntity snapshotWithPayload(String payload) {
@@ -157,15 +126,6 @@ class SourceViewSelectionResolverServiceTest {
         snapshot.importedAt = Instant.now();
         snapshot.snapshotKey = "snapshot-key";
         return snapshot;
-    }
-
-    private static IndexRunEntity runWithMetadata(String metadataJson) {
-        IndexRunEntity run = new IndexRunEntity();
-        run.id = "run-1";
-        run.workspaceId = "workspace-1";
-        run.repositoryRegistrationId = "repo-1";
-        run.metadataJson = metadataJson;
-        return run;
     }
 
     private static JsonSupport jsonSupport() throws Exception {
@@ -186,19 +146,6 @@ class SourceViewSelectionResolverServiceTest {
         @Override
         public SnapshotEntity requireSnapshot(String workspaceId, String snapshotId) {
             return snapshot;
-        }
-    }
-
-    private static final class StubIndexRunLifecycleService extends IndexRunLifecycleService {
-        private final IndexRunEntity run;
-
-        private StubIndexRunLifecycleService(IndexRunEntity run) {
-            this.run = run;
-        }
-
-        @Override
-        public IndexRunEntity requireRun(String runId) {
-            return run;
         }
     }
 }

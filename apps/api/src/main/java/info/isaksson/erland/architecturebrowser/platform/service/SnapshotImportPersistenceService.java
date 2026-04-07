@@ -9,6 +9,8 @@ import info.isaksson.erland.architecturebrowser.platform.domain.RunOutcome;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotStatus;
 import info.isaksson.erland.architecturebrowser.platform.domain.WorkspaceEntity;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFileImportArtifact;
+import info.isaksson.erland.architecturebrowser.platform.service.snapshotsourcefiles.SnapshotSourceFilePersistenceService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -24,7 +26,10 @@ public class SnapshotImportPersistenceService {
     @Inject
     SnapshotImportOutcomeMapper outcomeMapper;
 
-    public SnapshotImportPersistedResult persistSnapshot(WorkspaceEntity workspace, RepositoryRegistrationEntity repository, IndexRunEntity run, ArchitectureIndexDocument document, JsonNode payload) {
+    @Inject
+    SnapshotSourceFilePersistenceService snapshotSourceFilePersistenceService;
+
+    public SnapshotImportPersistedResult persistSnapshot(WorkspaceEntity workspace, RepositoryRegistrationEntity repository, IndexRunEntity run, ArchitectureIndexDocument document, JsonNode payload, SnapshotSourceFileImportArtifact snapshotSourceFiles) {
         Instant importedAt = Instant.now();
         CompletenessStatus completenessStatus = outcomeMapper.deriveCompletenessStatus(document);
         SnapshotStatus snapshotStatus = outcomeMapper.deriveSnapshotStatus(completenessStatus);
@@ -55,7 +60,8 @@ public class SnapshotImportPersistenceService {
         snapshot.rawPayloadJson = jsonSupport.write(payload);
         snapshot.metadataJson = jsonSupport.write(document.metadata());
         snapshot.persist();
+        int persistedSnapshotSourceFileCount = snapshotSourceFilePersistenceService.persistForSnapshot(snapshot, snapshotSourceFiles).size();
 
-        return new SnapshotImportPersistedResult(snapshot, derivedRunOutcome, warnings);
+        return new SnapshotImportPersistedResult(snapshot, derivedRunOutcome, warnings, snapshotSourceFiles, persistedSnapshotSourceFileCount);
     }
 }

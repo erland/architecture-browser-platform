@@ -12,6 +12,7 @@ public class OperationsRetentionCleanupService {
             ImportedFactEntity.delete("snapshotId", snapshot.id);
             SavedCanvasEntity.delete("snapshotId", snapshot.id);
             AuditEventEntity.delete("snapshotId", snapshot.id);
+            SnapshotSourceFileEntity.delete("snapshotId", snapshot.id);
             snapshot.delete();
         }
     }
