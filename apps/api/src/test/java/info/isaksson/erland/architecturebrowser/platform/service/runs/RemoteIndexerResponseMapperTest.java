@@ -30,11 +30,6 @@ class RemoteIndexerResponseMapperTest {
               "outputPath": "/tmp/output",
               "summary": {"files": 42},
               "manifest": {"version": "v1"},
-              "sourceAccess": {
-                "sourceHandle": "src_123",
-                "accessMode": "RETAINED_ROOT",
-                "retentionCategory": "git-retained-checkout"
-              },
               "snapshotSourceFiles": {
                 "contractVersion": "snapshot-source-files/v1",
                 "files": [ ],
@@ -53,9 +48,6 @@ class RemoteIndexerResponseMapperTest {
         assertEquals("/tmp/output", metadata.path("outputPath").asText());
         assertEquals(42, metadata.path("workerSummary").path("files").asInt());
         assertEquals("v1", metadata.path("workerManifest").path("version").asText());
-        assertEquals("src_123", metadata.path("sourceAccess").path("sourceHandle").asText());
-        assertEquals("RETAINED_ROOT", metadata.path("sourceAccess").path("accessMode").asText());
-        assertEquals("git-retained-checkout", metadata.path("sourceAccess").path("retentionCategory").asText());
         assertEquals("snapshot-source-files/v1", metadata.path("snapshotSourceFiles").path("contractVersion").asText());
     }
 

@@ -4,7 +4,6 @@ import type { SourceViewReadResponse } from '../../app-model';
 import { BrowserSourceViewDialog, buildHighlightedSourceTokens, buildSourceViewLines } from '../../components/browser-source-view';
 
 const response: SourceViewReadResponse = {
-  sourceHandle: 'src-1',
   path: 'src/components/BrowserFactsPanel.tsx',
   language: 'tsx',
   totalLineCount: 3,

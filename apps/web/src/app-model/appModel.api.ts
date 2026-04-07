@@ -141,14 +141,12 @@ export type SnapshotOverview = {
 export type SourceViewSelectedObjectType = 'SCOPE' | 'ENTITY' | 'RELATIONSHIP' | 'DIAGNOSTIC';
 
 export type SourceViewReadRequest = {
-  sourceHandle?: string;
-  path?: string;
-  startLine?: number | null;
-  endLine?: number | null;
   snapshotId?: string;
   selectedObjectType?: SourceViewSelectedObjectType;
   selectedObjectId?: string;
   sourceRefIndex?: number | null;
+  startLine?: number | null;
+  endLine?: number | null;
 };
 
 export type SnapshotSourceFileReadRequest = {
@@ -159,7 +157,6 @@ export type SnapshotSourceFileReadRequest = {
 };
 
 export type SourceViewReadResponse = {
-  sourceHandle: string;
   path: string;
   language: string | null;
   totalLineCount: number;

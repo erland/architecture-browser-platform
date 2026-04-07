@@ -36,7 +36,6 @@ public class SnapshotSourceFileResource {
                 request.path()
             );
             return new ReadSourceResponse(
-                null,
                 result.relativePath(),
                 result.language(),
                 result.totalLineCount(),

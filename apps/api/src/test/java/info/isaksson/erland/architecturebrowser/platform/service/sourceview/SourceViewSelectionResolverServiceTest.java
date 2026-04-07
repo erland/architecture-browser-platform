@@ -34,7 +34,6 @@ class SourceViewSelectionResolverServiceTest {
             "snapshot-1", "ENTITY", "entity-1", null, null, null
         ));
 
-        assertEquals(null, request.sourceHandle());
         assertEquals("src/main/java/com/example/OrderService.java", request.path());
         assertEquals(12, request.startLine());
         assertEquals(34, request.endLine());
@@ -88,7 +87,6 @@ class SourceViewSelectionResolverServiceTest {
             "snapshot-1", "DIAGNOSTIC", "diag-1", null, null, null
         ));
 
-        assertEquals(null, request.sourceHandle());
         assertEquals("src/main/resources/application.yml", request.path());
         assertEquals(null, request.startLine());
         assertEquals(null, request.endLine());

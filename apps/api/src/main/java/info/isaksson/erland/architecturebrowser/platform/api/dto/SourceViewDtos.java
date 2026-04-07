@@ -5,8 +5,6 @@ public final class SourceViewDtos {
     }
 
     public record ReadSourceRequest(
-        String sourceHandle,
-        String path,
         Integer startLine,
         Integer endLine,
         String snapshotId,
@@ -17,7 +15,6 @@ public final class SourceViewDtos {
     }
 
     public record ReadSourceResponse(
-        String sourceHandle,
         String path,
         String language,
         Integer totalLineCount,

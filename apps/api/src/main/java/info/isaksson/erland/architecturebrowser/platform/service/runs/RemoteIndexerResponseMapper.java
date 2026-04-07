@@ -45,9 +45,6 @@ public class RemoteIndexerResponseMapper {
         if (responseRoot.has("manifest") && responseRoot.get("manifest").isObject()) {
             metadata.set("workerManifest", responseRoot.get("manifest"));
         }
-        if (responseRoot.has("sourceAccess") && responseRoot.get("sourceAccess").isObject()) {
-            metadata.set("sourceAccess", responseRoot.get("sourceAccess"));
-        }
         if (responseRoot.has("snapshotSourceFiles") && responseRoot.get("snapshotSourceFiles").isObject()) {
             metadata.set("snapshotSourceFiles", responseRoot.get("snapshotSourceFiles"));
         }

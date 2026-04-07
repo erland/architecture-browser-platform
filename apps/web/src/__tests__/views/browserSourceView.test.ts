@@ -16,7 +16,6 @@ jest.mock('../../api', () => ({
 
 import {
   buildSelectedObjectSnapshotSourceFileRequest,
-  buildSelectedObjectSourceViewRequest,
   requestSelectedObjectSourceView,
 } from '../../views/browser-view/sourceView';
 
@@ -134,21 +133,6 @@ describe('browser source view request helper', () => {
     readSnapshotSourceFile.mockReset();
   });
 
-  test('builds an entity selection request from the focused element', () => {
-    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
-      workspaceId: 'ws-1',
-      repositoryId: 'repo-1',
-      payload,
-    });
-    state = focusBrowserElement(state, { kind: 'entity', id: 'entity:component' });
-
-    expect(buildSelectedObjectSourceViewRequest(state)).toEqual({
-      snapshotId: 'snap-source-view-1',
-      selectedObjectType: 'ENTITY',
-      selectedObjectId: 'entity:component',
-    });
-  });
-
   test('builds a snapshot-backed source-file request from the selected object source ref', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
@@ -196,7 +180,6 @@ describe('browser source view request helper', () => {
   });
   test('requests source view through the platform API for the selected object', async () => {
     const response: SourceViewReadResponse = {
-      sourceHandle: 'snapshot-owned',
       path: 'src/components/BrowserFactsPanel.tsx',
       language: 'tsx',
       totalLineCount: 20,
@@ -240,10 +223,11 @@ describe('browser source view request helper', () => {
     });
     state = selectBrowserScope(state, 'scope:file');
 
-    expect(buildSelectedObjectSourceViewRequest(state)).toEqual({
+    expect(buildSelectedObjectSnapshotSourceFileRequest(state)).toEqual({
       snapshotId: 'snap-source-view-1',
-      selectedObjectType: 'SCOPE',
-      selectedObjectId: 'scope:file',
+      path: 'src/components/BrowserFactsPanel.tsx',
+      startLine: null,
+      endLine: null,
     });
   });
 });

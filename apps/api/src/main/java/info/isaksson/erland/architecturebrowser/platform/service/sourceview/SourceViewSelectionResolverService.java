@@ -30,7 +30,6 @@ public class SourceViewSelectionResolverService {
         ArchitectureIndexDocument document = parseDocument(snapshot.rawPayloadJson);
         ArchitectureIndexDocument.SourceReference sourceRef = selectSourceRef(document, request);
         return new SourceViewReadRequest(
-            null,
             sourceRef.path(),
             request.requestedStartLine() != null ? request.requestedStartLine() : sourceRef.startLine(),
             request.requestedEndLine() != null ? request.requestedEndLine() : sourceRef.endLine()
