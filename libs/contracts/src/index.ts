@@ -22,8 +22,8 @@ export type CompletenessStatus = "COMPLETE" | "PARTIAL" | "FAILED";
 
 export type JsonObject = Record<string, unknown>;
 
-export const PLATFORM_IMPORT_VERSION = "2026-03-viewpoints-step1" as const;
-export const SUPPORTED_INDEXER_SCHEMA_VERSIONS = ["1.0.0", "1.3.0"] as const;
+export const PLATFORM_IMPORT_VERSION = "2026-04-jpa-normalized-associations-step1" as const;
+export const SUPPORTED_INDEXER_SCHEMA_VERSIONS = ["1.0.0", "1.3.0", "1.4.0"] as const;
 
 export interface SourceReference {
   path: string;
@@ -80,10 +80,108 @@ export interface ArchitectureRelationship {
   toEntityId: string;
   label: string | null;
   sourceRefs: SourceReference[];
+  normalizedAssociation?: NormalizedAssociation | null;
   metadata: JsonObject;
 }
 
+export interface NormalizedAssociation {
+  associationKind?: string;
+  associationCardinality?: string;
+  sourceLowerBound?: string;
+  sourceUpperBound?: string;
+  targetLowerBound?: string;
+  targetUpperBound?: string;
+  bidirectional?: boolean;
+  evidenceRelationshipIds?: string[];
+  owningSideEntityId?: string;
+  owningSideMemberId?: string;
+  inverseSideEntityId?: string;
+  inverseSideMemberId?: string;
+}
 
+export interface EntityAssociationRelationshipCatalogEntry {
+  relationshipId: string;
+  canonicalRelationshipId?: string | null;
+  relationshipKind?: string | null;
+  relationshipType?: string | null;
+  framework?: string | null;
+  browserViewKind?: string | null;
+  architectureViewKinds?: string[];
+  sourceEntityId: string;
+  sourceEntityName?: string | null;
+  targetEntityId: string;
+  targetEntityName?: string | null;
+  label?: string | null;
+  associationKind?: string | null;
+  associationCardinality?: string | null;
+  sourceLowerBound?: string | null;
+  sourceUpperBound?: string | null;
+  targetLowerBound?: string | null;
+  targetUpperBound?: string | null;
+  bidirectional?: boolean | null;
+  owningSideEntityId?: string | null;
+  owningSideMemberId?: string | null;
+  inverseSideEntityId?: string | null;
+  inverseSideMemberId?: string | null;
+  evidenceRelationshipIds?: string[];
+  evidenceRelationshipCount?: number | null;
+  recommendedForArchitectureViews?: boolean | null;
+  canonicalForEntityViews?: boolean | null;
+  rawRelationshipEvidenceRetained?: boolean | null;
+  jpaAssociationHandling?: string | null;
+}
+
+export interface RelationshipCatalogDescriptor {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  relationshipCatalogKind?: string | null;
+  browserViewKind?: string | null;
+  framework?: string | null;
+  frameworks?: string[];
+  architectureViewKinds?: string[];
+  available?: boolean | null;
+  relationshipCount?: number | null;
+  associationCardinalities?: string[];
+  associationKinds?: string[];
+  recommendedForArchitectureViews?: boolean | null;
+  canonicalForEntityViews?: boolean | null;
+  retainsRawRelationshipEvidence?: boolean | null;
+}
+
+export interface JavaBrowserViewDescriptor {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  framework?: string | null;
+  architectureViewKind?: string | null;
+  typeDependencyView?: string | null;
+  moduleDependencyView?: string | null;
+  relationshipCatalogView?: string | null;
+  frameworkRelationships?: string[];
+  available?: boolean | null;
+  typeDependencyCount?: number | null;
+  moduleDependencyCount?: number | null;
+  relationshipCatalogCount?: number | null;
+  preferredDependencyView?: string | null;
+  browserViewKind?: string | null;
+  recommendedForArchitectureViews?: boolean | null;
+  relationshipKinds?: string[];
+  availableFrameworks?: string[];
+  availableArchitectureViewKinds?: string[];
+}
+
+export interface DependencyViews {
+  entityAssociationRelationships?: EntityAssociationRelationshipCatalogEntry[];
+  relationshipCatalogs?: {
+    entityAssociations?: RelationshipCatalogDescriptor | null;
+  };
+  javaBrowserViews?: {
+    views?: JavaBrowserViewDescriptor[];
+    availableViews?: string[];
+    defaultViewId?: string | null;
+  };
+}
 
 export type ViewpointAvailability = "available" | "partial" | "unavailable";
 
@@ -131,6 +229,7 @@ export interface ArchitectureIndexDocument {
   scopes: LogicalScope[];
   entities: ArchitectureEntity[];
   relationships: ArchitectureRelationship[];
+  dependencyViews?: DependencyViews | null;
   viewpoints?: ArchitectureViewpoint[];
   diagnostics: Diagnostic[];
   completeness: CompletenessMetadata;

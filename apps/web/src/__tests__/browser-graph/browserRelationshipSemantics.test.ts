@@ -1,11 +1,13 @@
 import {
   formatAssociationEdgeLabel,
+  getAssociationEndpointLabels,
   formatAssociationMultiplicity,
   getAssociationBounds,
   getAssociationCardinality,
   getAssociationKind,
   hasAssociationDisplayMetadata,
   hasAssociationSemantics,
+  isContainmentAssociation,
 } from '../../browser-graph';
 
 const relationship = {
@@ -20,6 +22,19 @@ const relationship = {
     sourceUpperBound: '*',
     targetLowerBound: 1,
     targetUpperBound: 1,
+  },
+} as any;
+
+const containmentRelationship = {
+  ...relationship,
+  externalId: 'rel:containment',
+  metadata: {
+    associationKind: 'containment',
+    associationCardinality: 'one-to-many',
+    sourceLowerBound: 1,
+    sourceUpperBound: 1,
+    targetLowerBound: 0,
+    targetUpperBound: '*',
   },
 } as any;
 
@@ -44,7 +59,18 @@ describe('browserRelationshipSemantics', () => {
     expect(formatAssociationMultiplicity(1, '*')).toBe('1..*');
   });
 
+  test('derives endpoint multiplicity labels from bounds', () => {
+    expect(getAssociationEndpointLabels(relationship)).toEqual({ fromLabel: '0..*', toLabel: '1' });
+  });
+
   test('formats association edge label from bounds', () => {
     expect(formatAssociationEdgeLabel(relationship)).toBe('0..* → 1');
+  });
+
+  test('treats containment associations as first-class display semantics', () => {
+    expect(getAssociationKind(containmentRelationship)).toBe('containment');
+    expect(isContainmentAssociation(containmentRelationship)).toBe(true);
+    expect(hasAssociationSemantics(containmentRelationship)).toBe(true);
+    expect(formatAssociationEdgeLabel(containmentRelationship)).toBe('containment');
   });
 });

@@ -1,6 +1,6 @@
 import type { FullSnapshotRelationship, FullSnapshotViewpoint } from '../../app-model';
 import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../model';
-import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships, resolvePersistentEntityAssociationEndpointIds } from '../support/semantics';
+import { getArchitecturalRoles, getArchitecturalSemantics, includeIntegrationMapImmediateNeighbors, isEntityWithinScopeMode, resolvePersistentEntityAssociationRelationships, resolvePersistentEntityAssociationEndpointIds, resolvePersistentEntityPreferredDependencyViews } from '../support/semantics';
 import { sortEntityIds, sortViewpointEntityIds, sortViewpointRelationshipIds, stableSortRelationships } from '../support/sort';
 
 export function getAvailableViewpoints(index: BrowserSnapshotIndex, options?: { includePartial?: boolean; includeUnavailable?: boolean }) {
@@ -172,6 +172,12 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
   const sortedSeedEntityIds = sortViewpointEntityIds(index, viewpoint, resolvedSeedEntityIds, expansionRelationships);
   const sortedEntityIds = sortViewpointEntityIds(index, viewpoint, entityIds, expansionRelationships);
   const orderedEntityIds = viewpoint.id === 'integration-map' ? sortedEntityIds : [...sortedSeedEntityIds, ...sortedEntityIds.filter((entityId) => !sortedSeedEntityIds.includes(entityId))];
+  const preferredDependencyViews = viewpoint.id === 'persistence-model' && variant === 'show-entity-relations'
+    ? (() => {
+        const preferred = resolvePersistentEntityPreferredDependencyViews(index);
+        return preferred.length > 0 ? preferred : [...viewpoint.preferredDependencyViews];
+      })()
+    : [...viewpoint.preferredDependencyViews];
   return {
     viewpoint,
     scopeMode,
@@ -180,7 +186,7 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
     seedEntityIds: sortedSeedEntityIds,
     entityIds: orderedEntityIds,
     relationshipIds: sortViewpointRelationshipIds(index, viewpoint, expansionRelationships),
-    preferredDependencyViews: [...viewpoint.preferredDependencyViews],
+    preferredDependencyViews,
     recommendedLayout: variant === 'show-upstream-callers' ? 'upstream-callers' : viewpoint.id === 'persistence-model' && variant === 'show-writers' ? 'persistence-writers' : viewpoint.id === 'persistence-model' && variant === 'show-readers' ? 'persistence-readers' : viewpoint.id === 'persistence-model' && variant === 'show-entity-relations' ? 'persistence-model' : viewpoint.id === 'request-handling' ? 'request-flow' : viewpoint.id === 'api-surface' ? 'api-surface' : viewpoint.id === 'persistence-model' ? 'persistence-model' : viewpoint.id === 'integration-map' ? 'integration-map' : viewpoint.id === 'module-dependencies' ? 'module-dependencies' : viewpoint.id === 'ui-navigation' ? 'ui-navigation' : 'generic',
   };
 }

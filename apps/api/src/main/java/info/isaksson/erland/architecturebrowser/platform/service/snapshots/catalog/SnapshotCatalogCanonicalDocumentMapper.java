@@ -26,6 +26,7 @@ class SnapshotCatalogCanonicalDocumentMapper {
             structureMapper.scopes(document),
             structureMapper.entities(document),
             structureMapper.relationships(document),
+            structureMapper.dependencyViews(document),
             insightMapper.viewpoints(document),
             insightMapper.diagnostics(document),
             metadataSanitizer.defaultMap(document.metadata())

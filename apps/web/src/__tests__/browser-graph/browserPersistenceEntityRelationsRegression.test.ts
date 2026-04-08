@@ -2,7 +2,7 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
 import { buildBrowserSnapshotIndex, buildViewpointGraph, clearBrowserSnapshotIndex, getViewpointById } from '../../browser-snapshot';
 import { resolveBrowserViewpointPresentationPolicy } from '../../browser-graph';
-import { applySelectedViewpoint, createEmptyBrowserSessionState, openSnapshotSession, setSelectedViewpoint, setViewpointVariant } from '../../browser-session';
+import { applySelectedViewpoint, createEmptyBrowserSessionState, openSnapshotSession, setSelectedViewpoint, setViewpointApplyMode, setViewpointVariant } from '../../browser-session';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-persistence-entity-relations-1',
@@ -15,14 +15,14 @@ const snapshotSummary: SnapshotSummary = {
   status: 'READY',
   completenessStatus: 'COMPLETE',
   derivedRunOutcome: 'SUCCESS',
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.4.0',
   indexerVersion: '0.1.0',
   sourceRevision: 'abc123',
   sourceBranch: 'main',
   importedAt: '2026-03-20T00:00:00Z',
   scopeCount: 1,
   entityCount: 4,
-  relationshipCount: 4,
+  relationshipCount: 6,
   diagnosticCount: 0,
   indexedFileCount: 1,
   totalFileCount: 1,
@@ -62,6 +62,22 @@ function createPayload(): FullSnapshotPayload {
         },
       },
       {
+        externalId: 'rel:customer-orders',
+        kind: 'ASSOCIATES_WITH',
+        fromEntityId: 'entity:customer',
+        toEntityId: 'entity:order',
+        label: null,
+        sourceRefs: [],
+        metadata: {
+          associationKind: 'association',
+          associationCardinality: 'one-to-many',
+          sourceLowerBound: 1,
+          sourceUpperBound: 1,
+          targetLowerBound: 0,
+          targetUpperBound: '*',
+        },
+      },
+      {
         externalId: 'rel:order-orderid',
         kind: 'ASSOCIATES_WITH',
         fromEntityId: 'entity:order',
@@ -69,8 +85,19 @@ function createPayload(): FullSnapshotPayload {
         label: null,
         sourceRefs: [],
         metadata: {
-          associationKind: 'association',
+          associationKind: 'containment',
           associationCardinality: 'one-to-one',
+        },
+      },
+      {
+        externalId: 'rel:customer-orders-raw',
+        kind: 'ASSOCIATES_WITH',
+        fromEntityId: 'entity:customer',
+        toEntityId: 'entity:order',
+        label: null,
+        sourceRefs: [],
+        metadata: {
+          associationKind: 'association',
         },
       },
       {
@@ -96,6 +123,119 @@ function createPayload(): FullSnapshotPayload {
         },
       },
     ],
+
+    dependencyViews: {
+      entityAssociationRelationships: [
+        {
+          relationshipId: 'rel:customer-orders',
+          canonicalRelationshipId: 'rel:customer-orders',
+          relationshipKind: 'ASSOCIATES_WITH',
+          relationshipType: 'normalizedAssociation',
+          framework: 'jpa',
+          browserViewKind: 'relationship-catalog',
+          architectureViewKinds: ['entity-model'],
+          sourceEntityId: 'entity:customer',
+          sourceEntityName: 'Customer',
+          targetEntityId: 'entity:order',
+          targetEntityName: 'Order',
+          label: null,
+          associationKind: 'association',
+          associationCardinality: 'one-to-many',
+          sourceLowerBound: '1',
+          sourceUpperBound: '1',
+          targetLowerBound: '0',
+          targetUpperBound: '*',
+          bidirectional: true,
+          owningSideEntityId: 'entity:order',
+          owningSideMemberId: 'member:order:customer',
+          inverseSideEntityId: 'entity:customer',
+          inverseSideMemberId: 'member:customer:orders',
+          evidenceRelationshipIds: ['rel:order-customer', 'rel:customer-orders-raw'],
+          evidenceRelationshipCount: 2,
+          recommendedForArchitectureViews: true,
+          canonicalForEntityViews: true,
+          rawRelationshipEvidenceRetained: true,
+          jpaAssociationHandling: 'peer-association',
+        },
+        {
+          relationshipId: 'rel:order-orderid',
+          canonicalRelationshipId: 'rel:order-orderid',
+          relationshipKind: 'ASSOCIATES_WITH',
+          relationshipType: 'normalizedAssociation',
+          framework: 'jpa',
+          browserViewKind: 'relationship-catalog',
+          architectureViewKinds: ['entity-model'],
+          sourceEntityId: 'entity:order',
+          sourceEntityName: 'Order',
+          targetEntityId: 'entity:order-id',
+          targetEntityName: 'OrderId',
+          label: null,
+          associationKind: 'containment',
+          associationCardinality: 'one-to-one',
+          sourceLowerBound: null,
+          sourceUpperBound: null,
+          targetLowerBound: null,
+          targetUpperBound: null,
+          bidirectional: false,
+          owningSideEntityId: null,
+          owningSideMemberId: null,
+          inverseSideEntityId: null,
+          inverseSideMemberId: null,
+          evidenceRelationshipIds: ['rel:order-orderid'],
+          evidenceRelationshipCount: 1,
+          recommendedForArchitectureViews: true,
+          canonicalForEntityViews: true,
+          rawRelationshipEvidenceRetained: true,
+          jpaAssociationHandling: 'peer-association',
+        },
+      ],
+      relationshipCatalogs: {
+        entityAssociations: {
+          id: 'entityAssociationRelationships',
+          title: 'Entity associations',
+          description: 'Canonical peer-entity associations.',
+          relationshipCatalogKind: 'normalized-associations',
+          browserViewKind: 'relationship-catalog',
+          framework: 'jpa',
+          frameworks: ['jpa'],
+          architectureViewKinds: ['entity-model'],
+          available: true,
+          relationshipCount: 2,
+          associationCardinalities: ['one-to-many', 'one-to-one'],
+          associationKinds: ['association', 'containment'],
+          recommendedForArchitectureViews: true,
+          canonicalForEntityViews: true,
+          retainsRawRelationshipEvidence: true,
+        },
+      },
+      javaBrowserViews: {
+        views: [
+          {
+            id: 'entity-model',
+            title: 'Entity model',
+            description: 'Entity model relationships.',
+            framework: 'jpa',
+            architectureViewKind: 'entity-model',
+            typeDependencyView: null,
+            moduleDependencyView: null,
+            relationshipCatalogView: 'entityAssociationRelationships',
+            frameworkRelationships: [],
+            available: true,
+            typeDependencyCount: null,
+            moduleDependencyCount: null,
+            relationshipCatalogCount: 2,
+            preferredDependencyView: 'entityAssociationRelationships',
+            browserViewKind: 'relationship-catalog',
+            recommendedForArchitectureViews: true,
+            relationshipKinds: ['ASSOCIATES_WITH'],
+            availableFrameworks: ['jpa'],
+            availableArchitectureViewKinds: ['entity-model'],
+          },
+        ],
+        availableViews: ['entity-model'],
+        defaultViewId: 'entity-model',
+      },
+    },
     viewpoints: [
       { id: 'persistence-model', title: 'Persistence model', description: 'Show persistent structures and access paths.', availability: 'available', confidence: 0.95, seedEntityIds: [], seedRoleIds: ['persistent-entity', 'persistence-access'], expandViaSemantics: ['accesses-persistence', 'stored-in'], preferredDependencyViews: ['java:type-dependencies'], evidenceSources: ['java-jpa'] },
     ],
@@ -117,7 +257,8 @@ describe('browser persistence entity-relations regression', () => {
 
     expect(graph.seedEntityIds).toEqual(['entity:customer', 'entity:order', 'entity:order-id']);
     expect(graph.entityIds).toEqual(['entity:customer', 'entity:order', 'entity:order-id']);
-    expect(graph.relationshipIds).toEqual(['rel:order-customer', 'rel:order-orderid']);
+    expect(graph.relationshipIds).toEqual(['rel:customer-orders', 'rel:order-orderid']);
+    expect(graph.preferredDependencyViews).toEqual(['entityAssociationRelationships']);
     expect(graph.entityIds).not.toContain('entity:order-repository');
     expect(graph.relationshipIds).not.toContain('rel:repository-order');
     expect(graph.relationshipIds).not.toContain('rel:customer-repository');
@@ -129,7 +270,7 @@ describe('browser persistence entity-relations regression', () => {
     expect(policy.collapseMembersByDefault).toBe(true);
   });
 
-  test('workspace edges show multiplicity labels from normalized bounds and cardinality fallback', () => {
+  test('workspace edges render multiplicity labels at both association ends with cardinality fallback preserved', () => {
     let state = openSnapshotSession(createEmptyBrowserSessionState(), {
       workspaceId: 'ws-1',
       repositoryId: 'repo-1',
@@ -142,10 +283,40 @@ describe('browser persistence entity-relations regression', () => {
     const model = buildBrowserGraphWorkspaceModel(state);
 
     expect(model.presentationMode).toBe('compact-uml');
-    expect(model.edges.map((edge) => `${edge.relationshipId}:${edge.label}`).sort()).toEqual([
-      'rel:order-customer:0..* → 1',
-      'rel:order-orderid:one-to-one',
+    expect(model.edges.map((edge) => `${edge.relationshipId}:${edge.fromLabel ?? ''}:${edge.toLabel ?? ''}:${edge.label}:${edge.semanticStyle ?? ''}`).sort()).toEqual([
+      'rel:customer-orders:1:0..*:undefined:',
+      'rel:order-orderid:::containment:containment',
     ]);
+  });
+
+
+
+  test('merge apply and workspace preparation suppress raw evidence edges when canonical associations are available', () => {
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload: createPayload(),
+    });
+    state = {
+      ...state,
+      canvasNodes: [
+        { kind: 'entity', id: 'entity:customer', x: 100, y: 120 },
+        { kind: 'entity', id: 'entity:order', x: 420, y: 120 },
+      ],
+      canvasEdges: [
+        { relationshipId: 'rel:order-customer', fromEntityId: 'entity:order', toEntityId: 'entity:customer' },
+        { relationshipId: 'rel:customer-orders-raw', fromEntityId: 'entity:customer', toEntityId: 'entity:order' },
+      ],
+    };
+    state = setSelectedViewpoint(state, 'persistence-model');
+    state = setViewpointVariant(state, 'show-entity-relations');
+    state = setViewpointApplyMode(state, 'merge');
+    state = applySelectedViewpoint(state);
+
+    expect(state.canvasEdges.map((edge) => edge.relationshipId).sort()).toEqual(['rel:customer-orders', 'rel:order-orderid']);
+
+    const model = buildBrowserGraphWorkspaceModel(state);
+    expect(model.edges.map((edge) => edge.relationshipId).sort()).toEqual(['rel:customer-orders', 'rel:order-orderid']);
   });
 
   test('default persistence-model behavior remains access-path oriented', () => {

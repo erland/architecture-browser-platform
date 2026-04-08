@@ -50,7 +50,76 @@ export function matchesTreeModeScopeKind(kind: string, mode: BrowserTreeMode) {
   return browserTreeModeKinds[mode].has(kind);
 }
 
+function getPreferredEntityAssociationViewId(index: BrowserSnapshotIndex) {
+  const dependencyViews = index.payload.dependencyViews;
+  const javaViews = dependencyViews?.javaBrowserViews?.views ?? [];
+  const entityModelView = javaViews.find((view) => view.architectureViewKind === 'entity-model');
+  const preferred = entityModelView?.preferredDependencyView?.trim();
+  if (preferred) return preferred;
+  const relationshipCatalogView = entityModelView?.relationshipCatalogView?.trim();
+  if (relationshipCatalogView) return relationshipCatalogView;
+  const entityAssociationCatalog = dependencyViews?.relationshipCatalogs?.entityAssociations;
+  if (entityAssociationCatalog?.canonicalForEntityViews || entityAssociationCatalog?.recommendedForArchitectureViews) {
+    return 'entityAssociationRelationships';
+  }
+  return null;
+}
+
+
+
+export function getCanonicalRelationshipEvidenceIds(index: BrowserSnapshotIndex, relationship: FullSnapshotRelationship): string[] {
+  const normalizedEvidenceIds = relationship.normalizedAssociation?.evidenceRelationshipIds;
+  if (normalizedEvidenceIds && normalizedEvidenceIds.length > 0) {
+    return [...normalizedEvidenceIds];
+  }
+
+  const catalogEntries = index.payload.dependencyViews?.entityAssociationRelationships ?? [];
+  const matchingEntry = catalogEntries.find((entry) => (
+    entry.relationshipId === relationship.externalId || entry.canonicalRelationshipId === relationship.externalId
+  ));
+  return matchingEntry?.evidenceRelationshipIds ? [...matchingEntry.evidenceRelationshipIds] : [];
+}
+
+export function resolvePersistentEntityPreferredDependencyViews(index: BrowserSnapshotIndex) {
+  const preferred = getPreferredEntityAssociationViewId(index);
+  return preferred ? [preferred] : [];
+}
+
+function resolveCatalogRelationship(index: BrowserSnapshotIndex, entryRelationshipId: string | null | undefined, canonicalRelationshipId: string | null | undefined) {
+  const ids = [entryRelationshipId, canonicalRelationshipId].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  for (const relationshipId of ids) {
+    const relationship = index.relationshipsById.get(relationshipId);
+    if (relationship) return relationship;
+  }
+  return null;
+}
+
+function resolvePreferredEntityAssociationRelationships(index: BrowserSnapshotIndex, seedEntityIds: string[]) {
+  const preferredViewId = getPreferredEntityAssociationViewId(index);
+  if (preferredViewId !== 'entityAssociationRelationships') return [] as FullSnapshotRelationship[];
+  const catalogEntries = index.payload.dependencyViews?.entityAssociationRelationships ?? [];
+  if (catalogEntries.length === 0) return [] as FullSnapshotRelationship[];
+
+  const included = new Set(seedEntityIds);
+  const resolved: FullSnapshotRelationship[] = [];
+  const seenRelationshipIds = new Set<string>();
+  for (const entry of catalogEntries) {
+    if (!included.has(entry.sourceEntityId) || !included.has(entry.targetEntityId)) continue;
+    if (entry.browserViewKind && entry.browserViewKind !== 'relationship-catalog') continue;
+    if (entry.architectureViewKinds.length > 0 && !entry.architectureViewKinds.includes('entity-model')) continue;
+    if (entry.canonicalForEntityViews === false || entry.recommendedForArchitectureViews === false) continue;
+    const relationship = resolveCatalogRelationship(index, entry.relationshipId, entry.canonicalRelationshipId);
+    if (!relationship || seenRelationshipIds.has(relationship.externalId)) continue;
+    seenRelationshipIds.add(relationship.externalId);
+    resolved.push(relationship);
+  }
+  return stableSortRelationships(resolved);
+}
+
 export function resolvePersistentEntityAssociationRelationships(index: BrowserSnapshotIndex, seedEntityIds: string[]) {
+  const preferredRelationships = resolvePreferredEntityAssociationRelationships(index, seedEntityIds);
+  if (preferredRelationships.length > 0) return preferredRelationships;
+
   const included = new Set(seedEntityIds);
   return stableSortRelationships([...index.relationshipsById.values()].filter((relationship) => included.has(relationship.fromEntityId) && included.has(relationship.toEntityId) && getAssociationKind(relationship) === 'association' && hasAssociationDisplayMetadata(relationship)));
 }

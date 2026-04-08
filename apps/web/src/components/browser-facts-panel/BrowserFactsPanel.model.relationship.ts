@@ -1,6 +1,6 @@
 import type { BrowserSessionState } from '../../browser-session';
 import type { BrowserFactsPanelModel, BrowserFactsPanelViewpointExplanation } from './BrowserFactsPanel.types';
-import { buildRelationshipMetadata } from './BrowserFactsPanel.model.shared';
+import { buildRelationshipEvidenceItems, buildRelationshipMetadata } from './BrowserFactsPanel.model.shared';
 import { formatRelationshipLabel, uniqueSourceRefs } from './BrowserFactsPanel.utils';
 
 export function buildRelationshipFactsPanelModel(
@@ -20,10 +20,12 @@ export function buildRelationshipFactsPanelModel(
   const fromEntity = index.entitiesById.get(relationship.fromEntityId) ?? null;
   const toEntity = index.entitiesById.get(relationship.toEntityId) ?? null;
   const relatedDiagnostics = payload.diagnostics.filter((diagnostic) => diagnostic.entityId === relationship.fromEntityId || diagnostic.entityId === relationship.toEntityId);
+  const evidenceRelationships = buildRelationshipEvidenceItems(index, relationship);
   const sourceRefs = uniqueSourceRefs([
     ...relationship.sourceRefs,
     ...(fromEntity?.sourceRefs ?? []),
     ...(toEntity?.sourceRefs ?? []),
+    ...evidenceRelationships.flatMap((item) => index.relationshipsById.get(item.relationshipId)?.sourceRefs ?? []),
   ]);
   const relationshipMetadata = buildRelationshipMetadata(relationship);
   return {
@@ -41,6 +43,7 @@ export function buildRelationshipFactsPanelModel(
     sourceRefs,
     relationship,
     relationshipMetadata,
+    evidenceRelationships,
     scopeFacts: null,
     entityFacts: null,
     scopeBridge: null,

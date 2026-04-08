@@ -1,4 +1,4 @@
-import type { BrowserProjectionCompartment } from '../../browser-projection';
+import type { BrowserProjectionCompartment, BrowserProjectionEdgeSemanticStyle } from '../../browser-projection';
 import { buildBrowserProjectionModel } from '../../browser-projection';
 import type { BrowserEdgeRoutingInput, BrowserRoutingScene } from '../../browser-routing';
 import type { BrowserSessionState } from '../../browser-session';
@@ -44,7 +44,10 @@ export type BrowserWorkspaceEdgeModel = {
   relationshipId: string;
   fromEntityId: string;
   toEntityId: string;
-  label: string;
+  label?: string;
+  fromLabel?: string;
+  toLabel?: string;
+  semanticStyle?: BrowserProjectionEdgeSemanticStyle;
   route: BrowserWorkspaceEdgeRoute;
   routingInput: BrowserEdgeRoutingInput;
   laneIndex: number;

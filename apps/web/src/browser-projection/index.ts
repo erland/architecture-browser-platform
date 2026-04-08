@@ -10,6 +10,7 @@
 export { buildBrowserProjectionModel } from './build';
 export type {
   BrowserProjectionCompartment,
+  BrowserProjectionEdgeSemanticStyle,
   BrowserProjectionCompartmentItem,
   BrowserProjectionCompartmentKind,
   BrowserProjectionEdge,

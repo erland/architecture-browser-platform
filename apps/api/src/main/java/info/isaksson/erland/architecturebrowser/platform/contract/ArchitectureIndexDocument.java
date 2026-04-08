@@ -14,11 +14,28 @@ public record ArchitectureIndexDocument(
     List<LogicalScope> scopes,
     List<ArchitectureEntity> entities,
     List<ArchitectureRelationship> relationships,
+    DependencyViews dependencyViews,
     List<ArchitectureViewpoint> viewpoints,
     List<Diagnostic> diagnostics,
     CompletenessMetadata completeness,
     Map<String, Object> metadata
 ) {
+    public ArchitectureIndexDocument(
+        String schemaVersion,
+        String indexerVersion,
+        RunMetadata runMetadata,
+        RepositorySource source,
+        List<LogicalScope> scopes,
+        List<ArchitectureEntity> entities,
+        List<ArchitectureRelationship> relationships,
+        List<ArchitectureViewpoint> viewpoints,
+        List<Diagnostic> diagnostics,
+        CompletenessMetadata completeness,
+        Map<String, Object> metadata
+    ) {
+        this(schemaVersion, indexerVersion, runMetadata, source, scopes, entities, relationships, null, viewpoints, diagnostics, completeness, metadata);
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RunMetadata(
         String startedAt,
@@ -71,9 +88,131 @@ public record ArchitectureIndexDocument(
         String toEntityId,
         String label,
         List<SourceReference> sourceRefs,
+        NormalizedAssociation normalizedAssociation,
         Map<String, Object> metadata
+    ) {
+        public ArchitectureRelationship(
+            String id,
+            String kind,
+            String fromEntityId,
+            String toEntityId,
+            String label,
+            List<SourceReference> sourceRefs,
+            Map<String, Object> metadata
+        ) {
+            this(id, kind, fromEntityId, toEntityId, label, sourceRefs, null, metadata);
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record NormalizedAssociation(
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        List<String> evidenceRelationshipIds,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId
     ) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DependencyViews(
+        List<EntityAssociationRelationship> entityAssociationRelationships,
+        RelationshipCatalogs relationshipCatalogs,
+        JavaBrowserViews javaBrowserViews
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record EntityAssociationRelationship(
+        String relationshipId,
+        String canonicalRelationshipId,
+        String relationshipKind,
+        String relationshipType,
+        String framework,
+        String browserViewKind,
+        List<String> architectureViewKinds,
+        String sourceEntityId,
+        String sourceEntityName,
+        String targetEntityId,
+        String targetEntityName,
+        String label,
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId,
+        List<String> evidenceRelationshipIds,
+        Integer evidenceRelationshipCount,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean rawRelationshipEvidenceRetained,
+        String jpaAssociationHandling
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RelationshipCatalogs(
+        RelationshipCatalog entityAssociations
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RelationshipCatalog(
+        String id,
+        String title,
+        String description,
+        String relationshipCatalogKind,
+        String browserViewKind,
+        String framework,
+        List<String> frameworks,
+        List<String> architectureViewKinds,
+        Boolean available,
+        Integer relationshipCount,
+        List<String> associationCardinalities,
+        List<String> associationKinds,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean retainsRawRelationshipEvidence
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record JavaBrowserViews(
+        List<JavaBrowserView> views,
+        List<String> availableViews,
+        String defaultViewId
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record JavaBrowserView(
+        String id,
+        String title,
+        String description,
+        String framework,
+        String architectureViewKind,
+        String typeDependencyView,
+        String moduleDependencyView,
+        String relationshipCatalogView,
+        List<String> frameworkRelationships,
+        Boolean available,
+        Integer typeDependencyCount,
+        Integer moduleDependencyCount,
+        Integer relationshipCatalogCount,
+        String preferredDependencyView,
+        String browserViewKind,
+        Boolean recommendedForArchitectureViews,
+        List<String> relationshipKinds,
+        List<String> availableFrameworks,
+        List<String> availableArchitectureViewKinds
+    ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ArchitectureViewpoint(

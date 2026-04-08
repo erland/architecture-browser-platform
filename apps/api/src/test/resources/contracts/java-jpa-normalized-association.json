@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.4.0",
+  "indexerVersion": "indexer-step10",
+  "runMetadata": {
+    "startedAt": "2026-04-08T10:00:00Z",
+    "completedAt": "2026-04-08T10:01:00Z",
+    "outcome": "SUCCESS",
+    "detectedTechnologies": ["java", "jpa"],
+    "metadata": {}
+  },
+  "source": {
+    "repositoryId": "fixture-jpa-normalized",
+    "acquisitionType": "git",
+    "path": null,
+    "remoteUrl": "https://example.test/jpa-normalized.git",
+    "branch": "main",
+    "revision": "abc123",
+    "acquiredAt": "2026-04-08T10:00:00Z",
+    "metadata": {}
+  },
+  "scopes": [
+    {
+      "id": "scope:repo",
+      "kind": "REPOSITORY",
+      "name": "repo",
+      "displayName": "repo",
+      "parentScopeId": null,
+      "sourceRefs": [],
+      "metadata": {}
+    }
+  ],
+  "entities": [
+    {
+      "id": "entity:Project",
+      "kind": "CLASS",
+      "origin": "OBSERVED",
+      "name": "Project",
+      "displayName": "Project",
+      "scopeId": "scope:repo",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalRoles": ["persistent-entity"]
+      }
+    },
+    {
+      "id": "entity:Task",
+      "kind": "CLASS",
+      "origin": "OBSERVED",
+      "name": "Task",
+      "displayName": "Task",
+      "scopeId": "scope:repo",
+      "sourceRefs": [],
+      "metadata": {
+        "architecturalRoles": ["persistent-entity"]
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel:depends-on:project-tasks",
+      "kind": "DEPENDS_ON",
+      "fromEntityId": "entity:Project",
+      "toEntityId": "entity:Task",
+      "label": "com.example.domain.Task",
+      "sourceRefs": [],
+      "normalizedAssociation": {
+        "associationKind": "containment",
+        "associationCardinality": "one-to-many",
+        "sourceLowerBound": "1",
+        "sourceUpperBound": "1",
+        "targetLowerBound": "0",
+        "targetUpperBound": "*",
+        "bidirectional": true,
+        "evidenceRelationshipIds": ["rel:field:Task.project", "rel:field:Project.tasks"],
+        "owningSideEntityId": "entity:Task",
+        "owningSideMemberId": "project",
+        "inverseSideEntityId": "entity:Project",
+        "inverseSideMemberId": "tasks"
+      },
+      "metadata": {
+        "framework": "jpa",
+        "relationshipType": "hasAssociation",
+        "associationKind": "containment",
+        "associationCardinality": "one-to-many",
+        "sourceLowerBound": "1",
+        "sourceUpperBound": "1",
+        "targetLowerBound": "0",
+        "targetUpperBound": "*",
+        "jpaAssociationHandling": "merged-bidirectional-peer-association"
+      }
+    }
+  ],
+  "dependencyViews": {
+    "entityAssociationRelationships": [
+      {
+        "relationshipId": "rel:depends-on:project-tasks",
+        "canonicalRelationshipId": "rel:depends-on:project-tasks",
+        "relationshipKind": "DEPENDS_ON",
+        "relationshipType": "normalizedAssociation",
+        "framework": "jpa",
+        "browserViewKind": "relationship-catalog",
+        "architectureViewKinds": ["entity-model"],
+        "sourceEntityId": "entity:Project",
+        "sourceEntityName": "Project",
+        "targetEntityId": "entity:Task",
+        "targetEntityName": "Task",
+        "label": "com.example.domain.Task",
+        "associationKind": "containment",
+        "associationCardinality": "one-to-many",
+        "sourceLowerBound": "1",
+        "sourceUpperBound": "1",
+        "targetLowerBound": "0",
+        "targetUpperBound": "*",
+        "bidirectional": true,
+        "owningSideEntityId": "entity:Task",
+        "owningSideMemberId": "project",
+        "inverseSideEntityId": "entity:Project",
+        "inverseSideMemberId": "tasks",
+        "evidenceRelationshipIds": ["rel:field:Task.project", "rel:field:Project.tasks"],
+        "evidenceRelationshipCount": 2,
+        "recommendedForArchitectureViews": true,
+        "canonicalForEntityViews": true,
+        "rawRelationshipEvidenceRetained": true,
+        "jpaAssociationHandling": "merged-bidirectional-peer-association"
+      }
+    ],
+    "relationshipCatalogs": {
+      "entityAssociations": {
+        "id": "entityAssociationRelationships",
+        "title": "Entity association relationships",
+        "description": "Canonical normalized entity associations prepared for browser-native persistence and entity-model views.",
+        "relationshipCatalogKind": "entity-associations",
+        "browserViewKind": "relationship-catalog",
+        "framework": "jpa",
+        "frameworks": ["jpa"],
+        "architectureViewKinds": ["entity-model"],
+        "available": true,
+        "relationshipCount": 1,
+        "associationCardinalities": ["one-to-many"],
+        "associationKinds": ["containment"],
+        "recommendedForArchitectureViews": true,
+        "canonicalForEntityViews": true,
+        "retainsRawRelationshipEvidence": true
+      }
+    },
+    "javaBrowserViews": {
+      "views": [
+        {
+          "id": "javaEntityModelGraph",
+          "title": "Java entity model graph",
+          "description": "JPA entity, embeddable, inheritance, and association relationships prepared for browser-native persistence-model exploration.",
+          "framework": "jpa",
+          "architectureViewKind": "entity-model",
+          "typeDependencyView": "entityModelTypeDependencies",
+          "moduleDependencyView": "entityModelModuleDependencies",
+          "relationshipCatalogView": "entityAssociationRelationships",
+          "frameworkRelationships": ["hasAssociation", "embeds", "inheritsPersistenceModel"],
+          "available": true,
+          "typeDependencyCount": 0,
+          "moduleDependencyCount": 0,
+          "relationshipCatalogCount": 1,
+          "preferredDependencyView": "entityAssociationRelationships",
+          "browserViewKind": "graph",
+          "recommendedForArchitectureViews": true,
+          "relationshipKinds": ["DEPENDS_ON"],
+          "availableFrameworks": ["jpa"],
+          "availableArchitectureViewKinds": ["entity-model"]
+        }
+      ],
+      "availableViews": ["javaEntityModelGraph"],
+      "defaultViewId": "javaEntityModelGraph"
+    }
+  },
+  "viewpoints": [
+    {
+      "id": "persistence-model",
+      "title": "Persistence model",
+      "description": "Show persisted structures together with persistence access paths.",
+      "availability": "available",
+      "confidence": 0.95,
+      "seedEntityIds": ["entity:Project", "entity:Task"],
+      "seedRoleIds": ["persistent-entity"],
+      "expandViaSemantics": ["accesses-persistence", "stored-in"],
+      "preferredDependencyViews": ["entityAssociationRelationships"],
+      "evidenceSources": ["java-normalization"]
+    }
+  ],
+  "diagnostics": [],
+  "completeness": {
+    "status": "COMPLETE",
+    "indexedFileCount": 2,
+    "totalFileCount": 2,
+    "degradedFileCount": 0,
+    "omittedPaths": [],
+    "notes": []
+  },
+  "metadata": {}
+}

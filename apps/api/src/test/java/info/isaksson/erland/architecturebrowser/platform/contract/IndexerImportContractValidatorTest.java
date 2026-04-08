@@ -49,6 +49,29 @@ class IndexerImportContractValidatorTest {
         assertTrue(result.valid(), () -> String.join("\n", result.errors()));
     }
 
+
+    @Test
+    void validatesJpaNormalizedAssociationFixture() throws Exception {
+        JsonNode payload = read("/contracts/java-jpa-normalized-association.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
+
+    @Test
+    void validatesIndexerProducedJpaNormalizedAssociationFixture() throws Exception {
+        JsonNode payload = read("/contracts/indexer-produced/java-jpa-normalized-association-export.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
+    @Test
+    void validatesIndexerProducedPersistenceOnlyFixture() throws Exception {
+        JsonNode payload = read("/contracts/indexer-produced/java-persistence-only-export.json");
+        ContractValidationResult result = validator.validate(payload);
+        assertTrue(result.valid(), () -> String.join("\n", result.errors()));
+    }
+
     @Test
     void rejectsBrokenFixture() throws Exception {
         JsonNode payload = read("/contracts/invalid-missing-source.json");

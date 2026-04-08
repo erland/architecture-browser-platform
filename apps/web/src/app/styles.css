@@ -1828,9 +1828,29 @@ dd {
   stroke-linejoin: round;
 }
 
+
+.browser-canvas__legend {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.browser-canvas__legend span[title] {
+  cursor: help;
+}
+
+.browser-canvas__edge--containment {
+  stroke: rgba(250, 204, 21, 0.8);
+  stroke-width: 3;
+}
+
 .browser-canvas__edge--focused {
   stroke: rgba(191, 219, 254, 0.95);
   stroke-width: 3.2;
+}
+
+.browser-canvas__edge--containment.browser-canvas__edge--focused {
+  stroke: rgba(253, 224, 71, 0.98);
+  stroke-width: 3.5;
 }
 
 .browser-canvas__edge-hitbox {
@@ -1847,6 +1867,16 @@ dd {
 .browser-canvas__edge-label {
   fill: #bfdbfe;
   font-size: 12px;
+}
+
+.browser-canvas__edge-label--endpoint {
+  font-size: 11px;
+}
+
+.browser-canvas__edge-label--containment {
+  fill: #fde68a;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .browser-canvas__node {

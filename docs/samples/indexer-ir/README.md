@@ -20,3 +20,12 @@ These are documentation and contract-reference assets used by the platform impor
 - a frontend/browser regression fixture for viewpoint graph assembly and application
 
 When the viewpoint catalog evolves, update this sample together with the browser regression tests and contract-facing documentation.
+
+## Indexer-produced JPA normalized association fixtures
+
+The files below are copied from the indexer repository `docs/export-format/examples/` and are used as platform-side integration-verification fixtures for the normalized JPA association rollout:
+
+- `java-jpa-normalized-association-export.json`
+- `java-persistence-only-export.json`
+
+These fixtures are intentionally kept close to the indexer-owned examples so the platform import/mapping tests exercise realistic export shapes rather than only hand-maintained platform-local samples.

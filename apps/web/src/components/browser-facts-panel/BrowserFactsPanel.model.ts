@@ -48,6 +48,7 @@ export function buildBrowserFactsPanelModel(state: BrowserSessionState): Browser
     sourceRefs: [],
     relationship: null,
     relationshipMetadata: null,
+    evidenceRelationships: [],
     scopeFacts: null,
     entityFacts: null,
     scopeBridge: null,

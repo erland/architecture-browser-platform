@@ -82,35 +82,38 @@ export function buildWorkspaceRouting(
     },
   );
 
-  const edges = normalizedProjectionEdges
-    .map((edge) => {
-      const routingInput = routingScene.inputsByRelationshipId[edge.relationshipId];
-      if (!routingInput) {
-        return null;
-      }
-      const lane = laneOffsetsByRelationshipId[edge.relationshipId] ?? { laneIndex: 0, laneOffset: 0 };
-      const route = buildBrowserEdgeRoute(routingInput, {
-        orthogonalRouting: state.routingLayoutConfig.features.orthogonalRouting,
-        laneOffset: lane.laneOffset,
-        laneSpacing: state.routingLayoutConfig.defaults.laneSpacing,
-        gridSize: state.routingLayoutConfig.defaults.gridSize,
-        obstacleMargin: state.routingLayoutConfig.defaults.obstacleMargin,
-        maxChannelShiftSteps: state.routingLayoutConfig.defaults.maxChannelShiftSteps,
-        endpointStubLength: state.routingLayoutConfig.defaults.endpointStubLength,
-      });
-      return {
-        relationshipId: edge.relationshipId,
-        fromEntityId: edge.fromEntityId,
-        toEntityId: edge.toEntityId,
-        label: edge.label,
-        route,
-        routingInput,
-        laneIndex: lane.laneIndex,
-        laneOffset: lane.laneOffset,
-        focused: edge.focused,
-      };
-    })
-    .filter((edge): edge is BrowserWorkspaceEdgeModel => Boolean(edge));
+  const edges: BrowserWorkspaceEdgeModel[] = [];
+  for (const edge of normalizedProjectionEdges) {
+    const routingInput = routingScene.inputsByRelationshipId[edge.relationshipId];
+    if (!routingInput) {
+      continue;
+    }
+    const lane = laneOffsetsByRelationshipId[edge.relationshipId] ?? { laneIndex: 0, laneOffset: 0 };
+    const route = buildBrowserEdgeRoute(routingInput, {
+      orthogonalRouting: state.routingLayoutConfig.features.orthogonalRouting,
+      laneOffset: lane.laneOffset,
+      laneSpacing: state.routingLayoutConfig.defaults.laneSpacing,
+      gridSize: state.routingLayoutConfig.defaults.gridSize,
+      obstacleMargin: state.routingLayoutConfig.defaults.obstacleMargin,
+      maxChannelShiftSteps: state.routingLayoutConfig.defaults.maxChannelShiftSteps,
+      endpointStubLength: state.routingLayoutConfig.defaults.endpointStubLength,
+    });
+    edges.push({
+      relationshipId: edge.relationshipId,
+      fromEntityId: edge.fromEntityId,
+      toEntityId: edge.toEntityId,
+      label: edge.label,
+      fromLabel: edge.fromLabel,
+      toLabel: edge.toLabel,
+      semanticStyle: edge.semanticStyle,
+      route,
+      routingInput,
+      laneIndex: lane.laneIndex,
+      laneOffset: lane.laneOffset,
+      focused: edge.focused,
+    });
+  }
+
 
   return {
     routingScene,

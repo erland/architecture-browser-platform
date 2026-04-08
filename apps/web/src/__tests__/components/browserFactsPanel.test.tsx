@@ -1,5 +1,7 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
+import { BrowserFactsPanel, buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
 import { addEntityToCanvas, applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
 
 const snapshotSummary: SnapshotSummary = {
@@ -20,7 +22,7 @@ const snapshotSummary: SnapshotSummary = {
   importedAt: '2026-03-13T00:00:00Z',
   scopeCount: 6,
   entityCount: 7,
-  relationshipCount: 2,
+  relationshipCount: 3,
   diagnosticCount: 2,
   indexedFileCount: 1,
   totalFileCount: 1,
@@ -53,6 +55,7 @@ function createPayload(): FullSnapshotPayload {
     relationships: [
       { externalId: 'rel:contains:module:function1', kind: 'CONTAINS', fromEntityId: 'entity:module', toEntityId: 'entity:function.render', label: 'contains', sourceRefs: [{ path: 'src/BrowserView.tsx', startLine: 1, endLine: 24, snippet: null, metadata: {} }], metadata: {} },
       { externalId: 'rel:uses', kind: 'USES', fromEntityId: 'entity:component', toEntityId: 'entity:module', label: 'renders', sourceRefs: [{ path: 'src/components/BrowserNavigationTree.tsx', startLine: 15, endLine: 15, snippet: null, metadata: {} }], metadata: {} },
+      { externalId: 'rel:uses:raw', kind: 'USES', fromEntityId: 'entity:component', toEntityId: 'entity:module', label: 'browserModule', sourceRefs: [{ path: 'src/components/BrowserNavigationTree.tsx', startLine: 16, endLine: 16, snippet: null, metadata: {} }], metadata: { jpaAssociation: 'many-to-one', joinColumn: 'browser_module_id' } },
     ],
     viewpoints: [{ id: 'request-handling', title: 'Request handling', description: 'Trace requests from entrypoints to services and persistence.', availability: 'available', confidence: 0.91, seedEntityIds: [], seedRoleIds: ['api-entrypoint', 'application-service'], expandViaSemantics: ['serves-request', 'invokes-use-case', 'accesses-persistence'], preferredDependencyViews: ['runtime-dependencies'], evidenceSources: ['java-spring', 'jakarta-rest'] }],
     diagnostics: [
@@ -116,7 +119,7 @@ describe('BrowserFactsPanel model', () => {
 
     expect(model?.mode).toBe('entity');
     expect(model?.entityFacts?.inboundRelationships).toHaveLength(0);
-    expect(model?.entityFacts?.outboundRelationships).toHaveLength(1);
+    expect(model?.entityFacts?.outboundRelationships).toHaveLength(2);
     expect(model?.diagnostics).toHaveLength(1);
   });
 
@@ -124,6 +127,20 @@ describe('BrowserFactsPanel model', () => {
     const payload = createPayload();
     payload.relationships[1] = {
       ...payload.relationships[1],
+      normalizedAssociation: {
+        associationKind: 'association',
+        associationCardinality: 'many-to-one',
+        sourceLowerBound: '0',
+        sourceUpperBound: '*',
+        targetLowerBound: '1',
+        targetUpperBound: '1',
+        bidirectional: true,
+        evidenceRelationshipIds: ['rel:uses:raw'],
+        owningSideEntityId: 'entity:component',
+        owningSideMemberId: 'browserModule',
+        inverseSideEntityId: 'entity:module',
+        inverseSideMemberId: 'components',
+      },
       metadata: {
         associationKind: 'association',
         associationCardinality: 'many-to-one',
@@ -131,8 +148,6 @@ describe('BrowserFactsPanel model', () => {
         sourceUpperBound: '*',
         targetLowerBound: 1,
         targetUpperBound: '1',
-        jpaAssociation: 'many-to-one',
-        joinColumn: 'browser_module_id',
       },
     };
     let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
@@ -151,10 +166,17 @@ describe('BrowserFactsPanel model', () => {
       'sourceUpperBound:*',
       'targetLowerBound:1',
       'targetUpperBound:1',
+      'bidirectional:true',
     ]);
-    expect(model?.relationshipMetadata?.evidence.map((entry) => `${entry.key}:${entry.value}`)).toEqual([
-      'jpaAssociation:many-to-one',
-      'joinColumn:browser_module_id',
+    expect(model?.relationshipMetadata?.evidence).toEqual([]);
+    expect(model?.evidenceRelationships).toEqual([
+      {
+        relationshipId: 'rel:uses:raw',
+        label: 'browserModule',
+        summary: 'BrowserNavigationTree → BrowserViewModule',
+        sourceRefCount: 1,
+        existsInSnapshot: true,
+      },
     ]);
   });
 
@@ -206,6 +228,55 @@ describe('BrowserFactsPanel model', () => {
     expect(model?.mode).toBe('entity');
     expect(model?.title).toBe('BrowserRepository');
     expect(model?.summary).toContain('Scope Platform / info.example.browser');
+  });
+
+
+  test('relationship facts panel renders normalized summary and raw evidence entries', () => {
+    const payload = createPayload();
+    payload.relationships[1] = {
+      ...payload.relationships[1],
+      normalizedAssociation: {
+        associationKind: 'containment',
+        associationCardinality: 'one-to-many',
+        sourceLowerBound: '1',
+        sourceUpperBound: '1',
+        targetLowerBound: '0',
+        targetUpperBound: '*',
+        bidirectional: false,
+        evidenceRelationshipIds: ['rel:uses:raw'],
+        owningSideEntityId: 'entity:module',
+        owningSideMemberId: 'children',
+        inverseSideEntityId: 'entity:component',
+        inverseSideMemberId: 'parent',
+      },
+      metadata: { associationKind: 'containment' },
+    };
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), { workspaceId: 'ws-1', repositoryId: 'repo-1', payload });
+    state = focusBrowserElement(state, { kind: 'relationship', id: 'rel:uses' });
+
+    const markup = renderToStaticMarkup(createElement(BrowserFactsPanel, {
+      state,
+      onSelectScope: () => undefined,
+      onFocusEntity: () => undefined,
+      onFocusRelationship: () => undefined,
+      onAddEntities: () => undefined,
+      onTogglePinNode: () => undefined,
+      onSetClassPresentationMode: () => undefined,
+      onToggleClassPresentationMembers: () => undefined,
+      onIsolateSelection: () => undefined,
+      onRemoveSelection: () => undefined,
+      onOpenSource: () => undefined,
+      onClose: () => undefined,
+    }));
+
+    expect(markup).toContain('Relationship semantics');
+    expect(markup).toContain('Normalized association details are the primary browser-facing summary');
+    expect(markup).toContain('Bidirectional');
+    expect(markup).toContain('false');
+    expect(markup).toContain('Raw evidence');
+    expect(markup).toContain('underlying raw relationships retained as evidence');
+    expect(markup).toContain('browserModule');
+    expect(markup).toContain('BrowserNavigationTree → BrowserViewModule');
   });
 
 });

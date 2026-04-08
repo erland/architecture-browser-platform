@@ -70,6 +70,7 @@ public class SnapshotCatalogResponseAssembler {
             documentMapper.mapScopes(context.canonicalDocument()),
             documentMapper.mapEntities(context.canonicalDocument()),
             documentMapper.mapRelationships(context.canonicalDocument()),
+            documentMapper.mapDependencyViews(context.canonicalDocument()),
             documentMapper.mapViewpoints(context.canonicalDocument()),
             documentMapper.mapDiagnostics(context.canonicalDocument()),
             new MetadataEnvelope(documentMapper.metadataEnvelope(context.canonicalDocument())),

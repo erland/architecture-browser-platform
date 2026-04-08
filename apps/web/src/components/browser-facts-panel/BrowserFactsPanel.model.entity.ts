@@ -35,6 +35,7 @@ export function buildEntityFactsPanelModel(
     sourceRefs: entityFacts.sourceRefs,
     relationship: null,
     relationshipMetadata: null,
+    evidenceRelationships: [],
     scopeFacts: null,
     entityFacts,
     scopeBridge: null,

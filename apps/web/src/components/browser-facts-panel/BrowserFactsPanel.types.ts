@@ -63,6 +63,14 @@ export type BrowserFactsPanelRelationshipMetadata = {
   evidence: BrowserFactsPanelRelationshipMetadataEntry[];
 };
 
+export type BrowserFactsPanelRelationshipEvidenceItem = {
+  relationshipId: string;
+  label: string;
+  summary: string;
+  sourceRefCount: number;
+  existsInSnapshot: boolean;
+};
+
 export type BrowserFactsPanelModel = {
   title: string;
   subtitle: string;
@@ -73,6 +81,7 @@ export type BrowserFactsPanelModel = {
   sourceRefs: SnapshotSourceRef[];
   relationship: FullSnapshotRelationship | null;
   relationshipMetadata: BrowserFactsPanelRelationshipMetadata | null;
+  evidenceRelationships: BrowserFactsPanelRelationshipEvidenceItem[];
   scopeFacts: BrowserScopeFacts | null;
   entityFacts: BrowserEntityFacts | null;
   scopeBridge: BrowserFactsPanelScopeBridge | null;
@@ -155,6 +164,7 @@ export type BrowserFactsPanelRelationshipSectionModel = {
   relationship: FullSnapshotRelationship;
   connectedEntities: BrowserFactsPanelRelationshipConnectedEntity[];
   metadata: BrowserFactsPanelRelationshipMetadata | null;
+  evidenceRelationships: BrowserFactsPanelRelationshipEvidenceItem[];
 };
 
 export type BrowserFactsPanelDiagnosticsSectionModel = {

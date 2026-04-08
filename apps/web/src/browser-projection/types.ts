@@ -2,6 +2,7 @@ import type { BrowserViewpointPresentationPolicy } from '../browser-graph/presen
 
 export type BrowserProjectionNodeKind = 'scope' | 'entity' | 'uml-class';
 export type BrowserProjectionCompartmentKind = 'attributes' | 'operations';
+export type BrowserProjectionEdgeSemanticStyle = 'containment';
 
 export type BrowserProjectionSource =
   | { kind: 'scope'; id: string }
@@ -51,7 +52,10 @@ export type BrowserProjectionEdge = {
   toNodeId: string;
   fromEntityId: string;
   toEntityId: string;
-  label: string;
+  label?: string;
+  fromLabel?: string;
+  toLabel?: string;
+  semanticStyle?: BrowserProjectionEdgeSemanticStyle;
   focused: boolean;
 };
 

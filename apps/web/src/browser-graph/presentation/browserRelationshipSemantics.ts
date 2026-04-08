@@ -1,6 +1,6 @@
 import type { FullSnapshotRelationship } from '../../app-model';
 
-export type BrowserAssociationKind = 'association';
+export type BrowserAssociationKind = 'association' | 'containment';
 export type BrowserAssociationCardinality = 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
 export type BrowserAssociationBounds = {
   sourceLowerBound?: string;
@@ -34,7 +34,7 @@ function readString(record: Record<string, unknown>, key: string): string | unde
 
 export function getAssociationKind(relationship: FullSnapshotRelationship): BrowserAssociationKind | undefined {
   const value = readString(getMetadataRecord(relationship), 'associationKind');
-  return value === 'association' ? 'association' : undefined;
+  return value === 'association' || value === 'containment' ? value : undefined;
 }
 
 export function getAssociationCardinality(relationship: FullSnapshotRelationship): BrowserAssociationCardinality | undefined {
@@ -73,25 +73,52 @@ export function formatAssociationMultiplicity(lower?: MultiplicityBound, upper?:
 }
 
 export function hasAssociationSemantics(relationship: FullSnapshotRelationship): boolean {
-  return getAssociationKind(relationship) === 'association';
+  return getAssociationKind(relationship) === 'association' || getAssociationKind(relationship) === 'containment';
+}
+
+export function isContainmentAssociation(relationship: FullSnapshotRelationship): boolean {
+  return getAssociationKind(relationship) === 'containment';
+}
+
+export type BrowserAssociationEndpointLabels = {
+  fromLabel?: string;
+  toLabel?: string;
+};
+
+export function getAssociationEndpointLabels(relationship: FullSnapshotRelationship): BrowserAssociationEndpointLabels | undefined {
+  const bounds = getAssociationBounds(relationship);
+  const labels: BrowserAssociationEndpointLabels = {
+    fromLabel: formatAssociationMultiplicity(bounds?.sourceLowerBound, bounds?.sourceUpperBound),
+    toLabel: formatAssociationMultiplicity(bounds?.targetLowerBound, bounds?.targetUpperBound),
+  };
+  return labels.fromLabel || labels.toLabel ? labels : undefined;
+}
+
+export function getContainmentEdgeLabel(relationship: FullSnapshotRelationship): string | undefined {
+  return isContainmentAssociation(relationship) ? 'containment' : undefined;
 }
 
 export function formatAssociationEdgeLabel(relationship: FullSnapshotRelationship): string | undefined {
-  const bounds = getAssociationBounds(relationship);
-  const fromBounds = formatAssociationMultiplicity(bounds?.sourceLowerBound, bounds?.sourceUpperBound);
-  const toBounds = formatAssociationMultiplicity(bounds?.targetLowerBound, bounds?.targetUpperBound);
-  if (fromBounds && toBounds) {
-    return `${fromBounds} → ${toBounds}`;
+  const containmentLabel = getContainmentEdgeLabel(relationship);
+  if (containmentLabel) {
+    return containmentLabel;
   }
-  if (toBounds) {
-    return toBounds;
+  const endpointLabels = getAssociationEndpointLabels(relationship);
+  if (endpointLabels?.fromLabel && endpointLabels?.toLabel) {
+    return `${endpointLabels.fromLabel} → ${endpointLabels.toLabel}`;
   }
-  if (fromBounds) {
-    return fromBounds;
+  if (endpointLabels?.toLabel) {
+    return endpointLabels.toLabel;
+  }
+  if (endpointLabels?.fromLabel) {
+    return endpointLabels.fromLabel;
   }
   return getAssociationCardinality(relationship);
 }
 
 export function hasAssociationDisplayMetadata(relationship: FullSnapshotRelationship): boolean {
-  return Boolean(formatAssociationEdgeLabel(relationship));
+  return Boolean(getContainmentEdgeLabel(relationship)
+    || getAssociationEndpointLabels(relationship)?.fromLabel
+    || getAssociationEndpointLabels(relationship)?.toLabel
+    || getAssociationCardinality(relationship));
 }

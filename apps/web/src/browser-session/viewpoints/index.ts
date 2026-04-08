@@ -12,6 +12,7 @@ import {
   upsertCanvasEdge,
   upsertCanvasNode,
 } from '../canvas/nodes';
+import { syncMeaningfulCanvasEdges } from '../canvas/relationships';
 import {
   arrangeViewpointCanvasNodes,
   buildAppliedViewpointGraph,
@@ -127,7 +128,7 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
       }, { state }),
     );
   }
-  const canvasEdges = state.viewpointSelection.applyMode === 'replace'
+  const nextCanvasEdges = state.viewpointSelection.applyMode === 'replace'
     ? createCanvasEdgesForRelationshipIds(state.index, graph.relationshipIds)
     : graph.relationshipIds.reduce((edges, relationshipId) => {
         const relationship = state.index?.relationshipsById.get(relationshipId);
@@ -141,7 +142,15 @@ export function applySelectedViewpoint(state: BrowserSessionState): BrowserSessi
         });
       }, [...state.canvasEdges]);
 
-  const arrangedNodes = arrangeViewpointCanvasNodes(state, canvasNodes, canvasEdges, graph);
+  const arrangedNodes = arrangeViewpointCanvasNodes(state, canvasNodes, nextCanvasEdges, graph);
+  const canvasEdges = state.viewpointSelection.variant === 'show-entity-relations'
+    ? syncMeaningfulCanvasEdges({
+        ...state,
+        canvasNodes: arrangedNodes,
+        canvasEdges: nextCanvasEdges,
+        appliedViewpoint: graph,
+      }, arrangedNodes)
+    : nextCanvasEdges;
   return {
     ...state,
     canvasNodes: arrangedNodes,

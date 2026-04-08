@@ -236,6 +236,7 @@ function buildRelationshipSectionModel(state: BrowserSessionState, model: NonNul
     relationship: model.relationship,
     connectedEntities,
     metadata: model.relationshipMetadata,
+    evidenceRelationships: model.evidenceRelationships ?? [],
   };
 }
 

@@ -3,10 +3,12 @@ import type {
   BrowserResolvedViewpointGraph,
   BrowserSnapshotIndex,
 } from '../../browser-snapshot';
+import { getCanonicalRelationshipEvidenceIds } from '../../browser-snapshot/support';
 import type { BrowserSessionState } from '../../browser-session';
 import type {
   BrowserFactsPanelEntityGroup,
   BrowserFactsPanelEntitySummary,
+  BrowserFactsPanelRelationshipEvidenceItem,
   BrowserFactsPanelRelationshipMetadata,
   BrowserFactsPanelRelationshipMetadataEntry,
   BrowserFactsPanelScopeSummary,
@@ -46,6 +48,8 @@ export function formatRelationshipMetadataLabel(key: string) {
       return 'Target lower bound';
     case 'targetUpperBound':
       return 'Target upper bound';
+    case 'bidirectional':
+      return 'Bidirectional';
     case 'jpaAssociation':
       return 'JPA association';
     case 'joinColumn':
@@ -64,8 +68,16 @@ export function buildRelationshipMetadata(relationship: FullSnapshotRelationship
   const nested = metadata.metadata && typeof metadata.metadata === 'object' && !Array.isArray(metadata.metadata)
     ? (metadata.metadata as Record<string, unknown>)
     : null;
+  const normalizedAssociation = relationship.normalizedAssociation ?? null;
 
   const readValue = (key: string): string | null => {
+    const normalizedValue = normalizedAssociation ? (normalizedAssociation as Record<string, unknown>)[key] : undefined;
+    if (normalizedValue !== undefined && normalizedValue !== null) {
+      const value = String(normalizedValue).trim();
+      if (value.length > 0) {
+        return value;
+      }
+    }
     const direct = metadata[key];
     if (direct !== undefined && direct !== null) {
       const value = String(direct).trim();
@@ -92,6 +104,7 @@ export function buildRelationshipMetadata(relationship: FullSnapshotRelationship
     'sourceUpperBound',
     'targetLowerBound',
     'targetUpperBound',
+    'bidirectional',
   ] as const;
   const normalized: BrowserFactsPanelRelationshipMetadataEntry[] = [];
   for (const key of normalizedKeys) {
@@ -114,6 +127,24 @@ export function buildRelationshipMetadata(relationship: FullSnapshotRelationship
     return null;
   }
   return { normalized, evidence };
+}
+
+export function buildRelationshipEvidenceItems(index: BrowserSnapshotIndex, relationship: FullSnapshotRelationship): BrowserFactsPanelRelationshipEvidenceItem[] {
+  const evidenceIds = getCanonicalRelationshipEvidenceIds(index, relationship);
+  return evidenceIds.map((relationshipId) => {
+    const evidenceRelationship = index.relationshipsById.get(relationshipId);
+    const fromEntity = evidenceRelationship ? index.entitiesById.get(evidenceRelationship.fromEntityId) : null;
+    const toEntity = evidenceRelationship ? index.entitiesById.get(evidenceRelationship.toEntityId) : null;
+    return {
+      relationshipId,
+      label: evidenceRelationship?.label?.trim() || evidenceRelationship?.kind || relationshipId,
+      summary: evidenceRelationship
+        ? `${fromEntity?.displayName?.trim() || fromEntity?.name || evidenceRelationship.fromEntityId} → ${toEntity?.displayName?.trim() || toEntity?.name || evidenceRelationship.toEntityId}`
+        : 'Relationship evidence id retained, but the underlying relationship is not present in this snapshot.',
+      sourceRefCount: evidenceRelationship?.sourceRefs.length ?? 0,
+      existsInSnapshot: Boolean(evidenceRelationship),
+    };
+  });
 }
 
 export function buildEntityGroups(entities: FullSnapshotEntity[]): BrowserFactsPanelEntityGroup[] {

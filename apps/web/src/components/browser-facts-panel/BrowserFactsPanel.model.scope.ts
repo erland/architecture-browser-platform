@@ -70,6 +70,7 @@ export function buildScopeFactsPanelModel(
     sourceRefs: scopeFacts.sourceRefs,
     relationship: null,
     relationshipMetadata: null,
+    evidenceRelationships: [],
     scopeFacts,
     entityFacts: null,
     scopeBridge,

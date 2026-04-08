@@ -70,7 +70,7 @@ export function BrowserFactsPanel(props: BrowserFactsPanelProps) {
       <ViewpointSection section={presentation.viewpoint} onFocusEntity={onFocusEntity} />
       <ScopeSections section={presentation.scope} onSelectScope={onSelectScope} onFocusEntity={onFocusEntity} onAddEntities={onAddEntities} />
       <EntitySections section={presentation.entity} onSelectScope={onSelectScope} onFocusRelationship={onFocusRelationship} onAddEntities={onAddEntities} />
-      <RelationshipSections section={presentation.relationship} onFocusEntity={onFocusEntity} />
+      <RelationshipSections section={presentation.relationship} onFocusEntity={onFocusEntity} onFocusRelationship={onFocusRelationship} />
       <DiagnosticsSection section={presentation.diagnostics} />
       <SourceRefsSection section={presentation.sourceRefs} />
     </section>

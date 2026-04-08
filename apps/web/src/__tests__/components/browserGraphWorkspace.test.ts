@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
+import { BrowserGraphWorkspaceEdgeLayer } from '../../components/browser-graph-workspace/BrowserGraphWorkspaceEdgeLayer';
 import { resolveRenderedEdgeGeometry } from '../../components/browser-graph-workspace/BrowserGraphWorkspace.sections';
 import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
 
@@ -644,4 +645,150 @@ test('hides field and function toggles for a single selected class in simple mod
   expect(markup).not.toContain('Show fields');
   expect(markup).not.toContain('Hide functions');
   expect(markup).not.toContain('Show functions');
+});
+
+
+test('renders multiplicity labels at both ends of relationship edges when present', () => {
+  const onActivateRelationship = jest.fn();
+
+  const markup = renderToStaticMarkup(createElement(
+    'svg',
+    null,
+    createElement(BrowserGraphWorkspaceEdgeLayer, {
+      edges: [{
+        relationshipId: 'rel:test',
+        fromEntityId: 'entity:a',
+        toEntityId: 'entity:b',
+        label: '',
+        fromLabel: '1',
+        toLabel: '0..*',
+        semanticStyle: undefined,
+        focused: false,
+        laneIndex: 0,
+        laneOffset: 0,
+        routingInput: {
+          relationshipId: 'rel:test',
+          fromNodeId: 'entity:a',
+          toNodeId: 'entity:b',
+          sourceRect: { nodeId: 'entity:a', kind: 'entity', x: 0, y: 0, width: 40, height: 40 },
+          targetRect: { nodeId: 'entity:b', kind: 'entity', x: 100, y: 0, width: 40, height: 40 },
+          defaultStart: { x: 20, y: 20 },
+          defaultEnd: { x: 120, y: 20 },
+          preferredStartSide: 'right',
+          preferredEndSide: 'left',
+          selfLoop: false,
+          obstacleNodeIds: [],
+          obstacles: [],
+        },
+        route: {
+          kind: 'straight',
+          points: [{ x: 20, y: 20 }, { x: 120, y: 20 }],
+          path: 'M 20 20 L 120 20',
+          labelPosition: { x: 70, y: 20 },
+        },
+      }],
+      onActivateRelationship,
+    }),
+  ));
+
+  expect(markup).toContain('>1<');
+  expect(markup).toContain('>0..*<');
+});
+
+
+test('renders containment relationship styling and label in edge layer', () => {
+  const onActivateRelationship = jest.fn();
+
+  const markup = renderToStaticMarkup(createElement(
+    'svg',
+    null,
+    createElement(BrowserGraphWorkspaceEdgeLayer, {
+      edges: [{
+        relationshipId: 'rel:containment',
+        fromEntityId: 'entity:parent',
+        toEntityId: 'entity:child',
+        label: 'containment',
+        fromLabel: '1',
+        toLabel: '0..*',
+        semanticStyle: 'containment',
+        focused: false,
+        laneIndex: 0,
+        laneOffset: 0,
+        routingInput: {
+          relationshipId: 'rel:containment',
+          fromNodeId: 'entity:parent',
+          toNodeId: 'entity:child',
+          sourceRect: { nodeId: 'entity:parent', kind: 'entity', x: 0, y: 20, width: 40, height: 40 },
+          targetRect: { nodeId: 'entity:child', kind: 'entity', x: 120, y: 20, width: 40, height: 40 },
+          defaultStart: { x: 20, y: 40 },
+          defaultEnd: { x: 140, y: 40 },
+          preferredStartSide: 'right',
+          preferredEndSide: 'left',
+          selfLoop: false,
+          obstacleNodeIds: [],
+          obstacles: [],
+        },
+        route: {
+          kind: 'straight',
+          points: [{ x: 20, y: 40 }, { x: 140, y: 40 }],
+          path: 'M 20 40 L 140 40',
+          labelPosition: { x: 80, y: 40 },
+        },
+      }],
+      onActivateRelationship,
+    }),
+  ));
+
+  expect(markup).toContain('>containment<');
+  expect(markup).toContain('browser-canvas__edge--containment');
+});
+
+
+test('shows relationship legend hints when multiplicity and containment semantics are present', () => {
+  const onActivateRelationship = jest.fn();
+
+  const markup = renderToStaticMarkup(createElement(
+    'svg',
+    null,
+    createElement(BrowserGraphWorkspaceEdgeLayer, {
+      edges: [{
+        relationshipId: 'rel:containment',
+        fromEntityId: 'entity:parent',
+        toEntityId: 'entity:child',
+        label: 'containment',
+        fromLabel: '1',
+        toLabel: '0..*',
+        semanticStyle: 'containment',
+        focused: false,
+        laneIndex: 0,
+        laneOffset: 0,
+        routingInput: {
+          relationshipId: 'rel:containment',
+          fromNodeId: 'entity:parent',
+          toNodeId: 'entity:child',
+          sourceRect: { nodeId: 'entity:parent', kind: 'entity', x: 0, y: 20, width: 40, height: 40 },
+          targetRect: { nodeId: 'entity:child', kind: 'entity', x: 120, y: 20, width: 40, height: 40 },
+          defaultStart: { x: 20, y: 40 },
+          defaultEnd: { x: 140, y: 40 },
+          preferredStartSide: 'right',
+          preferredEndSide: 'left',
+          selfLoop: false,
+          obstacleNodeIds: [],
+          obstacles: [],
+        },
+        route: {
+          kind: 'straight',
+          points: [{ x: 20, y: 40 }, { x: 140, y: 40 }],
+          path: 'M 20 40 L 140 40',
+          labelPosition: { x: 80, y: 40 },
+        },
+      }],
+      onActivateRelationship: onActivateRelationship,
+    }),
+  ));
+
+  expect(markup).toContain('<title>');
+  expect(markup).toContain('containment');
+  expect(markup).toContain('>1<');
+  expect(markup).toContain('>0..*<');
 });

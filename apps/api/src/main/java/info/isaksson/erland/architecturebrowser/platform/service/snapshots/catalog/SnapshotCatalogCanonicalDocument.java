@@ -10,6 +10,7 @@ record SnapshotCatalogCanonicalDocument(
     List<ScopeData> scopes,
     List<EntityData> entities,
     List<RelationshipData> relationships,
+    DependencyViewsData dependencyViews,
     List<ViewpointData> viewpoints,
     List<DiagnosticData> diagnostics,
     Map<String, Object> metadata
@@ -82,7 +83,118 @@ record SnapshotCatalogCanonicalDocument(
         String toEntityId,
         String label,
         List<SourceRefData> sourceRefs,
+        NormalizedAssociationData normalizedAssociation,
         Map<String, Object> metadata
+    ) {
+    }
+
+    record NormalizedAssociationData(
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        List<String> evidenceRelationshipIds,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId
+    ) {
+    }
+
+    record DependencyViewsData(
+        List<EntityAssociationRelationshipData> entityAssociationRelationships,
+        RelationshipCatalogsData relationshipCatalogs,
+        JavaBrowserViewsData javaBrowserViews
+    ) {
+    }
+
+    record EntityAssociationRelationshipData(
+        String relationshipId,
+        String canonicalRelationshipId,
+        String relationshipKind,
+        String relationshipType,
+        String framework,
+        String browserViewKind,
+        List<String> architectureViewKinds,
+        String sourceEntityId,
+        String sourceEntityName,
+        String targetEntityId,
+        String targetEntityName,
+        String label,
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId,
+        List<String> evidenceRelationshipIds,
+        Integer evidenceRelationshipCount,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean rawRelationshipEvidenceRetained,
+        String jpaAssociationHandling
+    ) {
+    }
+
+    record RelationshipCatalogsData(
+        RelationshipCatalogData entityAssociations
+    ) {
+    }
+
+    record RelationshipCatalogData(
+        String id,
+        String title,
+        String description,
+        String relationshipCatalogKind,
+        String browserViewKind,
+        String framework,
+        List<String> frameworks,
+        List<String> architectureViewKinds,
+        Boolean available,
+        Integer relationshipCount,
+        List<String> associationCardinalities,
+        List<String> associationKinds,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean retainsRawRelationshipEvidence
+    ) {
+    }
+
+    record JavaBrowserViewsData(
+        List<JavaBrowserViewData> views,
+        List<String> availableViews,
+        String defaultViewId
+    ) {
+    }
+
+    record JavaBrowserViewData(
+        String id,
+        String title,
+        String description,
+        String framework,
+        String architectureViewKind,
+        String typeDependencyView,
+        String moduleDependencyView,
+        String relationshipCatalogView,
+        List<String> frameworkRelationships,
+        Boolean available,
+        Integer typeDependencyCount,
+        Integer moduleDependencyCount,
+        Integer relationshipCatalogCount,
+        String preferredDependencyView,
+        String browserViewKind,
+        Boolean recommendedForArchitectureViews,
+        List<String> relationshipKinds,
+        List<String> availableFrameworks,
+        List<String> availableArchitectureViewKinds
     ) {
     }
 

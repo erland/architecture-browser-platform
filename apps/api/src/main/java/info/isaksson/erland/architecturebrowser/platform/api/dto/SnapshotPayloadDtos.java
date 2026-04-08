@@ -21,6 +21,7 @@ public final class SnapshotPayloadDtos {
         List<FullScope> scopes,
         List<FullEntity> entities,
         List<FullRelationship> relationships,
+        FullDependencyViews dependencyViews,
         List<FullViewpoint> viewpoints,
         List<FullDiagnostic> diagnostics,
         MetadataEnvelope metadata,
@@ -58,7 +59,118 @@ public final class SnapshotPayloadDtos {
         String toEntityId,
         String label,
         List<SourceRef> sourceRefs,
+        FullNormalizedAssociation normalizedAssociation,
         java.util.Map<String, Object> metadata
+    ) {
+    }
+
+    public record FullNormalizedAssociation(
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        List<String> evidenceRelationshipIds,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId
+    ) {
+    }
+
+    public record FullDependencyViews(
+        List<FullEntityAssociationRelationship> entityAssociationRelationships,
+        FullRelationshipCatalogs relationshipCatalogs,
+        FullJavaBrowserViews javaBrowserViews
+    ) {
+    }
+
+    public record FullEntityAssociationRelationship(
+        String relationshipId,
+        String canonicalRelationshipId,
+        String relationshipKind,
+        String relationshipType,
+        String framework,
+        String browserViewKind,
+        List<String> architectureViewKinds,
+        String sourceEntityId,
+        String sourceEntityName,
+        String targetEntityId,
+        String targetEntityName,
+        String label,
+        String associationKind,
+        String associationCardinality,
+        String sourceLowerBound,
+        String sourceUpperBound,
+        String targetLowerBound,
+        String targetUpperBound,
+        Boolean bidirectional,
+        String owningSideEntityId,
+        String owningSideMemberId,
+        String inverseSideEntityId,
+        String inverseSideMemberId,
+        List<String> evidenceRelationshipIds,
+        Integer evidenceRelationshipCount,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean rawRelationshipEvidenceRetained,
+        String jpaAssociationHandling
+    ) {
+    }
+
+    public record FullRelationshipCatalogs(
+        FullRelationshipCatalog entityAssociations
+    ) {
+    }
+
+    public record FullRelationshipCatalog(
+        String id,
+        String title,
+        String description,
+        String relationshipCatalogKind,
+        String browserViewKind,
+        String framework,
+        List<String> frameworks,
+        List<String> architectureViewKinds,
+        Boolean available,
+        Integer relationshipCount,
+        List<String> associationCardinalities,
+        List<String> associationKinds,
+        Boolean recommendedForArchitectureViews,
+        Boolean canonicalForEntityViews,
+        Boolean retainsRawRelationshipEvidence
+    ) {
+    }
+
+    public record FullJavaBrowserViews(
+        List<FullJavaBrowserView> views,
+        List<String> availableViews,
+        String defaultViewId
+    ) {
+    }
+
+    public record FullJavaBrowserView(
+        String id,
+        String title,
+        String description,
+        String framework,
+        String architectureViewKind,
+        String typeDependencyView,
+        String moduleDependencyView,
+        String relationshipCatalogView,
+        List<String> frameworkRelationships,
+        Boolean available,
+        Integer typeDependencyCount,
+        Integer moduleDependencyCount,
+        Integer relationshipCatalogCount,
+        String preferredDependencyView,
+        String browserViewKind,
+        Boolean recommendedForArchitectureViews,
+        List<String> relationshipKinds,
+        List<String> availableFrameworks,
+        List<String> availableArchitectureViewKinds
     ) {
     }
 

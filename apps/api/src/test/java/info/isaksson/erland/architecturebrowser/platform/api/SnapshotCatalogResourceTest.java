@@ -187,6 +187,52 @@ class SnapshotCatalogResourceTest {
             .body("diagnostics[0].metadata.optionalHint", nullValue());
     }
 
+
+    @Test
+    void fullSnapshotIncludesNormalizedAssociationsAndDependencyViews() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-jpa-normalized", "Catalog JPA Normalized");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/java-jpa-normalized-association.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("snapshot.id", equalTo(snapshotId))
+            .body("relationships.size()", equalTo(1))
+            .body("relationships[0].normalizedAssociation.associationCardinality", equalTo("one-to-many"))
+            .body("relationships[0].normalizedAssociation.bidirectional", equalTo(true))
+            .body("relationships[0].normalizedAssociation.evidenceRelationshipIds", hasItem("rel:field:Task.project"))
+            .body("dependencyViews.entityAssociationRelationships.size()", equalTo(1))
+            .body("dependencyViews.entityAssociationRelationships[0].canonicalForEntityViews", equalTo(true))
+            .body("dependencyViews.relationshipCatalogs.entityAssociations.id", equalTo("entityAssociationRelationships"))
+            .body("dependencyViews.javaBrowserViews.views[0].preferredDependencyView", equalTo("entityAssociationRelationships"))
+            .body("viewpoints.find { it.id == 'persistence-model' }.preferredDependencyViews", hasItem("entityAssociationRelationships"));
+    }
+
+
+    @Test
+    void fullSnapshotImportsIndexerProducedJpaNormalizedAssociationExample() throws Exception {
+        String workspaceId = createWorkspace();
+        String repositoryId = createRepository(workspaceId, "catalog-indexer-produced-jpa", "Catalog Indexer Produced JPA");
+        String snapshotId = importSnapshot(workspaceId, repositoryId, "/contracts/indexer-produced/java-jpa-normalized-association-export.json");
+
+        given()
+            .when()
+            .get("/api/workspaces/{workspaceId}/snapshots/{snapshotId}/full", workspaceId, snapshotId)
+            .then()
+            .statusCode(200)
+            .body("snapshot.id", equalTo(snapshotId))
+            .body("relationships.size()", equalTo(1))
+            .body("relationships[0].normalizedAssociation.associationKind", equalTo("containment"))
+            .body("relationships[0].normalizedAssociation.associationCardinality", equalTo("one-to-many"))
+            .body("dependencyViews.entityAssociationRelationships.size()", equalTo(1))
+            .body("dependencyViews.entityAssociationRelationships[0].relationshipType", equalTo("normalizedAssociation"))
+            .body("dependencyViews.relationshipCatalogs.entityAssociations.id", equalTo("entityAssociationRelationships"))
+            .body("dependencyViews.javaBrowserViews.views[0].relationshipCatalogView", equalTo("entityAssociationRelationships"));
+    }
+
     private String importSnapshot(String workspaceId, String repositoryId, String resourcePath) throws Exception {
         return given()
             .contentType(ContentType.JSON)

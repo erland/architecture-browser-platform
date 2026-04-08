@@ -63,6 +63,9 @@
     },
     "metadata": {
       "$ref": "#/$defs/jsonObject"
+    },
+    "dependencyViews": {
+      "$ref": "#/$defs/dependencyViews"
     }
   },
   "$defs": {
@@ -374,6 +377,9 @@
             "type": "string"
           },
           "uniqueItems": true
+        },
+        "normalizedAssociation": {
+          "$ref": "#/$defs/normalizedAssociation"
         }
       },
       "additionalProperties": true
@@ -563,6 +569,531 @@
           "uniqueItems": true
         }
       }
+    },
+    "normalizedAssociation": {
+      "type": "object",
+      "properties": {
+        "associationKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "associationCardinality": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceLowerBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceUpperBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetLowerBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetUpperBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bidirectional": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "evidenceRelationshipIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owningSideEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owningSideMemberId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inverseSideEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inverseSideMemberId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "dependencyViews": {
+      "type": "object",
+      "properties": {
+        "entityAssociationRelationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entityAssociationRelationship"
+          }
+        },
+        "relationshipCatalogs": {
+          "$ref": "#/$defs/relationshipCatalogs"
+        },
+        "javaBrowserViews": {
+          "$ref": "#/$defs/javaBrowserViews"
+        }
+      },
+      "additionalProperties": true
+    },
+    "entityAssociationRelationship": {
+      "type": "object",
+      "properties": {
+        "relationshipId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "canonicalRelationshipId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relationshipKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relationshipType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "browserViewKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architectureViewKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceEntityName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetEntityName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "associationKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "associationCardinality": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceLowerBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceUpperBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetLowerBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetUpperBound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bidirectional": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "owningSideEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owningSideMemberId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inverseSideEntityId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inverseSideMemberId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceRelationshipIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidenceRelationshipCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "recommendedForArchitectureViews": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "canonicalForEntityViews": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rawRelationshipEvidenceRetained": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "jpaAssociationHandling": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "relationshipCatalogs": {
+      "type": "object",
+      "properties": {
+        "entityAssociations": {
+          "$ref": "#/$defs/relationshipCatalog"
+        }
+      },
+      "additionalProperties": true
+    },
+    "relationshipCatalog": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relationshipCatalogKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "browserViewKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "architectureViewKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "available": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "relationshipCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "associationCardinalities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "associationKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendedForArchitectureViews": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "canonicalForEntityViews": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "retainsRawRelationshipEvidence": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "javaBrowserViews": {
+      "type": "object",
+      "properties": {
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/javaBrowserView"
+          }
+        },
+        "availableViews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaultViewId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "javaBrowserView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "framework": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architectureViewKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "typeDependencyView": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "moduleDependencyView": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relationshipCatalogView": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frameworkRelationships": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "available": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "typeDependencyCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "moduleDependencyCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "relationshipCatalogCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "preferredDependencyView": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "browserViewKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recommendedForArchitectureViews": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "relationshipKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "availableFrameworks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "availableArchitectureViewKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

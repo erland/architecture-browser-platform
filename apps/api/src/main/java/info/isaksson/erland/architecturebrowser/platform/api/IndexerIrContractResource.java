@@ -25,15 +25,17 @@ public class IndexerIrContractResource {
                 "scopes",
                 "entities",
                 "relationships",
+                "dependencyViews",
+                "viewpoints",
                 "diagnostics",
                 "completeness",
                 "metadata"
             ),
             "stubImportEndpoint", "/api/imports/indexer-ir/stub-store",
             "notes", List.of(
-                "This contract matches the currently observed indexer MVP payload shape.",
+                "This contract now accepts normalized association metadata and browser-facing dependency views from newer indexer exports.",
                 "Platform domain rows remain separate from imported immutable facts.",
-                "Step 2 stores imported facts in a generic snapshot plus imported_fact table for future vertical slices."
+                "The normalized-association rollout assumes active repositories are re-indexed onto the current export contract before the new Browser rendering path is relied on."
             )
         );
     }
