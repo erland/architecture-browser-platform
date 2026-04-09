@@ -4,7 +4,7 @@ import { anchorOnRect, Rect, simplifyPolyline } from './geometry';
 export function adjustOrthogonalConnectionEndpoints(
   points: BrowserRoutingPoint[],
   input: BrowserEdgeRoutingInput,
-  opts?: { stubLength?: number },
+  opts?: { stubLength?: number; laneOffset?: number },
 ): BrowserRoutingPoint[] {
   if (points.length < 2) return points;
 
@@ -22,6 +22,15 @@ export function adjustOrthogonalConnectionEndpoints(
     h: input.targetRect.height,
   };
 
+  const laneOffset = opts?.laneOffset ?? 0;
+  const offsetAnchor = (anchor: BrowserRoutingPoint, side: BrowserRoutingAnchorSide, rect: Rect): BrowserRoutingPoint => {
+    if (!laneOffset) return anchor;
+    if (side === 'left' || side === 'right') {
+      return anchorOnRect(rect, side, anchor.y + laneOffset);
+    }
+    return anchorOnRect(rect, side, anchor.x + laneOffset);
+  };
+
   {
     const p0 = res[0];
     const p1 = res[1];
@@ -29,13 +38,13 @@ export function adjustOrthogonalConnectionEndpoints(
     const dy = p1.y - p0.y;
     if (dx === 0 && dy !== 0) {
       const side: BrowserRoutingAnchorSide = dy > 0 ? 'bottom' : 'top';
-      const anchor = anchorOnRect(sourceRect, side, p0.x);
+      const anchor = offsetAnchor(anchorOnRect(sourceRect, side, p0.x), side, sourceRect);
       res[0] = anchor;
       const nextY = side === 'bottom' ? Math.max(res[1].y, anchor.y) : Math.min(res[1].y, anchor.y);
       res[1] = { ...res[1], x: anchor.x, y: nextY };
     } else if (dy === 0 && dx !== 0) {
       const side: BrowserRoutingAnchorSide = dx > 0 ? 'right' : 'left';
-      const anchor = anchorOnRect(sourceRect, side, p0.y);
+      const anchor = offsetAnchor(anchorOnRect(sourceRect, side, p0.y), side, sourceRect);
       res[0] = anchor;
       const nextX = side === 'right' ? Math.max(res[1].x, anchor.x) : Math.min(res[1].x, anchor.x);
       res[1] = { ...res[1], y: anchor.y, x: nextX };
@@ -50,13 +59,13 @@ export function adjustOrthogonalConnectionEndpoints(
     const dy = end.y - prev.y;
     if (dx === 0 && dy !== 0) {
       const side: BrowserRoutingAnchorSide = dy > 0 ? 'top' : 'bottom';
-      const anchor = anchorOnRect(targetRect, side, end.x);
+      const anchor = offsetAnchor(anchorOnRect(targetRect, side, end.x), side, targetRect);
       res[last] = anchor;
       const prevY = side === 'top' ? Math.min(res[last - 1].y, anchor.y) : Math.max(res[last - 1].y, anchor.y);
       res[last - 1] = { ...res[last - 1], x: anchor.x, y: prevY };
     } else if (dy === 0 && dx !== 0) {
       const side: BrowserRoutingAnchorSide = dx > 0 ? 'left' : 'right';
-      const anchor = anchorOnRect(targetRect, side, end.y);
+      const anchor = offsetAnchor(anchorOnRect(targetRect, side, end.y), side, targetRect);
       res[last] = anchor;
       const prevX = side === 'left' ? Math.min(res[last - 1].x, anchor.x) : Math.max(res[last - 1].x, anchor.x);
       res[last - 1] = { ...res[last - 1], y: anchor.y, x: prevX };

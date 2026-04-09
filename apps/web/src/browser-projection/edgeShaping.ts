@@ -1,5 +1,5 @@
-import { formatAssociationEdgeLabel, getAssociationEndpointLabels, isContainmentAssociation } from '../browser-graph/presentation';
-import { getCanonicalRelationshipEvidenceIds, resolvePersistentEntityAssociationRelationships } from '../browser-snapshot/support';
+import { formatAssociationEdgeLabel, getAssociationEndpointLabels, getAssociationRoleLabel, isContainmentAssociation } from '../browser-graph/presentation';
+import { getCanonicalEntityAssociationContext, getCanonicalRelationshipEvidenceIds, isShadowedByCanonicalEntityAssociation } from '../browser-snapshot/support';
 import { isRelationshipMeaningfulForCanvas } from '../browser-session/canvas/relationships';
 import type { BrowserCanvasEdge, BrowserSessionState } from '../browser-session';
 import type { BrowserProjectionEdge, BrowserProjectionNode } from './types';
@@ -31,7 +31,7 @@ function collectSuppressedProjectionRelationshipIds(
   nodesBySourceEntityId: Map<string, BrowserProjectionNode>,
 ) {
   const index = state.index;
-  if (!index || !isPersistenceEntityRelationsView(state)) {
+  if (!index) {
     return new Set<string>();
   }
 
@@ -40,13 +40,21 @@ function collectSuppressedProjectionRelationshipIds(
       .filter((node) => node.source.kind === 'entity')
       .map((node) => node.source.id),
   );
-  const canonicalRelationships = resolvePersistentEntityAssociationRelationships(index, [...visibleEntityIds]);
+  const { relationships: canonicalRelationships, canonicalRelationshipIds, canonicalPairKeys } = getCanonicalEntityAssociationContext(index, [...visibleEntityIds]);
   const suppressedRelationshipIds = new Set<string>();
   for (const relationship of canonicalRelationships) {
     for (const relationshipId of getCanonicalRelationshipEvidenceIds(index, relationship)) {
       if (relationshipId !== relationship.externalId) {
         suppressedRelationshipIds.add(relationshipId);
       }
+    }
+  }
+  for (const relationship of index.relationshipsById.values()) {
+    if (!visibleEntityIds.has(relationship.fromEntityId) || !visibleEntityIds.has(relationship.toEntityId)) {
+      continue;
+    }
+    if (isShadowedByCanonicalEntityAssociation(relationship, canonicalRelationshipIds, canonicalPairKeys)) {
+      suppressedRelationshipIds.add(relationship.externalId);
     }
   }
   return suppressedRelationshipIds;
@@ -63,9 +71,12 @@ function collectProjectionEdgeCandidates(
   }
 
   const suppressedRelationshipIds = collectSuppressedProjectionRelationshipIds(state, nodesBySourceEntityId);
+  const allowedRelationshipIds = isPersistenceEntityRelationsView(state) && state.appliedViewpoint?.relationshipIds.length
+    ? new Set(state.appliedViewpoint.relationshipIds)
+    : null;
   const edgeCandidatesByRelationshipId = new Map<string, BrowserCanvasEdge>();
   edges
-    .filter((edge) => !suppressedRelationshipIds.has(edge.relationshipId))
+    .filter((edge) => !suppressedRelationshipIds.has(edge.relationshipId) && (!allowedRelationshipIds || allowedRelationshipIds.has(edge.relationshipId)))
     .forEach((edge) => upsertProjectionEdgeCandidate(edgeCandidatesByRelationshipId, edge));
 
   const visibleExpandedMemberEntityIds = new Set(
@@ -79,7 +90,7 @@ function collectProjectionEdgeCandidates(
   }
 
   for (const relationship of index.relationshipsById.values()) {
-    if (suppressedRelationshipIds.has(relationship.externalId)) {
+    if (suppressedRelationshipIds.has(relationship.externalId) || (allowedRelationshipIds && !allowedRelationshipIds.has(relationship.externalId))) {
       continue;
     }
     const touchesVisibleExpandedMember =
@@ -104,6 +115,10 @@ function collectProjectionEdgeCandidates(
   return Array.from(edgeCandidatesByRelationshipId.values());
 }
 
+function buildEntityPairKey(fromEntityId: string, toEntityId: string) {
+  return fromEntityId < toEntityId ? `${fromEntityId}::${toEntityId}` : `${toEntityId}::${fromEntityId}`;
+}
+
 export function buildProjectionEdges(
   state: BrowserSessionState,
   nodesBySourceEntityId: Map<string, BrowserProjectionNode>,
@@ -114,8 +129,15 @@ export function buildProjectionEdges(
     return [];
   }
 
+  const edgeCandidates = collectProjectionEdgeCandidates(state, nodesBySourceEntityId, edges);
+  const pairCounts = new Map<string, number>();
+  for (const edge of edgeCandidates) {
+    const pairKey = buildEntityPairKey(edge.fromEntityId, edge.toEntityId);
+    pairCounts.set(pairKey, (pairCounts.get(pairKey) ?? 0) + 1);
+  }
+
   const result: BrowserProjectionEdge[] = [];
-  for (const edge of collectProjectionEdgeCandidates(state, nodesBySourceEntityId, edges)) {
+  for (const edge of edgeCandidates) {
     const relationship = index.relationshipsById.get(edge.relationshipId);
     const fromNode = nodesBySourceEntityId.get(edge.fromEntityId);
     const toNode = nodesBySourceEntityId.get(edge.toEntityId);
@@ -131,6 +153,10 @@ export function buildProjectionEdges(
     const fallbackLabel = isPersistenceEntityRelations
       ? (formatAssociationEdgeLabel(relationship) ?? (relationship.label?.trim() || relationship.kind))
       : (relationship.label?.trim() || relationship.kind);
+    const hasParallelEntityAssociations = (pairCounts.get(buildEntityPairKey(edge.fromEntityId, edge.toEntityId)) ?? 0) > 1;
+    const roleLabel = isPersistenceEntityRelations && hasParallelEntityAssociations
+      ? getAssociationRoleLabel(relationship)
+      : undefined;
     result.push({
       id: `relationship:${edge.relationshipId}`,
       relationshipId: edge.relationshipId,
@@ -138,9 +164,9 @@ export function buildProjectionEdges(
       toNodeId: toNode.id,
       fromEntityId: edge.fromEntityId,
       toEntityId: edge.toEntityId,
-      label: endpointLabels?.fromLabel || endpointLabels?.toLabel
+      label: roleLabel ?? (endpointLabels?.fromLabel || endpointLabels?.toLabel
         ? (semanticStyle === 'containment' ? 'containment' : undefined)
-        : fallbackLabel,
+        : fallbackLabel),
       fromLabel: endpointLabels?.fromLabel,
       toLabel: endpointLabels?.toLabel,
       semanticStyle,

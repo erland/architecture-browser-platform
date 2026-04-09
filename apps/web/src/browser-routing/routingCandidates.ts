@@ -17,6 +17,29 @@ function obstacleHitCount(points: BrowserRoutingPoint[], obstacles: Rect[], marg
   return hit.size;
 }
 
+
+function segmentRespectsPreferredDirection(
+  from: BrowserRoutingPoint,
+  to: BrowserRoutingPoint,
+  side: BrowserEdgeRoutingInput['preferredStartSide'] | undefined,
+): boolean {
+  if (!side) return true;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  switch (side) {
+    case 'left':
+      return dx < 0;
+    case 'right':
+      return dx > 0;
+    case 'top':
+      return dy < 0;
+    case 'bottom':
+      return dy > 0;
+    default:
+      return true;
+  }
+}
+
 function laneOffsets(maxSteps: number): number[] {
   const offsets: number[] = [0];
   for (let i = 1; i <= maxSteps; i += 1) {
@@ -39,6 +62,8 @@ function scoreCandidate(points: BrowserRoutingPoint[], hints?: BrowserOrthogonal
 
   if (hints?.preferStartAxis && firstAxis !== hints.preferStartAxis) score += 10_000;
   if (hints?.preferEndAxis && lastAxis !== hints.preferEndAxis) score += 10_000;
+  if (hints?.preferStartSide && !segmentRespectsPreferredDirection(simplified[0], simplified[1], hints.preferStartSide)) score += 50_000;
+  if (hints?.preferEndSide && !segmentRespectsPreferredDirection(simplified[simplified.length - 1], simplified[simplified.length - 2], hints.preferEndSide)) score += 50_000;
 
   return score;
 }
@@ -113,7 +138,11 @@ export function buildOrthogonalAutoPolyline(input: BrowserEdgeRoutingInput, hint
     }
   };
 
-  baseCandidates.forEach((candidate) => pushCandidate(candidate));
+  if (laneOffset === 0) {
+    baseCandidates.forEach((candidate) => pushCandidate(candidate));
+  }
+
+  const preferredShiftPenalty = (shift: number) => Math.abs(shift - laneOffset) + Math.abs(laneOffset) * 0.1;
 
   for (const laneIndex of laneOffsets(maxShiftSteps)) {
     const shift = laneOffset + laneIndex * laneSpacing;
@@ -121,12 +150,13 @@ export function buildOrthogonalAutoPolyline(input: BrowserEdgeRoutingInput, hint
       continue;
     }
 
-    pushCandidate([a, { x: a.x + shift, y: a.y }, { x: a.x + shift, y: b.y }, b], Math.abs(shift));
-    pushCandidate([a, { x: a.x, y: a.y + shift }, { x: b.x, y: a.y + shift }, b], Math.abs(shift));
+    const lanePenalty = preferredShiftPenalty(shift);
+    pushCandidate([a, { x: a.x + shift, y: a.y }, { x: a.x + shift, y: b.y }, b], lanePenalty);
+    pushCandidate([a, { x: a.x, y: a.y + shift }, { x: b.x, y: a.y + shift }, b], lanePenalty);
 
     if (!aligned) {
-      pushCandidate([a, { x: a.x + shift, y: a.y }, { x: a.x + shift, y: b.y }, { x: b.x, y: b.y }, b], Math.abs(shift) + 8);
-      pushCandidate([a, { x: a.x, y: a.y + shift }, { x: b.x, y: a.y + shift }, { x: b.x, y: b.y }, b], Math.abs(shift) + 8);
+      pushCandidate([a, { x: a.x + shift, y: a.y }, { x: a.x + shift, y: b.y }, { x: b.x, y: b.y }, b], lanePenalty + 8);
+      pushCandidate([a, { x: a.x, y: a.y + shift }, { x: b.x, y: a.y + shift }, { x: b.x, y: b.y }, b], lanePenalty + 8);
     }
   }
 

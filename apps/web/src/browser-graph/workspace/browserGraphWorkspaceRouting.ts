@@ -38,12 +38,13 @@ export function buildParallelEdgeLaneOffsets(
       .slice()
       .sort((left, right) => left.directionBias - right.directionBias || left.relationshipId.localeCompare(right.relationshipId));
     const center = (ordered.length - 1) / 2;
+    const effectiveSpacing = group.length > 1 ? spacing * 2 : spacing;
 
     ordered.forEach((edge, index) => {
       const laneIndex = index - center;
       result[edge.relationshipId] = {
         laneIndex,
-        laneOffset: laneIndex * spacing,
+        laneOffset: laneIndex * effectiveSpacing,
       };
     });
   }

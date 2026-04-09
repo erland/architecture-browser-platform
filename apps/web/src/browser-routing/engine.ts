@@ -8,6 +8,8 @@ export type BrowserRoutingAxis = 'h' | 'v';
 export type BrowserOrthogonalRoutingHints = {
   preferStartAxis?: BrowserRoutingAxis;
   preferEndAxis?: BrowserRoutingAxis;
+  preferStartSide?: import('./types').BrowserRoutingAnchorSide;
+  preferEndSide?: import('./types').BrowserRoutingAnchorSide;
   gridSize?: number;
   laneOffset?: number;
   laneSpacing?: number;
@@ -38,6 +40,8 @@ export function buildBrowserEdgeRoute(input: BrowserEdgeRoutingInput, options?: 
     ? buildOrthogonalAutoPolyline(input, {
         preferStartAxis: preferredAxisFromSide(input.preferredStartSide),
         preferEndAxis: preferredAxisFromSide(input.preferredEndSide),
+        preferStartSide: input.preferredStartSide,
+        preferEndSide: input.preferredEndSide,
         gridSize: options?.gridSize ?? 20,
         laneOffset: options?.laneOffset,
         laneSpacing: options?.laneSpacing ?? 16,
@@ -46,7 +50,10 @@ export function buildBrowserEdgeRoute(input: BrowserEdgeRoutingInput, options?: 
       })
     : [input.defaultStart, input.defaultEnd];
   const points = useOrthogonalRouting
-    ? adjustOrthogonalConnectionEndpoints(rawPoints, input, { stubLength: options?.endpointStubLength ?? 10 })
+    ? adjustOrthogonalConnectionEndpoints(rawPoints, input, {
+        stubLength: options?.endpointStubLength ?? 10,
+        laneOffset: options?.laneOffset ?? 0,
+      })
     : rawPoints;
 
   return {

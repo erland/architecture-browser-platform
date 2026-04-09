@@ -32,6 +32,17 @@ function readString(record: Record<string, unknown>, key: string): string | unde
   return undefined;
 }
 
+function readDisplayName(value: string | null | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return /^member:/i.test(trimmed) ? undefined : trimmed;
+}
+
 export function getAssociationKind(relationship: FullSnapshotRelationship): BrowserAssociationKind | undefined {
   const value = readString(getMetadataRecord(relationship), 'associationKind');
   return value === 'association' || value === 'containment' ? value : undefined;
@@ -96,6 +107,41 @@ export function getAssociationEndpointLabels(relationship: FullSnapshotRelations
 
 export function getContainmentEdgeLabel(relationship: FullSnapshotRelationship): string | undefined {
   return isContainmentAssociation(relationship) ? 'containment' : undefined;
+}
+
+export function getAssociationRoleLabel(relationship: FullSnapshotRelationship): string | undefined {
+  const record = getMetadataRecord(relationship);
+  const ownerMemberName = readDisplayName(readString(record, 'ownerMemberName') ?? readString(record, 'ownerPropertyName'));
+  if (ownerMemberName) {
+    return ownerMemberName;
+  }
+
+  const normalized = relationship.normalizedAssociation;
+  if (normalized?.inverseSideEntityId === relationship.fromEntityId) {
+    const candidate = readDisplayName(normalized.inverseSideMemberId);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  if (normalized?.owningSideEntityId === relationship.fromEntityId) {
+    const candidate = readDisplayName(normalized.owningSideMemberId);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  {
+    const candidate = readDisplayName(normalized?.inverseSideMemberId);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  {
+    const candidate = readDisplayName(normalized?.owningSideMemberId);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 export function formatAssociationEdgeLabel(relationship: FullSnapshotRelationship): string | undefined {

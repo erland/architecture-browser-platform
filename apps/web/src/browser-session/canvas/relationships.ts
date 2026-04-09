@@ -1,5 +1,5 @@
 import type { FullSnapshotRelationship } from '../../app-model';
-import { getArchitecturalSemantics, getCanonicalRelationshipEvidenceIds, resolvePersistentEntityAssociationRelationships } from '../../browser-snapshot/support';
+import { getArchitecturalSemantics, getCanonicalEntityAssociationContext, getCanonicalRelationshipEvidenceIds, isShadowedByCanonicalEntityAssociation } from '../../browser-snapshot/support';
 import { hasAssociationDisplayMetadata, hasAssociationSemantics } from '../../browser-graph/presentation/browserRelationshipSemantics';
 import type { BrowserSessionState } from '../model/types';
 import { upsertCanvasEdge } from './nodes';
@@ -35,11 +35,11 @@ function isPersistentEntityRelationsViewActive(state: BrowserSessionState) {
 }
 
 function collectSuppressedEvidenceRelationshipIds(state: BrowserSessionState, visibleEntityIds: Set<string>) {
-  if (!state.index || visibleEntityIds.size < 2 || !isPersistentEntityRelationsViewActive(state)) {
+  if (!state.index || visibleEntityIds.size < 2) {
     return new Set<string>();
   }
 
-  const canonicalRelationships = resolvePersistentEntityAssociationRelationships(state.index, [...visibleEntityIds]);
+  const { relationships: canonicalRelationships, canonicalRelationshipIds, canonicalPairKeys } = getCanonicalEntityAssociationContext(state.index, [...visibleEntityIds]);
   if (canonicalRelationships.length === 0) {
     return new Set<string>();
   }
@@ -55,6 +55,16 @@ function collectSuppressedEvidenceRelationshipIds(state: BrowserSessionState, vi
       }
     }
   }
+
+  for (const relationship of state.index.relationshipsById.values()) {
+    if (!visibleEntityIds.has(relationship.fromEntityId) || !visibleEntityIds.has(relationship.toEntityId)) {
+      continue;
+    }
+    if (isShadowedByCanonicalEntityAssociation(relationship, canonicalRelationshipIds, canonicalPairKeys)) {
+      suppressedRelationshipIds.add(relationship.externalId);
+    }
+  }
+
   return suppressedRelationshipIds;
 }
 
@@ -76,6 +86,12 @@ export function syncMeaningfulCanvasEdges(state: BrowserSessionState, canvasNode
   if (visibleEntityIds.size < 2) {
     return canvasEdges;
   }
+
+  if (isPersistentEntityRelationsViewActive(state) && state.appliedViewpoint?.relationshipIds.length) {
+    const allowedRelationshipIds = new Set(state.appliedViewpoint.relationshipIds);
+    return canvasEdges.filter((edge) => allowedRelationshipIds.has(edge.relationshipId));
+  }
+
   for (const relationship of state.index.relationshipsById.values()) {
     if (suppressedRelationshipIds.has(relationship.externalId)) {
       continue;

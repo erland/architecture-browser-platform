@@ -22,7 +22,7 @@ export function buildFallbackEdgePath(edge: BrowserWorkspaceEdgeModel): string {
   return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
 }
 
-function buildEndpointLabelPosition(points: BrowserWorkspaceEdgeModel['route']['points'], start: boolean): { x: number; y: number } | undefined {
+function buildEndpointLabelPosition(points: BrowserWorkspaceEdgeModel['route']['points'], start: boolean, laneOffset = 0): { x: number; y: number } | undefined {
   if (points.length < 2) {
     return undefined;
   }
@@ -39,9 +39,35 @@ function buildEndpointLabelPosition(points: BrowserWorkspaceEdgeModel['route']['
   const offset = 18;
   const normalX = -unitY;
   const normalY = unitX;
+  const laneNudge = laneOffset * 0.5;
   return {
-    x: anchor.x + unitX * offset + normalX * 10,
-    y: anchor.y + unitY * offset + normalY * 10,
+    x: anchor.x + unitX * offset + normalX * (10 + laneNudge),
+    y: anchor.y + unitY * offset + normalY * (10 + laneNudge),
+  };
+}
+
+function applyLaneOffsetToLabelPosition(
+  position: { x: number; y: number },
+  points: BrowserWorkspaceEdgeModel['route']['points'],
+  laneOffset = 0,
+): { x: number; y: number } {
+  if (!laneOffset || points.length < 2) {
+    return position;
+  }
+  const midpointIndex = Math.max(1, Math.floor((points.length - 1) / 2));
+  const start = points[midpointIndex - 1];
+  const end = points[midpointIndex];
+  if (!isFinitePoint(start) || !isFinitePoint(end)) {
+    return position;
+  }
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const normalX = -dy / length;
+  const normalY = dx / length;
+  return {
+    x: position.x + normalX * laneOffset * 0.65,
+    y: position.y + normalY * laneOffset * 0.65,
   };
 }
 
@@ -56,17 +82,18 @@ export function resolveRenderedEdgeGeometry(edge: BrowserWorkspaceEdgeModel): {
   const polylinePath = buildSvgPolylinePath(edge.route.points);
   const path = routePath || polylinePath || buildFallbackEdgePath(edge);
   const hitboxPath = polylinePath || path;
-  const labelPosition = isFinitePoint(edge.route.labelPosition)
-    ? edge.route.labelPosition
-    : edge.routingInput.defaultStart;
   const points = edge.route.points.length >= 2
     ? edge.route.points
     : [edge.routingInput.defaultStart, edge.routingInput.defaultEnd];
+  const baseLabelPosition = isFinitePoint(edge.route.labelPosition)
+    ? edge.route.labelPosition
+    : edge.routingInput.defaultStart;
+  const labelPosition = applyLaneOffsetToLabelPosition(baseLabelPosition, points, edge.laneOffset);
   return {
     path,
     hitboxPath,
     labelPosition,
-    fromLabelPosition: buildEndpointLabelPosition(points, true),
-    toLabelPosition: buildEndpointLabelPosition(points, false),
+    fromLabelPosition: buildEndpointLabelPosition(points, true, edge.laneOffset),
+    toLabelPosition: buildEndpointLabelPosition(points, false, edge.laneOffset),
   };
 }
