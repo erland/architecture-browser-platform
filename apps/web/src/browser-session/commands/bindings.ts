@@ -125,6 +125,9 @@ export function createBoundBrowserSessionActionGroups(
       fitView: bindBrowserSessionMutationGroup(setState, {
         fitView: browserSessionCanvasMutations.requestFitCanvasView,
       }).fitView,
+      setRelationshipRoutingMode: bindBrowserSessionMutationGroup(setState, {
+        setRelationshipRoutingMode: browserSessionCanvasMutations.setRelationshipRoutingMode,
+      }).setRelationshipRoutingMode,
     },
     factsPanel: {
       focusElement: bindBrowserSessionMutationGroup(setState, {

@@ -42,6 +42,7 @@ export function BrowserGraphWorkspace({
   onArrangeCanvasAroundFocus,
   onClearCanvas,
   onFitView,
+  onSetRelationshipRoutingMode = () => {},
   onReceiveTreeEntitiesDrop,
 }: BrowserGraphWorkspaceProps) {
   const model = useMemo(() => buildBrowserGraphWorkspaceModel(state), [state]);
@@ -129,6 +130,7 @@ export function BrowserGraphWorkspace({
         onArrangeCanvasWithMode={onArrangeCanvasWithMode}
         onArrangeCanvasAroundFocus={onArrangeCanvasAroundFocus}
         onFitView={onFitView}
+        onSetRelationshipRoutingMode={onSetRelationshipRoutingMode}
         onClearCanvas={onClearCanvas}
         onSetCanvasViewport={onSetCanvasViewport}
         onShowScopeContainer={onShowScopeContainer}

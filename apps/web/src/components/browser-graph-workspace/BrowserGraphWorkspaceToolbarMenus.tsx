@@ -25,6 +25,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
   onArrangeCanvasWithMode,
   onArrangeCanvasAroundFocus,
   onFitView,
+  onSetRelationshipRoutingMode,
   onClearCanvas,
   onSetCanvasViewport,
   onShowScopeContainer,
@@ -53,6 +54,7 @@ export function BrowserGraphWorkspaceToolbarMenus({
   onArrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
   onFitView: () => void;
+  onSetRelationshipRoutingMode: (mode: 'orthogonal' | 'straight') => void;
   onClearCanvas: () => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onShowScopeContainer: (scopeId?: string) => void;
@@ -187,6 +189,21 @@ export function BrowserGraphWorkspaceToolbarMenus({
       <button type="button" className="button-secondary" onClick={onClearCanvas} disabled={model.nodes.length === 0}>Clear</button>
 
       <div className="browser-canvas__viewport-tools">
+        <div className="browser-canvas__routing-mode" role="group" aria-label="Relationship routing mode">
+          <span className="browser-canvas__routing-mode-label">Routing</span>
+          <button
+            type="button"
+            className={state.routingLayoutConfig.features.orthogonalRouting ? 'button-secondary active' : 'button-secondary'}
+            aria-pressed={state.routingLayoutConfig.features.orthogonalRouting}
+            onClick={() => onSetRelationshipRoutingMode('orthogonal')}
+          >Orthogonal</button>
+          <button
+            type="button"
+            className={!state.routingLayoutConfig.features.orthogonalRouting ? 'button-secondary active' : 'button-secondary'}
+            aria-pressed={!state.routingLayoutConfig.features.orthogonalRouting}
+            onClick={() => onSetRelationshipRoutingMode('straight')}
+          >Straight</button>
+        </div>
         <button type="button" className="button-secondary" onClick={onFitView} disabled={model.nodes.length === 0}>Fit view</button>
         <label className="browser-canvas__zoom browser-canvas__zoom--compact" aria-label={`Zoom ${Math.round(state.canvasViewport.zoom * 100)}%`}>
           <span className="sr-only">Zoom</span>

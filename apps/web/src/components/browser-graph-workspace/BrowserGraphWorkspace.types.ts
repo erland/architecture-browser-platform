@@ -35,6 +35,7 @@ export type BrowserGraphWorkspaceProps = {
   onArrangeCanvasAroundFocus: () => void;
   onClearCanvas: () => void;
   onFitView: () => void;
+  onSetRelationshipRoutingMode?: (mode: 'orthogonal' | 'straight') => void;
   onReceiveTreeEntitiesDrop?: (entityIds: string[]) => void;
 };
 

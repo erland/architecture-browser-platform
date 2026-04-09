@@ -196,6 +196,7 @@ function createBrowserSessionValue(state: BrowserSessionState, overrides?: {
       relayout: jest.fn(),
       clear: jest.fn(),
       fitView: jest.fn(),
+      setRelationshipRoutingMode: jest.fn(),
     },
     factsPanel: {
       focusElement: jest.fn(),

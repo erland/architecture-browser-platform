@@ -126,6 +126,7 @@ export function BrowserViewCenterContent({
         onArrangeCanvasAroundFocus={browserSession.canvas.arrangeAroundFocus}
         onClearCanvas={browserSession.canvas.clear}
         onFitView={browserSession.canvas.fitView}
+        onSetRelationshipRoutingMode={browserSession.canvas.setRelationshipRoutingMode}
         onReceiveTreeEntitiesDrop={(entityIds) => {
           browserSession.canvas.addEntitiesToCanvas(entityIds);
           const focusEntityId = entityIds[0];

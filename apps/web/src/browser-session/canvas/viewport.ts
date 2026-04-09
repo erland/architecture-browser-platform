@@ -109,6 +109,24 @@ export function arrangeCanvasAroundFocus(state: BrowserSessionState): BrowserSes
   return withRouteRefresh(nextState);
 }
 
+
+export function setRelationshipRoutingMode(state: BrowserSessionState, mode: 'orthogonal' | 'straight'): BrowserSessionState {
+  const nextOrthogonalRouting = mode === 'orthogonal';
+  if (state.routingLayoutConfig.features.orthogonalRouting === nextOrthogonalRouting) {
+    return state;
+  }
+  return withRouteRefresh({
+    ...state,
+    routingLayoutConfig: {
+      ...state.routingLayoutConfig,
+      features: {
+        ...state.routingLayoutConfig.features,
+        orthogonalRouting: nextOrthogonalRouting,
+      },
+    },
+  });
+}
+
 export function relayoutCanvas(state: BrowserSessionState): BrowserSessionState {
   return arrangeCanvasNodesInteractivelyWithMode(state, state.canvasLayoutMode === 'flow' || state.canvasLayoutMode === 'hierarchy' || state.canvasLayoutMode === 'balanced' ? state.canvasLayoutMode : 'structure');
 }

@@ -353,6 +353,40 @@ describe('browserGraphWorkspaceModel', () => {
     expect(edge?.route.points[1]).toEqual(edge?.routingInput.defaultEnd);
   });
 
+
+  test('offsets straight-mode anchors for parallel edges so they do not overlap completely', () => {
+    const payload = createParallelEdgePayload();
+
+    let state = openSnapshotSession(createEmptyBrowserSessionState(), {
+      workspaceId: 'ws-1',
+      repositoryId: 'repo-1',
+      payload,
+    });
+    state = addEntityToCanvas(state, 'entity:browser');
+    state = addEntityToCanvas(state, 'entity:tree');
+    state = addDependenciesToCanvas(state, 'entity:browser');
+    state = addDependenciesToCanvas(state, 'entity:tree');
+    state = {
+      ...state,
+      routingLayoutConfig: {
+        ...state.routingLayoutConfig,
+        features: {
+          ...state.routingLayoutConfig.features,
+          orthogonalRouting: false,
+        },
+      },
+    };
+
+    const model = buildBrowserGraphWorkspaceModel(state);
+    const rel1 = model.edges.find((edge) => edge.relationshipId === 'rel:1');
+    const rel1b = model.edges.find((edge) => edge.relationshipId === 'rel:1b');
+
+    expect(rel1?.route.kind).toBe('straight');
+    expect(rel1b?.route.kind).toBe('straight');
+    expect(rel1?.route.points[0]).not.toEqual(rel1b?.route.points[0]);
+    expect(rel1?.route.path).not.toEqual(rel1b?.route.path);
+  });
+
   test('respects lane-separation flag and conservative lane-count limit', () => {
     const payload = createParallelEdgePayload();
 

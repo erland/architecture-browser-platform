@@ -1,6 +1,14 @@
 import type { BrowserEdgeRoutingInput, BrowserRoutingAnchorSide, BrowserRoutingPoint } from './types';
 import { anchorOnRect, Rect, simplifyPolyline } from './geometry';
 
+function offsetAnchorOnSide(anchor: BrowserRoutingPoint, side: BrowserRoutingAnchorSide, rect: Rect, laneOffset: number): BrowserRoutingPoint {
+  if (!laneOffset) return anchor;
+  if (side === 'left' || side === 'right') {
+    return anchorOnRect(rect, side, anchor.y + laneOffset);
+  }
+  return anchorOnRect(rect, side, anchor.x + laneOffset);
+}
+
 export function adjustOrthogonalConnectionEndpoints(
   points: BrowserRoutingPoint[],
   input: BrowserEdgeRoutingInput,
@@ -23,13 +31,8 @@ export function adjustOrthogonalConnectionEndpoints(
   };
 
   const laneOffset = opts?.laneOffset ?? 0;
-  const offsetAnchor = (anchor: BrowserRoutingPoint, side: BrowserRoutingAnchorSide, rect: Rect): BrowserRoutingPoint => {
-    if (!laneOffset) return anchor;
-    if (side === 'left' || side === 'right') {
-      return anchorOnRect(rect, side, anchor.y + laneOffset);
-    }
-    return anchorOnRect(rect, side, anchor.x + laneOffset);
-  };
+  const offsetAnchor = (anchor: BrowserRoutingPoint, side: BrowserRoutingAnchorSide, rect: Rect): BrowserRoutingPoint =>
+    offsetAnchorOnSide(anchor, side, rect, laneOffset);
 
   {
     const p0 = res[0];
@@ -151,4 +154,27 @@ export function adjustOrthogonalConnectionEndpoints(
   }
 
   return simplifyPolyline(withStubs);
+}
+
+
+export function adjustStraightConnectionEndpoints(
+  input: BrowserEdgeRoutingInput,
+  opts?: { laneOffset?: number },
+): BrowserRoutingPoint[] {
+  const sourceRect: Rect = {
+    x: input.sourceRect.x,
+    y: input.sourceRect.y,
+    w: input.sourceRect.width,
+    h: input.sourceRect.height,
+  };
+  const targetRect: Rect = {
+    x: input.targetRect.x,
+    y: input.targetRect.y,
+    w: input.targetRect.width,
+    h: input.targetRect.height,
+  };
+  const laneOffset = opts?.laneOffset ?? 0;
+  const start = offsetAnchorOnSide(input.defaultStart, input.preferredStartSide, sourceRect, laneOffset);
+  const end = offsetAnchorOnSide(input.defaultEnd, input.preferredEndSide, targetRect, laneOffset);
+  return [start, end];
 }

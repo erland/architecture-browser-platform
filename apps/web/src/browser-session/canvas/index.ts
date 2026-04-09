@@ -33,6 +33,7 @@ export {
   relayoutCanvas,
   requestFitCanvasView,
   setCanvasViewport,
+  setRelationshipRoutingMode,
 } from './viewport';
 
 export { syncMeaningfulCanvasEdges } from './relationships';

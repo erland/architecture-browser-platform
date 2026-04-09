@@ -41,6 +41,7 @@ type ToolbarProps = {
   onArrangeCanvasWithMode: (mode: BrowserAutoLayoutMode) => void;
   onArrangeCanvasAroundFocus: () => void;
   onFitView: () => void;
+  onSetRelationshipRoutingMode: (mode: 'orthogonal' | 'straight') => void;
   onClearCanvas: () => void;
   onSetCanvasViewport: (viewport: { zoom?: number; offsetX?: number; offsetY?: number }) => void;
   onShowScopeContainer: (scopeId?: string) => void;

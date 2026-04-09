@@ -1,6 +1,6 @@
 import type { BrowserEdgeRoutingInput, BrowserRoutingPoint } from './types';
 import { buildOrthogonalAutoPolyline, preferredAxisFromSide } from './routingCandidates';
-import { adjustOrthogonalConnectionEndpoints } from './routingEndpoints';
+import { adjustOrthogonalConnectionEndpoints, adjustStraightConnectionEndpoints } from './routingEndpoints';
 import { buildLabelPosition, buildPath } from './routingPresentation';
 
 export type BrowserRoutingAxis = 'h' | 'v';
@@ -48,7 +48,9 @@ export function buildBrowserEdgeRoute(input: BrowserEdgeRoutingInput, options?: 
         obstacleMargin: options?.obstacleMargin ?? 10,
         maxChannelShiftSteps: options?.maxChannelShiftSteps ?? 12,
       })
-    : [input.defaultStart, input.defaultEnd];
+    : adjustStraightConnectionEndpoints(input, {
+        laneOffset: options?.laneOffset ?? 0,
+      });
   const points = useOrthogonalRouting
     ? adjustOrthogonalConnectionEndpoints(rawPoints, input, {
         stubLength: options?.endpointStubLength ?? 10,

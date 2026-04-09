@@ -64,6 +64,7 @@ export type BrowserSessionActionGroups = {
     relayout: () => void;
     clear: () => void;
     fitView: () => void;
+    setRelationshipRoutingMode: (mode: 'orthogonal' | 'straight') => void;
   };
   factsPanel: {
     focusElement: (focusedElement: BrowserFocusedElement) => void;

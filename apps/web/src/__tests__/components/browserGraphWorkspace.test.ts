@@ -221,6 +221,8 @@ describe('BrowserGraphWorkspace entity-first toolbar helpers', () => {
     expect(markup).toContain('Arrange all');
     expect(markup).toContain('Arrange around focus');
     expect(markup).toContain('Fit view');
+    expect(markup).toContain('Orthogonal');
+    expect(markup).toContain('Straight');
     expect(markup).toContain('Zoom');
     expect(markup).toContain('125%');
     expect(markup).toContain('1 pinned');

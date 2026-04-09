@@ -45,6 +45,7 @@ import {
   relayoutCanvas,
   requestFitCanvasView,
   setCanvasViewport,
+  setRelationshipRoutingMode,
 } from '../canvas/viewport';
 
 /**
@@ -95,6 +96,7 @@ export const browserSessionCanvasMutations = {
   removeEntityFromCanvas,
   requestFitCanvasView,
   selectCanvasEntity,
+  setRelationshipRoutingMode,
   setCanvasEntityClassPresentationMode,
   setCanvasViewport,
   toggleCanvasEntityClassPresentationMembers,
