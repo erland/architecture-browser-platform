@@ -1,7 +1,7 @@
 import type { FullSnapshotEntity, FullSnapshotRelationship } from '../app-model';
 import type { BrowserAutoLayoutGraph } from '../browser-auto-layout/stage';
 import type { BrowserSnapshotIndex } from '../browser-snapshot';
-import type { BrowserCanvasNode } from '../browser-session/types';
+import type { BrowserCanvasNode } from '../browser-graph/contracts';
 import type { BrowserCanvasPlacementOptions } from './types';
 import { createIncrementalPlacementContext } from './incrementalPlacementContextBuilder';
 import { executeIncrementalPlacementPlan, resolveIncrementalPlacementPlan } from './incrementalPlacementPlanner';

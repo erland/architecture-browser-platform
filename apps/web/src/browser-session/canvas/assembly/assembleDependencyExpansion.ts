@@ -8,7 +8,7 @@ import {
 } from '../canvasMutationResult';
 import { insertAnchoredEntities, splitDependencyNeighborIds } from '../helpers';
 import { planEntityNodePosition, upsertCanvasEdge, upsertCanvasNode } from '../nodes';
-import { syncMeaningfulCanvasEdges } from '../relationships';
+import { syncMeaningfulCanvasEdges } from '../../../browser-graph/semantics';
 import { createEntityNodePatch } from './shared';
 
 export function assembleDependencyCanvasExpansion(

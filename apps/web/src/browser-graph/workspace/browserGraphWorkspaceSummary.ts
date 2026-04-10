@@ -1,6 +1,6 @@
 import { getPrimaryEntitiesForScope } from "../../browser-snapshot";
 import type { FullSnapshotEntity } from "../../app-model";
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-graph/contracts';
 
 export type BrowserGraphWorkspaceSummary = {
   focusedEntity: FullSnapshotEntity | null;

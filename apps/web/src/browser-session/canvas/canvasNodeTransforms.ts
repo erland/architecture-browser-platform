@@ -1,5 +1,5 @@
 import type { BrowserCanvasNode, BrowserClassPresentationMode } from '../model/types';
-import { normalizeBrowserClassPresentationPolicy } from '../model/classPresentation';
+import { normalizeBrowserClassPresentationPolicy } from '../../browser-graph/semantics';
 import { upsertCanvasNode, upsertPinnedCanvasNode } from './nodes';
 
 export function moveCanvasNodeInCollection(

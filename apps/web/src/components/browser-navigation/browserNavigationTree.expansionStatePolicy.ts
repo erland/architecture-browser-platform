@@ -1,5 +1,5 @@
 import type { BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
-import type { BrowserNavigationTreeViewState } from '../../browser-session/types';
+import type { BrowserNavigationTreeViewState } from '../../browser-session/focus-types';
 import { createEmptyBrowserNavigationTreeViewState, normalizeBrowserNavigationTreeViewState } from '../../browser-session/state';
 import {
   collectSafeNavigationAncestorEntityIds,

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-graph/contracts';
 import { logRenderedBrowserLayoutDiagnostics, reconcileRenderedBrowserNodeClearance } from './browserLayoutDiagnostics';
 
 type Args = {

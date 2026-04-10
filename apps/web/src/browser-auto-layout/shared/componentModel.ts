@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../../browser-session/types';
+import type { BrowserCanvasNode } from '../../browser-graph/contracts';
 import { getBrowserAutoLayoutConfig, isHardAnchorCanvasNode } from '../core/config';
 import type {
   BrowserAutoLayoutComponent,

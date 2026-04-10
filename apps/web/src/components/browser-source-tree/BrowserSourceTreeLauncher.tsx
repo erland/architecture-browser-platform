@@ -1,5 +1,5 @@
 import type { SourceTreeLauncherItem } from '../../app-model/appModel.sourceTree';
-import { formatTimestamp } from '../../views/browser-view/browserView.shared';
+import { formatSourceTreeTimestamp } from './browserSourceTreeTimestamp';
 
 export type BrowserSourceTreeLauncherProps = {
   title: string;
@@ -37,7 +37,7 @@ export function BrowserSourceTreeLauncher({
                     <div className="browser-source-tree-launcher__badges" aria-label="Source tree status">
                       <span className="badge">{item.sourceTreeKey}</span>
                       <span className={`badge ${item.status === 'ready' ? 'badge--status' : ''}`}>{item.indexedVersionLabel}</span>
-                      <span className="badge">{item.latestImportedAt ? `Imported ${formatTimestamp(item.latestImportedAt)}` : 'No indexed version yet'}</span>
+                      <span className="badge">{item.latestImportedAt ? `Imported ${formatSourceTreeTimestamp(item.latestImportedAt)}` : 'No indexed version yet'}</span>
                     </div>
                   </div>
                   <div className="browser-source-tree-launcher__item-actions">

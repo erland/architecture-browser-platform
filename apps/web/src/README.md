@@ -132,10 +132,10 @@ Prefer importing from these subsystem entrypoints rather than from transitional 
 ## BrowserView application-layer notes
 - `views/browser-view/application/` is the preferred internal home for Browser screen-level composition.
 - `views/browser-view/controllers/` should keep owning feature-specific orchestration beneath that application layer.
-- `BrowserView.tsx` should compose the Browser screen through `views/browser-view/application/`; `useBrowserViewScreenController` remains only as a temporary compatibility facade.
+- `BrowserView.tsx` composes the Browser screen through `views/browser-view/application/`; do not add new page-composition facades beside that application layer.
 
 ## Final stabilization notes
-- Add new Browser page behavior through the `views/browser-view/application/` layer and feature controllers under `views/browser-view/controllers/`; do not route fresh page composition through `useBrowserViewScreenController`.
+- Add new Browser page behavior through the `views/browser-view/application/` layer and feature controllers under `views/browser-view/controllers/`.
 - Prefer `saved-canvas/domain`, `saved-canvas/application`, and `saved-canvas/adapters` when choosing where new saved-canvas code belongs.
 - Keep React rendering concerns in `components/browser-graph-workspace/`; do not move layout, routing, or placement logic there.
 - Prefer canonical subsystem entrypoints for imports and avoid reintroducing root-level compatibility shims.
@@ -160,11 +160,11 @@ Prefer importing from these subsystem entrypoints rather than from transitional 
 - Graph algorithm and projection code should prefer stage-specific imports such as `browser-graph/canvas` and `browser-graph/presentation` instead of the broad `browser-graph` root when ownership matters.
 
 
-- BrowserView screen application layering should continue to move toward `views/browser-view/application` plus focused controller entrypoints as later refactoring steps retire compatibility facades.
+- BrowserView screen application layering is now centered on `views/browser-view/application` plus focused controller entrypoints.
 - auto-layout shared decision helpers live under `browser-auto-layout/shared/` and should be preferred over repeating mode-selection logic in each mode
 
 
-BrowserView orchestration helpers now live primarily under `views/browser-view/controllers/internal/`; top-level `useBrowserView*.ts` hooks are compatibility facades where they still exist.
+BrowserView orchestration helpers now live under `views/browser-view/controllers/internal/`; keep top-level `useBrowserView*.ts` hooks only when they are canonical focused controller entrypoints.
 
 
 ## Graph pipeline stage contracts
@@ -182,3 +182,18 @@ Cross-stage graph imports should prefer the narrow stage entrypoints rather than
 
 - `browser-canvas-placement` may consume auto-layout graph helpers only through `browser-auto-layout/stage.ts`.
 - `browser-canvas-placement` and `browser-auto-layout` may consume canvas sizing and placement-policy helpers only through `browser-graph/canvas/stage.ts`.
+
+
+## Tightened transitional rules
+
+The current boundary checks now also enforce these migration completions:
+
+- `browser-projection/*` and `browser-graph/*` may not import `browser-session/*` directly.
+- non-session production code may not import the broad `browser-session/types` barrel.
+- session-owned compatibility re-export paths for class presentation and relationship visibility have been retired; import those semantics from `browser-graph/semantics`.
+
+Preferred replacements:
+
+- `browser-graph/contracts` for shared graph pipeline types
+- `browser-graph/semantics` for graph/projection presentation and visible-edge semantics
+- narrow `browser-session/*-types` entrypoints when session-owned types are still required by UI/workflow callers

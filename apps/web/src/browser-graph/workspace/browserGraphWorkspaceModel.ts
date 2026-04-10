@@ -1,8 +1,8 @@
 import type { BrowserProjectionCompartment, BrowserProjectionEdgeSemanticStyle } from '../../browser-projection';
 import { buildBrowserProjectionModel } from '../../browser-projection';
 import type { BrowserEdgeRoutingInput, BrowserRoutingScene } from '../../browser-routing';
-import type { BrowserSessionState } from '../../browser-session/types';
-import { syncMeaningfulCanvasEdges } from '../../browser-session/canvas/relationships';
+import type { BrowserSessionState } from '../../browser-graph/contracts';
+import { syncMeaningfulCanvasEdges } from '../semantics';
 import { buildWorkspaceNodes, compareWorkspaceNodes, normalizeProjectionEdgesForWorkspace } from './browserGraphWorkspaceProjection';
 import { buildWorkspaceRouting, compareWorkspaceEdges } from './browserGraphWorkspaceRouting';
 

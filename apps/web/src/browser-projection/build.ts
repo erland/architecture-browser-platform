@@ -1,5 +1,5 @@
 import { resolveBrowserStateViewpointPresentationPolicy } from '../browser-graph/presentation';
-import type { BrowserSessionState } from '../browser-session/types';
+import type { BrowserSessionState } from '../browser-graph/contracts';
 import { buildProjectionEdges, buildProjectionSourceEntityNodeMap } from './edgeShaping';
 import { buildProjectionNodes } from './nodeShaping';
 import type { BrowserProjectionModel } from './types';

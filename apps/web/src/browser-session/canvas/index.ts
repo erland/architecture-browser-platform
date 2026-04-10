@@ -46,4 +46,4 @@ export {
   setRelationshipRoutingMode,
 } from './viewport';
 
-export { syncMeaningfulCanvasEdges } from './relationships';
+export { syncMeaningfulCanvasEdges } from '../../browser-graph/semantics';

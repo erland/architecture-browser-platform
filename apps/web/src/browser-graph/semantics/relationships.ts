@@ -1,8 +1,13 @@
 import type { FullSnapshotRelationship } from '../../app-model';
 import { getArchitecturalSemantics, getCanonicalEntityAssociationContext, getCanonicalRelationshipEvidenceIds, isShadowedByCanonicalEntityAssociation } from '../../browser-snapshot/support';
-import { hasAssociationDisplayMetadata, hasAssociationSemantics } from '../../browser-graph/presentation/browserRelationshipSemantics';
-import type { BrowserSessionState } from '../model/types';
-import { upsertCanvasEdge } from './nodes';
+import { hasAssociationDisplayMetadata, hasAssociationSemantics } from '../presentation/browserRelationshipSemantics';
+import type { BrowserCanvasNode, BrowserGraphPipelineState } from '../contracts';
+
+
+function upsertCanvasEdge(edges: BrowserGraphPipelineState['canvasEdges'], nextEdge: BrowserGraphPipelineState['canvasEdges'][number]) {
+  const existing = edges.find((edge) => edge.relationshipId === nextEdge.relationshipId);
+  return existing ? edges : [...edges, nextEdge];
+}
 
 const AUTO_VISIBLE_RELATIONSHIP_KINDS = new Set([
   'CALLS',
@@ -29,12 +34,12 @@ export function isRelationshipMeaningfulForCanvas(relationship: FullSnapshotRela
   return AUTO_VISIBLE_RELATIONSHIP_KINDS.has(relationship.kind);
 }
 
-function isPersistentEntityRelationsViewActive(state: BrowserSessionState) {
+function isPersistentEntityRelationsViewActive(state: BrowserGraphPipelineState) {
   return (state.appliedViewpoint?.viewpoint.id === 'persistence-model' && state.appliedViewpoint.variant === 'show-entity-relations')
     || (state.viewpointSelection.viewpointId === 'persistence-model' && state.viewpointSelection.variant === 'show-entity-relations');
 }
 
-function collectSuppressedEvidenceRelationshipIds(state: BrowserSessionState, visibleEntityIds: Set<string>) {
+function collectSuppressedEvidenceRelationshipIds(state: BrowserGraphPipelineState, visibleEntityIds: Set<string>) {
   if (!state.index || visibleEntityIds.size < 2) {
     return new Set<string>();
   }
@@ -68,7 +73,10 @@ function collectSuppressedEvidenceRelationshipIds(state: BrowserSessionState, vi
   return suppressedRelationshipIds;
 }
 
-export function syncMeaningfulCanvasEdges(state: BrowserSessionState, canvasNodes = state.canvasNodes) {
+export function syncMeaningfulCanvasEdges(
+  state: BrowserGraphPipelineState,
+  canvasNodes: BrowserCanvasNode[] = state.canvasNodes,
+) {
   if (!state.index) {
     return state.canvasEdges;
   }

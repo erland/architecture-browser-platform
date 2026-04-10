@@ -1,5 +1,5 @@
 import { getOrBuildBrowserSnapshotIndex } from '../../../browser-snapshot';
-import { normalizeBrowserClassPresentationPolicy } from '../../../browser-session/model/classPresentation';
+import { normalizeBrowserClassPresentationPolicy } from '../../../browser-graph/semantics';
 import { getSavedCanvasBrowserSessionLifecycle } from '../runtime';
 import type {
   SavedCanvasBrowserCanvasEdge,

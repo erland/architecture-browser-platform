@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload } from '../../../app-model';
-import type { BrowserClassPresentationPolicy } from '../../../browser-session/types';
+import type { BrowserClassPresentationPolicy } from '../../../browser-session/canvas-types';
 import type { BrowserSnapshotIndex } from '../../../browser-snapshot';
 
 /**

@@ -1,5 +1,5 @@
 import { avoidBrowserCanvasCollisions, getNodeSize } from '../../browser-canvas-placement/stage';
-import type { BrowserCanvasNode } from '../../browser-session/types';
+import type { BrowserCanvasNode } from '../../browser-graph/contracts';
 import type { BrowserCanvasPlacement, BrowserCanvasPlacementOptions } from '../../browser-canvas-placement/stage';
 
 function rectanglesOverlap(

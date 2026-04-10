@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../browser-session/types';
+import type { BrowserCanvasNode } from '../browser-graph/contracts';
 import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../browser-graph/canvas/stage';
 import {
   APPEND_CLUSTER_GAP,

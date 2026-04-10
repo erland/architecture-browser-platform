@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../../browser-session/types';
+import type { BrowserCanvasNode } from '../../browser-graph/contracts';
 import { getCanvasNodeByKey, getNodeById, orderLayoutComponents } from './layoutShared';
 import { createAutoLayoutPlacementBaseline } from './browserAutoLayoutSupportShared';
 import type { BrowserAutoLayoutComponent, BrowserAutoLayoutNode } from '../core/types';

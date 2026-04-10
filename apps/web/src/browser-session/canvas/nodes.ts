@@ -4,7 +4,7 @@ import {
   planScopeInsertion,
 } from '../../browser-canvas-placement';
 import type { BrowserSnapshotIndex } from '../../browser-snapshot';
-import { normalizeCanvasNodeClassPresentation } from '../model/classPresentation';
+import { normalizeCanvasNodeClassPresentation } from '../../browser-graph/semantics/classPresentation';
 import type {
   BrowserCanvasEdge,
   BrowserCanvasNode,

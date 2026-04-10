@@ -5,7 +5,7 @@ import {
   type BrowserCanvasAssemblyResult,
 } from '../canvasMutationResult';
 import { planScopeNodePosition, upsertCanvasNode } from '../nodes';
-import { syncMeaningfulCanvasEdges } from '../relationships';
+import { syncMeaningfulCanvasEdges } from '../../../browser-graph/semantics';
 
 export function assembleScopeCanvasAddition(
   state: BrowserSessionState,

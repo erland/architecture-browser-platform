@@ -1,7 +1,7 @@
 // Compatibility wrapper retained for callers still importing the pre-controller hook.
 
 import type { BrowserSearchResult, BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
-import type { BrowserNavigationTreeViewState } from '../../browser-session/types';
+import type { BrowserNavigationTreeViewState } from '../../browser-session/focus-types';
 import { useBrowserNavigationTreeController } from './browserNavigationTree.controller';
 
 export function useBrowserNavigationTreeState(

@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-graph/contracts';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
 import type { BrowserGraphWorkspaceInteractionHandlers, ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 import { BrowserGraphWorkspaceEmptyState } from './BrowserGraphWorkspace.emptyState';

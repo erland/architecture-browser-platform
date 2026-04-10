@@ -1,6 +1,6 @@
 import type { FullSnapshotViewpoint } from '../../app-model';
 import type { BrowserViewpointVariant } from '../../browser-snapshot';
-import type { BrowserSessionState, BrowserViewpointPresentationPreference } from '../../browser-session/types';
+import type { BrowserSessionState, BrowserViewpointPresentationPreference } from '../../browser-graph/contracts';
 
 export type BrowserViewpointPresentationMode = 'entity-graph' | 'compact-uml';
 

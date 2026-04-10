@@ -6,10 +6,10 @@ import {
   getOrBuildBrowserSnapshotIndex,
   getViewpointById,
 } from '../../browser-snapshot';
-import { syncMeaningfulCanvasEdges } from '../canvas/relationships';
+import { syncMeaningfulCanvasEdges } from '../../browser-graph/semantics';
 import { normalizeCanvasNodes } from '../canvas/nodes';
 import { createPersistedBrowserSessionState, hydrateBrowserSessionState } from '../model/state';
-import { applyCanvasNodeClassPresentationDefaults } from '../model/classPresentation';
+import { applyCanvasNodeClassPresentationDefaults } from '../../browser-graph/semantics';
 import { normalizeFocusedBrowserContext, normalizeSearchScopeId, recomputeBrowserSearchState } from '../navigation/invariants';
 import type {
   BrowserSessionSnapshot,

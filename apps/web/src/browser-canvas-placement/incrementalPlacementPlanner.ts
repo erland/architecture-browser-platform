@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../browser-session/types';
+import type { BrowserCanvasNode } from '../browser-graph/contracts';
 import type { BrowserCanvasPlacement } from './types';
 import type { BrowserIncrementalPlacementContext, InsertionDirection } from './incrementalPlacementPhases';
 import { getCanvasNodeById, placeCanvasNodeNearAnchor, placeContainedCanvasNode, placePeerCanvasNode } from './incrementalPlacement';

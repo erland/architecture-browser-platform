@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
-import type { BrowserNavigationTreeViewState } from '../../browser-session/types';
+import type { BrowserNavigationTreeViewState } from '../../browser-session/focus-types';
 import type { BrowserNavigationSearchVisibility } from './browserNavigationTree.shared';
 import {
   buildBrowserNavigationTreeViewState,

@@ -1,7 +1,7 @@
-import type { BrowserViewpointPresentationPolicy } from '../../browser-graph/presentation';
+import type { BrowserViewpointPresentationPolicy } from '../presentation';
 import type { BrowserViewpointVariant } from '../../browser-snapshot';
 import type { BrowserSnapshotIndex } from '../../browser-snapshot';
-import type { BrowserCanvasNode, BrowserClassPresentationPolicy } from './types';
+import type { BrowserCanvasNode, BrowserClassPresentationPolicy, BrowserFocusedElement } from '../contracts';
 
 const CLASSIFIER_KINDS = new Set(['CLASS', 'INTERFACE', 'ENUM', 'TYPE']);
 
@@ -58,7 +58,6 @@ export function createDefaultCanvasEntityClassPresentation(
     ? createDefaultBrowserClassPresentationPolicy()
     : undefined;
 }
-
 
 function resolveScenarioDefaultClassPresentation(
   viewpointId: string | null | undefined,
@@ -129,7 +128,12 @@ export function applyCanvasNodeClassPresentationDefaults(
 }
 
 export function resolveCanvasClassPresentationTargetEntityIds(
-  state: { selectedEntityIds: string[]; focusedElement: { kind: 'entity'; id: string } | { kind: 'scope'; id: string } | { kind: 'relationship'; id: string } | null; canvasNodes: BrowserCanvasNode[]; index?: BrowserSnapshotIndex | null },
+  state: {
+    selectedEntityIds: string[];
+    focusedElement: BrowserFocusedElement | null;
+    canvasNodes: BrowserCanvasNode[];
+    index?: BrowserSnapshotIndex | null;
+  },
 ): string[] {
   const selectedIds = state.selectedEntityIds.filter((entityId) => {
     const entity = state.index?.entitiesById.get(entityId);

@@ -1,32 +1,16 @@
 /**
- * Legacy broad compatibility facade for browser-session.
+ * Legacy compatibility facade for browser-session.
  *
- * New consumers should prefer the narrow category entrypoints in this folder
- * rather than importing the entire session surface through one module.
+ * Keep this file intentionally small while remaining source-compatible for
+ * older imports. New consumers should prefer the narrow entrypoints in this
+ * folder instead of importing the entire browser-session surface here.
  */
 
 export type {
-  BrowserCanvasEdge,
-  BrowserCanvasLayoutMode,
-  BrowserClassPresentationMode,
-  BrowserClassPresentationPolicy,
-  BrowserCanvasNode,
-  BrowserCanvasViewport,
-  BrowserNavigationTreeViewState,
-  BrowserFactsPanelLocation,
-  BrowserFactsPanelMode,
-  BrowserFocusedElement,
-  BrowserGraphExpansionAction,
-  BrowserRoutingConservativeDefaults,
-  BrowserRoutingFeatureFlags,
-  BrowserRoutingLayoutConfig,
   BrowserSessionSnapshot,
   BrowserSessionState,
-  BrowserViewpointApplyMode,
-  BrowserViewpointPresentationPreference,
-  BrowserViewpointSelection,
   PersistedBrowserSessionState,
-} from './model/types';
+} from './session-state-types';
 
 export {
   createEmptyBrowserNavigationTreeViewState,
@@ -34,74 +18,18 @@ export {
   createPersistedBrowserSessionState,
   hydrateBrowserSessionState,
   normalizeBrowserNavigationTreeViewState,
-} from './model/state';
-
-export {
-  deriveFactsPanelModeFromFocus,
-  normalizeFocusedBrowserContext,
-  normalizeFocusedElement,
-  normalizeSearchScopeId,
-  normalizeSelectedEntityIds,
-  recomputeBrowserSearchState,
-} from './navigation/invariants';
-
-export { openSnapshotSession } from './lifecycle/lifecycle';
-
-export {
-  selectBrowserScope,
-  setBrowserNavigationTreeState,
-  setBrowserSearch,
-  setBrowserTreeMode,
-} from './navigation/navigation';
+} from './state';
 
 export {
   readPersistedBrowserSession,
   persistBrowserSession,
-} from './lifecycle/persistence';
+  openSnapshotSession,
+} from './lifecycle-api';
 
 export {
-  setSelectedViewpoint,
-  setViewpointApplyMode,
-  setViewpointPresentationPreference,
-  setViewpointScopeMode,
-  setViewpointVariant,
-  applySelectedViewpoint,
-} from './viewpoints';
-
-export {
-  addDependenciesToCanvas,
-  addEntitiesToCanvas,
-  addEntityToCanvas,
-  addPrimaryEntitiesForScope,
-  addScopeToCanvas,
-  arrangeAllCanvasNodes,
-  arrangeAllCanvasNodesInteractive,
-  arrangeCanvasNodesWithMode,
-  arrangeCanvasNodesInteractivelyWithMode,
-  arrangeCanvasAroundFocus,
-  clearCanvas,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  panCanvasViewport,
-  relayoutCanvas,
-  removeCanvasSelection,
-  removeEntityFromCanvas,
-  reconcileCanvasNodePositions,
-  requestFitCanvasView,
-  selectAllCanvasEntities,
-  selectCanvasEntity,
-  setCanvasEntityClassPresentationMode,
-  setCanvasViewport,
-  toggleCanvasEntityClassPresentationMembers,
-  toggleCanvasNodePin,
-} from './canvas';
-
-export {
-  focusBrowserElement,
-  openFactsPanel,
-} from './facts-panel/actions';
-
-export {
+  createBoundBrowserSessionActionGroups,
+  applyBrowserSessionMutation,
+  bindBrowserSessionMutationGroup,
   browserSessionCanvasCommands,
   browserSessionCanvasMutations,
   browserSessionFactsPanelCommands,
@@ -112,13 +40,10 @@ export {
   browserSessionNavigationMutations,
   browserSessionViewpointCommands,
   browserSessionViewpointMutations,
-  createBoundBrowserSessionActionGroups,
-  applyBrowserSessionMutation,
-  bindBrowserSessionMutationGroup,
-} from './commands';
+} from './commands-api';
 
 export type {
   BoundBrowserSessionMutationGroup,
   BrowserSessionMutation,
   BrowserSessionMutationGroup,
-} from './commands';
+} from './commands-api';

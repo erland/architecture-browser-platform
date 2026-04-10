@@ -1,6 +1,6 @@
 import { resolveBrowserStateViewpointPresentationPolicy } from '../../../browser-graph/presentation';
 import type { BrowserCanvasNode, BrowserSessionState } from '../../model/types';
-import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../../model/classPresentation';
+import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../../../browser-graph/semantics';
 
 export function collectValidEntityIds(state: BrowserSessionState, entityIds: string[]): string[] {
   if (!state.index) {

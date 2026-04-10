@@ -214,6 +214,22 @@ for (const absolutePath of files) {
       record('browser-session/commands/index.ts is an internal grouped command surface; consumers should prefer browser-session/commands-api for the screen-facing command API.');
     }
 
+    if (importedSrcPath === 'browser-session/types.ts' && !matchesPrefix(srcRelativePath, 'browser-session') && !isTestFile(srcRelativePath)) {
+      record('browser-session/types.ts is a transitional broad type barrel; consumers must import from narrower entrypoints such as browser-session/session-state-types, canvas-types, focus-types, or viewpoint-types.');
+    }
+
+    if ((importedSrcPath === 'browser-session/model/classPresentation.ts' || importedSrcPath === 'browser-session/canvas/relationships.ts') && !matchesPrefix(srcRelativePath, 'browser-session') && !isTestFile(srcRelativePath)) {
+      record('browser-session class-presentation and relationship helpers are compatibility shims; graph/projection/rendering consumers must import from browser-graph/semantics instead of session internals.');
+    }
+
+    if (matchesPrefix(srcRelativePath, 'browser-projection') && matchesPrefix(importedSrcPath, 'browser-session') && !isTestFile(srcRelativePath)) {
+      record('browser-projection must not depend directly on browser-session internals; use browser-graph/contracts or browser-graph/semantics instead.');
+    }
+
+    if (matchesPrefix(srcRelativePath, 'browser-graph') && !matchesPrefix(srcRelativePath, 'browser-graph/contracts') && matchesPrefix(importedSrcPath, 'browser-session') && !isTestFile(srcRelativePath)) {
+      record('browser-graph must not depend directly on browser-session internals; use browser-graph/contracts or browser-graph/semantics instead.');
+    }
+
   }
 }
 

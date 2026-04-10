@@ -7,14 +7,12 @@ Browser screen-composition files, BrowserView shell sections, and Browser-specif
 - `application/useBrowserViewApplicationController.ts` is the preferred internal screen application layer.
 - It composes the BrowserView feature controllers and exposes one application-facing controller object for the page shell.
 - `BrowserView.tsx` now imports the application layer directly for page composition.
-- `useBrowserViewScreenController.ts` remains only as a temporary compatibility facade for legacy imports and tests.
 
 ## Controller structure
 
 - `controllers/useBrowserViewWorkspaceController.ts` owns workspace, repository, snapshot, and startup orchestration.
 - `controllers/useBrowserViewCanvasController.ts` owns Browser canvas actions and top-search integration.
 - `controllers/useBrowserViewDialogController.ts` owns saved-canvas and dialog composition.
-- `useBrowserViewScreenController.ts` now delegates to the BrowserView application layer and should not be the primary path for new BrowserView composition.
 
 ## Screen application layer
 
@@ -28,9 +26,7 @@ assembly there instead of growing the page shell.
 ## Internal orchestration helpers
 
 Most screen-orchestration helper hooks now live under `controllers/internal/`.
-The top-level `useBrowserView*.ts` files remain only as compatibility facades for
-existing imports and test mocks. Prefer the application layer plus the internal
-controller helpers for new BrowserView composition work.
+Use the application layer plus the internal controller helpers for BrowserView composition work. Top-level `useBrowserView*.ts` files should exist only when they are still canonical entrypoints for a focused controller.
 
 
 Policy modules:

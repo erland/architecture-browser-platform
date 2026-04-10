@@ -5,7 +5,7 @@ import {
   type BrowserCanvasAssemblyResult,
 } from '../canvasMutationResult';
 import { planEntityNodePosition, upsertCanvasNode } from '../nodes';
-import { syncMeaningfulCanvasEdges } from '../relationships';
+import { syncMeaningfulCanvasEdges } from '../../../browser-graph/semantics';
 import { createEntityNodePatch } from './shared';
 
 export function assembleEntityCanvasAddition(

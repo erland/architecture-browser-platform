@@ -1,5 +1,5 @@
 import type { BrowserSearchResult, BrowserSnapshotIndex, BrowserScopeTreeNode, BrowserTreeMode } from '../../browser-snapshot';
-import type { BrowserNavigationTreeViewState } from '../../browser-session/types';
+import type { BrowserNavigationTreeViewState } from '../../browser-session/focus-types';
 import { type BrowserNavigationSearchVisibility } from './browserNavigationTree.shared';
 import { useBrowserNavigationTreeDerivedState } from './browserNavigationTree.derivedState';
 import { useBrowserNavigationTreeExpansionState } from './browserNavigationTree.expansionState';

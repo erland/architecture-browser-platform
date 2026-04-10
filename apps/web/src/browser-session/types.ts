@@ -1,8 +1,11 @@
 /**
- * Narrow type-only entrypoint for browser-session consumers.
+ * Narrow type entrypoint for browser-session consumers.
  *
- * Prefer importing browser-session types from `browser-session/types` instead
- * of the broad root `browser-session` facade.
+ * Prefer the more specific type entrypoints when possible:
+ * - `browser-session/session-state-types`
+ * - `browser-session/canvas-types`
+ * - `browser-session/focus-types`
+ * - `browser-session/viewpoint-types`
  */
 
 export type {

@@ -1,7 +1,7 @@
 import { BROWSER_ENTITY_NODE_SIZE } from '../../browser-graph/canvas/stage';
 import { COLLISION_MARGIN, GRID_Y, roundToGrid } from '../../browser-graph/canvas/stage';
 import { getNodeSize } from '../../browser-canvas-placement/stage';
-import type { BrowserCanvasNode } from '../../browser-session/types';
+import type { BrowserCanvasNode } from '../../browser-graph/contracts';
 import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement/stage';
 import type { BrowserAutoLayoutConfig } from '../core/config';
 import type { BrowserAutoLayoutNode } from '../core/types';

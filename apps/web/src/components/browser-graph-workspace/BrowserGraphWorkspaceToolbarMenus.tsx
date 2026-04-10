@@ -1,6 +1,6 @@
 import type { FullSnapshotEntity } from '../../app-model';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
-import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session/types';
+import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-graph/contracts';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode } from './BrowserGraphWorkspace.types';
 import { BrowserGraphWorkspaceMenu, runMenuAction } from './BrowserGraphWorkspaceMenu';

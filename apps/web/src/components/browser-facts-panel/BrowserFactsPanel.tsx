@@ -1,4 +1,5 @@
-import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session/types';
+import type { BrowserClassPresentationMode } from '../../browser-session/canvas-types';
+import type { BrowserSessionState } from '../../browser-session/session-state-types';
 import { buildBrowserFactsPanelPresentation } from './BrowserFactsPanel.presentation';
 import {
   DiagnosticsSection,

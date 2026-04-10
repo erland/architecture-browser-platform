@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { computePannedCanvasViewport, computeZoomedCanvasViewportAroundPointer } from '../../browser-graph/workspace';
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-session/session-state-types';
 import type { PanState } from './BrowserGraphWorkspace.types';
 import { hasExceededPanThreshold, isPrimaryPointerButton, shouldIgnoreViewportPanTarget, shouldWheelPan } from './browserGraphWorkspaceInteractionPolicy';
 

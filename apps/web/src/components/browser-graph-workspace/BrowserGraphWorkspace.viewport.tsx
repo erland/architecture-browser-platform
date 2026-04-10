@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-graph/contracts';
 import type { ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 
 export const TREE_DRAG_MIME_TYPE = 'application/x-architecture-browser-entities';

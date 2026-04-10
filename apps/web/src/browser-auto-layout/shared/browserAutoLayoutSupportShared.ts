@@ -1,5 +1,5 @@
 import { cleanupArrangedCanvasNodes } from '../../browser-canvas-placement/stage';
-import type { BrowserCanvasNode } from '../../browser-session/types';
+import type { BrowserCanvasNode } from '../../browser-graph/contracts';
 import { getInitialEntityOrigin } from './layoutShared';
 import { placeScopeNodes } from './layoutScopePlacement';
 import type { BrowserAutoLayoutMode, BrowserAutoLayoutRequest, BrowserAutoLayoutResult } from '../core/types';

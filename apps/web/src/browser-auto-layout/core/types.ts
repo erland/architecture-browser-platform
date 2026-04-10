@@ -1,4 +1,10 @@
-import type { BrowserCanvasEdge, BrowserCanvasNode, BrowserCanvasLayoutMode, BrowserFocusedElement, BrowserSessionState } from '../../browser-session/types';
+import type {
+  BrowserCanvasEdge,
+  BrowserCanvasLayoutMode,
+  BrowserCanvasNode,
+  BrowserFocusedElement,
+  BrowserGraphPlacementState,
+} from '../../browser-graph/contracts';
 import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement/stage';
 
 export type BrowserAutoLayoutMode = 'structure' | 'balanced' | 'flow' | 'hierarchy';
@@ -68,7 +74,7 @@ export type BrowserAutoLayoutRequest = {
   nodes: BrowserCanvasNode[];
   edges: BrowserCanvasEdge[];
   options?: BrowserCanvasPlacementOptions;
-  state?: BrowserSessionState;
+  state?: BrowserGraphPlacementState;
   config?: Partial<BrowserAutoLayoutConfig>;
 };
 

@@ -7,7 +7,7 @@ import {
   type BrowserScopeFacts,
   type BrowserSnapshotIndex,
 } from '../../browser-snapshot';
-import type { BrowserSessionState } from '../../browser-session/types';
+import type { BrowserSessionState } from '../../browser-session/session-state-types';
 import type {
   BrowserFactsPanelModel,
   BrowserFactsPanelScopeBridge,

@@ -12,7 +12,7 @@ import {
   upsertCanvasEdge,
   upsertCanvasNode,
 } from '../canvas/nodes';
-import { syncMeaningfulCanvasEdges } from '../canvas/relationships';
+import { syncMeaningfulCanvasEdges } from '../../browser-graph/semantics';
 import {
   arrangeViewpointCanvasNodes,
   buildAppliedViewpointGraph,
@@ -20,7 +20,7 @@ import {
 } from './helpers';
 import { planEntityInsertion } from '../../browser-canvas-placement';
 import type { BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browser-snapshot';
-import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../model/classPresentation';
+import { createCanvasEntityClassPresentationFromViewpointPolicy } from '../../browser-graph/semantics';
 
 function updateAppliedViewpoint(
   state: BrowserSessionState,

@@ -45,7 +45,7 @@ jest.mock('../../api/snapshot-cache', () => ({
   getBrowserSnapshotCache: () => mockSnapshotCache,
 }));
 
-import { useBrowserViewScreenController } from '../../views/browser-view/useBrowserViewScreenController';
+import { useBrowserViewApplicationController } from '../../views/browser-view/application';
 
 function buildSnapshot(id: string, importedAt: string): SnapshotSummary {
   return {
@@ -75,16 +75,16 @@ function buildSnapshot(id: string, importedAt: string): SnapshotSummary {
 }
 
 function createController() {
-  let captured: ReturnType<typeof useBrowserViewScreenController> | null = null;
+  let captured: ReturnType<typeof useBrowserViewApplicationController> | null = null;
   function Probe() {
-    captured = useBrowserViewScreenController({} as never);
+    captured = useBrowserViewApplicationController({} as never);
     return createElement('div');
   }
   renderToStaticMarkup(createElement(Probe));
   if (!captured) {
     throw new Error('Expected controller to be captured during render.');
   }
-  return captured as ReturnType<typeof useBrowserViewScreenController>;
+  return captured as ReturnType<typeof useBrowserViewApplicationController>;
 }
 
 beforeEach(() => {

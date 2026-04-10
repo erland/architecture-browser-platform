@@ -7,7 +7,7 @@ import {
   type BrowserCanvasAssemblyResult,
 } from '../canvasMutationResult';
 import { upsertCanvasNode } from '../nodes';
-import { syncMeaningfulCanvasEdges } from '../relationships';
+import { syncMeaningfulCanvasEdges } from '../../../browser-graph/semantics';
 import { collectValidEntityIds, createEntityNodePatch } from './shared';
 
 export function assembleEntitiesCanvasAddition(

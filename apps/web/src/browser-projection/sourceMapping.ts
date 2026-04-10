@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity, FullSnapshotScope } from '../app-model';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session/types';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-graph/contracts';
 
 export type BrowserProjectionResolvedSource =
   | { kind: 'scope'; scope: FullSnapshotScope }

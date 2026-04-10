@@ -4,8 +4,8 @@ import {
   type BrowserAutoLayoutGraph,
 } from '../browser-auto-layout/stage';
 import type { BrowserSnapshotIndex } from '../browser-snapshot';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session/types';
-import { syncMeaningfulCanvasEdges } from '../browser-session/canvas/relationships';
+import type { BrowserCanvasNode, BrowserGraphPlacementState } from '../browser-graph/contracts';
+import { syncMeaningfulCanvasEdges } from '../browser-graph/semantics';
 import type { BrowserCanvasPlacementOptions } from './types';
 import type {
   BrowserIncrementalPlacementContext,
@@ -23,7 +23,7 @@ export function getVisibleInsertionRelationships(index: BrowserSnapshotIndex, vi
 }
 
 function buildSyntheticInsertionState(
-  state: BrowserSessionState,
+  state: BrowserGraphPlacementState,
   nodes: BrowserCanvasNode[],
   entityId: string,
 ) {

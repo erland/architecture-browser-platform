@@ -34,8 +34,7 @@ The preferred internal organization is:
 ## Consolidation notes
 
 The grouped folders above now contain the primary implementation files. The old
-`browserSessionStore.*` compatibility wrappers have now been retired, so new
-imports should target the narrow category entrypoints (`browser-session/types`, `state`, `lifecycle-api`, `navigation-api`, `canvas-api`, `viewpoints-api`, `facts-panel-api`, `commands-api`) or the owning grouped folder directly when working inside the subsystem. The root `browser-session` entrypoint remains a broad compatibility facade only.
+`browserSessionStore.*` compatibility wrappers have now been retired, and the remaining root compatibility facade has been reduced to a small session bootstrap surface. New imports should target the narrow category entrypoints (`browser-session/session-state-types`, `canvas-types`, `focus-types`, `viewpoint-types`, `state`, `lifecycle-api`, `navigation-api`, `canvas-api`, `viewpoints-api`, `facts-panel-api`, `commands-api`) or the owning grouped folder directly when working inside the subsystem. The root `browser-session` entrypoint remains available only as a narrowed legacy facade.
 
 ## Public API
 

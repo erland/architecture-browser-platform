@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { resolveCanvasClassPresentationTargetEntityIds } from '../../browser-session/model/classPresentation';
+import { resolveCanvasClassPresentationTargetEntityIds } from '../../browser-graph/semantics';
 import { buildBrowserGraphWorkspaceModel, buildBrowserGraphWorkspaceSummary } from '../../browser-graph/workspace';
 import { buildEntitySelectionActions } from './BrowserGraphWorkspace.actions';
 import { BrowserGraphWorkspaceCanvas, BrowserGraphWorkspaceToolbar } from './BrowserGraphWorkspace.sections';

@@ -1,5 +1,5 @@
-import type { BrowserSessionState } from '../../browser-session/types';
-import { isClassLikeCanvasEntityKind, normalizeBrowserClassPresentationPolicy, resolveCanvasClassPresentationTargetEntityIds } from '../../browser-session/model/classPresentation';
+import type { BrowserSessionState } from '../../browser-session/session-state-types';
+import { isClassLikeCanvasEntityKind, normalizeBrowserClassPresentationPolicy, resolveCanvasClassPresentationTargetEntityIds } from '../../browser-graph/semantics';
 import { buildBrowserFactsPanelModel } from './BrowserFactsPanel.model';
 import type {
   BrowserFactsPanelActionsModel,
