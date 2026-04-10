@@ -72,6 +72,8 @@ record SnapshotCatalogCanonicalDocument(
         String displayName,
         String scopeId,
         List<SourceRefData> sourceRefs,
+        List<String> architecturalRoles,
+        List<String> architecturalTraits,
         Map<String, Object> metadata
     ) {
     }

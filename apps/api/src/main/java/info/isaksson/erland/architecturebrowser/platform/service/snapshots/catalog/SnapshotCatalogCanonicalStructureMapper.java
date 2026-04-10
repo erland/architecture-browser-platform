@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -36,7 +37,9 @@ class SnapshotCatalogCanonicalStructureMapper {
                 entity.displayName(),
                 entity.scopeId(),
                 sourceRefs(entity.sourceRefs()),
-                metadataSanitizer.defaultMap(entity.metadata())
+                defaultList(entity.architecturalRoles()),
+                defaultList(entity.architecturalTraits()),
+                entityMetadata(entity)
             ))
             .toList();
     }
@@ -115,6 +118,20 @@ class SnapshotCatalogCanonicalStructureMapper {
             ))
             .toList();
     }
+
+    private Map<String, Object> entityMetadata(ArchitectureIndexDocument.ArchitectureEntity entity) {
+        Map<String, Object> metadata = new java.util.LinkedHashMap<>(metadataSanitizer.defaultMap(entity.metadata()));
+        List<String> architecturalRoles = defaultList(entity.architecturalRoles());
+        List<String> architecturalTraits = defaultList(entity.architecturalTraits());
+        if (!architecturalRoles.isEmpty()) {
+            metadata.put("architecturalRoles", architecturalRoles);
+        }
+        if (!architecturalTraits.isEmpty()) {
+            metadata.put("architecturalTraits", architecturalTraits);
+        }
+        return Map.copyOf(metadata);
+    }
+
 
     private SnapshotCatalogCanonicalDocument.NormalizedAssociationData normalizedAssociation(ArchitectureIndexDocument.NormalizedAssociation normalizedAssociation) {
         if (normalizedAssociation == null) {

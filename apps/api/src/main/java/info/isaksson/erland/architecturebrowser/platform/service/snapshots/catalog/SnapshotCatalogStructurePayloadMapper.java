@@ -46,6 +46,8 @@ class SnapshotCatalogStructurePayloadMapper {
                 entity.displayName(),
                 entity.scopeId(),
                 sourceRefMapper.mapSourceRefs(entity.sourceRefs()),
+                entity.architecturalRoles(),
+                entity.architecturalTraits(),
                 entity.metadata()
             ))
             .toList();

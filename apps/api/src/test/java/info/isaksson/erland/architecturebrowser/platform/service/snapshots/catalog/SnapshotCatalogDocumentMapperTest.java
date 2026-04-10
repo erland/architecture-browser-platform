@@ -21,7 +21,7 @@ class SnapshotCatalogDocumentMapperTest {
             new SnapshotCatalogCanonicalDocument.RunData("2026-04-02T10:00:00Z", "2026-04-02T10:01:00Z", "SUCCESS", List.of("java", "react")),
             new SnapshotCatalogCanonicalDocument.CompletenessData("COMPLETE", 10, 10, 0, List.of(), List.of()),
             List.of(),
-            List.of(new SnapshotCatalogCanonicalDocument.EntityData("entity:1", "component", "declared", "BrowserView", "Browser View", "scope:ui", List.of(), Map.of("role", "ui"))),
+            List.of(new SnapshotCatalogCanonicalDocument.EntityData("entity:1", "component", "declared", "BrowserView", "Browser View", "scope:ui", List.of(), List.of("api-entrypoint"), List.of("sync"), Map.of("role", "ui", "architecturalRoles", List.of("api-entrypoint"), "architecturalTraits", List.of("sync")))),
             List.of(new SnapshotCatalogCanonicalDocument.RelationshipData(
                 "rel:1",
                 "DEPENDS_ON",
@@ -121,6 +121,8 @@ class SnapshotCatalogDocumentMapperTest {
 
         assertEquals("repo-1", sourceInfo.repositoryId());
         assertEquals("BrowserView", entity.name());
+        assertEquals(List.of("api-entrypoint"), entity.architecturalRoles());
+        assertEquals(List.of("sync"), entity.architecturalTraits());
         assertEquals("ui", entity.metadata().get("role"));
         assertEquals("one-to-many", relationship.normalizedAssociation().associationCardinality());
         assertEquals(List.of("rel:field:1", "rel:field:2"), relationship.normalizedAssociation().evidenceRelationshipIds());

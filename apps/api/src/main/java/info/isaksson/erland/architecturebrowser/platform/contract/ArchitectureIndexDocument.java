@@ -77,8 +77,23 @@ public record ArchitectureIndexDocument(
         String displayName,
         String scopeId,
         List<SourceReference> sourceRefs,
+        List<String> architecturalRoles,
+        List<String> architecturalTraits,
         Map<String, Object> metadata
-    ) {}
+    ) {
+        public ArchitectureEntity(
+            String id,
+            String kind,
+            String origin,
+            String name,
+            String displayName,
+            String scopeId,
+            List<SourceReference> sourceRefs,
+            Map<String, Object> metadata
+        ) {
+            this(id, kind, origin, name, displayName, scopeId, sourceRefs, null, null, metadata);
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ArchitectureRelationship(

@@ -58,7 +58,8 @@ export function resolveViewpointExpansionRelationships(index: BrowserSnapshotInd
     .filter((relationship): relationship is FullSnapshotRelationship => Boolean(relationship))
     .filter((relationship) => {
       if (includedSeedIds.size === 0) return true;
-      return includedSeedIds.has(relationship.fromEntityId) || includedSeedIds.has(relationship.toEntityId) || ['request-handling', 'api-surface', 'persistence-model', 'integration-map', 'module-dependencies', 'ui-navigation'].includes(viewpoint.id);
+      if (includedSeedIds.has(relationship.fromEntityId) || includedSeedIds.has(relationship.toEntityId)) return true;
+      return ['request-handling', 'persistence-model', 'integration-map', 'module-dependencies', 'ui-navigation'].includes(viewpoint.id);
     });
   return stableSortRelationships(candidates);
 }
@@ -67,12 +68,24 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
   const scopeMode = options?.scopeMode ?? 'whole-snapshot';
   const selectedScopeId = options?.selectedScopeId ?? null;
   const variant = options?.variant ?? 'default';
-  const seedEntityIds = resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId, variant });
+  const seedEntityIds = viewpoint.id === 'api-surface'
+    ? sortEntityIds(index, [...new Set(viewpoint.seedEntityIds.filter((entityId) => index.entitiesById.has(entityId) && isEntityWithinScopeMode(index, entityId, scopeMode, selectedScopeId)))])
+    : resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId, variant });
   const resolvedSeedEntityIds = viewpoint.id === 'api-surface'
-    ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
-        const entity = index.entitiesById.get(entityId);
-        return entity ? getArchitecturalRoles(entity).includes('api-entrypoint') : false;
-      }), [])
+    ? (() => {
+        const explicitEntrypoints = seedEntityIds.filter((entityId) => {
+          const entity = index.entitiesById.get(entityId);
+          return entity ? getArchitecturalRoles(entity).includes('api-entrypoint') : false;
+        });
+        if (explicitEntrypoints.length > 0) {
+          return sortViewpointEntityIds(index, viewpoint, explicitEntrypoints, []);
+        }
+        const fallbackEntrypoints = resolveViewpointSeedEntityIds(index, viewpoint, { scopeMode, selectedScopeId, variant }).filter((entityId) => {
+          const entity = index.entitiesById.get(entityId);
+          return entity ? getArchitecturalRoles(entity).includes('api-entrypoint') : false;
+        });
+        return sortViewpointEntityIds(index, viewpoint, fallbackEntrypoints, []);
+      })()
     : viewpoint.id === 'integration-map'
       ? sortViewpointEntityIds(index, viewpoint, seedEntityIds.filter((entityId) => {
           const entity = index.entitiesById.get(entityId);
@@ -121,7 +134,16 @@ export function buildViewpointGraph(index: BrowserSnapshotIndex, viewpoint: Full
   }
   if (viewpoint.id === 'api-surface') {
     const apiSeedSet = new Set(resolvedSeedEntityIds);
-    expansionRelationships = expansionRelationships.filter((relationship) => apiSeedSet.has(relationship.fromEntityId) || apiSeedSet.has(relationship.toEntityId));
+    expansionRelationships = stableSortRelationships(expansionRelationships.filter((relationship) => {
+      if (!apiSeedSet.has(relationship.fromEntityId) && !apiSeedSet.has(relationship.toEntityId)) return false;
+      const fromEntity = index.entitiesById.get(relationship.fromEntityId);
+      const toEntity = index.entitiesById.get(relationship.toEntityId);
+      if (!fromEntity || !toEntity) return false;
+      const fromRoles = getArchitecturalRoles(fromEntity);
+      const toRoles = getArchitecturalRoles(toEntity);
+      const allowedRoles = new Set(['api-entrypoint', 'api-controller', 'application-service', 'ui-page', 'ui-layout', 'ui-navigation-node']);
+      return [...fromRoles, ...toRoles].every((role) => !role || allowedRoles.has(role));
+    }));
   }
   if (viewpoint.id === 'integration-map') expansionRelationships = includeIntegrationMapImmediateNeighbors(index, resolvedSeedEntityIds, [...expansionRelationships]);
   if (viewpoint.id === 'persistence-model' && variant !== 'default') {

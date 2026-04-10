@@ -35,7 +35,7 @@ class SnapshotCatalogCanonicalDocumentMapperTest {
             new ArchitectureIndexDocument.RunMetadata("2026-04-02T10:00:00Z", "2026-04-02T10:01:00Z", "SUCCESS", List.of("java", "react"), Map.of("runner", "ci")),
             new ArchitectureIndexDocument.RepositorySource("repo-1", "git", "/tmp/repo", "https://example.test/repo.git", "main", "abc123", "2026-04-02T10:00:00Z", Map.of("provider", "github")),
             List.of(new ArchitectureIndexDocument.LogicalScope("scope:ui", "module", "ui", "UI", null, List.of(sourceRef("src/App.tsx")), Map.of("tier", "web"))),
-            List.of(new ArchitectureIndexDocument.ArchitectureEntity("entity:browser", "component", "declared", "BrowserView", "Browser View", "scope:ui", List.of(sourceRef("src/views/BrowserView.tsx")), Map.of("role", "ui"))),
+            List.of(new ArchitectureIndexDocument.ArchitectureEntity("entity:browser", "component", "declared", "BrowserView", "Browser View", "scope:ui", List.of(sourceRef("src/views/BrowserView.tsx")), List.of("api-entrypoint"), List.of("sync"), Map.of("role", "ui"))),
             List.of(new ArchitectureIndexDocument.ArchitectureRelationship(
                 "rel:1",
                 "uses",
@@ -136,6 +136,9 @@ class SnapshotCatalogCanonicalDocumentMapperTest {
         assertEquals(10, canonical.completeness().indexedFileCount());
         assertEquals("scope:ui", canonical.scopes().getFirst().id());
         assertEquals("BrowserView", canonical.entities().getFirst().name());
+        assertEquals(List.of("api-entrypoint"), canonical.entities().getFirst().architecturalRoles());
+        assertEquals(List.of("sync"), canonical.entities().getFirst().architecturalTraits());
+        assertEquals(List.of("api-entrypoint"), (List<String>) canonical.entities().getFirst().metadata().get("architecturalRoles"));
         assertEquals("entity:browser", canonical.relationships().getFirst().fromEntityId());
         assertEquals("one-to-many", canonical.relationships().getFirst().normalizedAssociation().associationCardinality());
         assertEquals(List.of("rel:field:1", "rel:field:2"), canonical.relationships().getFirst().normalizedAssociation().evidenceRelationshipIds());

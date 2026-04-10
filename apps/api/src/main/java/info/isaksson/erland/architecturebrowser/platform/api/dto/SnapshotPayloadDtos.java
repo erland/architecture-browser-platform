@@ -48,6 +48,8 @@ public final class SnapshotPayloadDtos {
         String displayName,
         String scopeId,
         List<SourceRef> sourceRefs,
+        List<String> architecturalRoles,
+        List<String> architecturalTraits,
         java.util.Map<String, Object> metadata
     ) {
     }
