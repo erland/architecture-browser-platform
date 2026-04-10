@@ -1,6 +1,6 @@
-import { getBrowserCanvasBounds } from '../../browser-canvas-placement/collision';
+import { getBrowserCanvasBounds } from '../../browser-canvas-placement/stage';
 import { enforceVerticalColumnClearance } from './layoutFootprint';
-import type { BrowserCanvasNode } from '../../browser-session';
+import type { BrowserCanvasNode } from '../../browser-session/types';
 import { getBrowserAutoLayoutConfig } from '../core/config';
 import { buildUndirectedAdjacency, compareNodePriority } from './ordering';
 import { compareIds, getComponentEdges, getEntityComponentNodes, getInitialEntityOrigin } from './layoutShared';

@@ -1,10 +1,8 @@
 import type { FullSnapshotPayload, SnapshotSummary, SourceViewReadResponse } from '../../app-model';
-import {
-  createEmptyBrowserSessionState,
-  focusBrowserElement,
-  openSnapshotSession,
-  selectBrowserScope,
-} from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope } from '../../browser-session/navigation-api';
 
 const readSnapshotSourceFile = jest.fn();
 

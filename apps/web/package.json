@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "node ../../node_modules/vite/bin/vite.js preview",
     "typecheck": "node ../../node_modules/typescript/bin/tsc -b --pretty false",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --runInBand"
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --runInBand",
+    "check:boundaries": "node ./scripts/check-boundaries.mjs",
+    "verify:frontend-consolidation:stabilization": "node ./scripts/verify-frontend-consolidation-stabilization.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

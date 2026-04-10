@@ -4,7 +4,7 @@ import type {
   BrowserSnapshotIndex,
 } from '../../browser-snapshot';
 import { getCanonicalRelationshipEvidenceIds } from '../../browser-snapshot/support';
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session/types';
 import type {
   BrowserFactsPanelEntityGroup,
   BrowserFactsPanelEntitySummary,

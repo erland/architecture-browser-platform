@@ -4,5 +4,6 @@ This directory owns web-side transport and cached backend access responsibilitie
 
 - `httpClient.ts` — low-level HTTP transport helpers and `HttpError`
 - `platformApi.ts` — platform backend request helpers
-- `snapshotCache.ts` — IndexedDB-backed snapshot cache
+- `snapshot-cache/` — layered snapshot cache contract, storage implementations, and runtime composition
+- `snapshot-cache/` — compatibility facade that re-exports `snapshot-cache/`
 - `index.ts` — subtree barrel export

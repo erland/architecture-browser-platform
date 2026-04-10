@@ -22,3 +22,8 @@ Pointer/gesture behavior should prefer small dedicated hooks:
 - `browserGraphWorkspaceInteractionPolicy` for pure interaction thresholds and pointer/wheel decisions
 
 The composition hook `useBrowserGraphWorkspaceInteractions` should remain a thin assembly seam only.
+
+
+## Composition split
+
+The main `BrowserGraphWorkspace.sections.tsx` file should stay focused on wiring the workspace shell together. Toolbar composition, viewport/drop behavior, empty-state rendering, and edge/node layer composition now live in smaller sibling modules so workspace interaction changes do not all converge in one section file.

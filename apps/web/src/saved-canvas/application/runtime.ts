@@ -1,5 +1,5 @@
 import { browserSessionLifecycleAdapter } from '../adapters/browser-session-impl/browserSessionAdapter';
-import { getBrowserSnapshotCache } from '../../api/snapshotCache';
+import { getBrowserSnapshotCache } from '../../api/snapshot-cache/runtime';
 import type { SavedCanvasSnapshotCachePort } from './ports/snapshotCache';
 
 export function getBrowserSavedCanvasSnapshotCache(): SavedCanvasSnapshotCachePort {

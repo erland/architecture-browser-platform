@@ -1,4 +1,4 @@
-import type { BrowserFactsPanelLocation, BrowserFactsPanelMode } from '../../browser-session';
+import type { BrowserFactsPanelLocation, BrowserFactsPanelMode } from '../../browser-session/types';
 import {
   getContainedEntitiesForEntity,
   getContainingEntitiesForEntity,

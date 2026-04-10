@@ -8,3 +8,5 @@
  */
 
 export * from './core';
+
+export { isBrowserAutoLayoutDebugEnabled } from './debug';

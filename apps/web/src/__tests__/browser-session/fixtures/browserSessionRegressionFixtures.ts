@@ -1,14 +1,10 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../../app-model';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  arrangeAllCanvasNodes,
-  createEmptyBrowserSessionState,
-  focusBrowserElement,
-  openSnapshotSession,
-  setSelectedViewpoint,
-  type BrowserSessionState,
-} from '../../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, arrangeAllCanvasNodes } from '../../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../../browser-session/state';
+import { focusBrowserElement } from '../../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../../browser-session/viewpoints-api';
+import type { BrowserSessionState } from '../../../browser-session/types';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-browser-session-fixture',

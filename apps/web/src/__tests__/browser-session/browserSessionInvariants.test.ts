@@ -1,10 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import {
-  createEmptyBrowserSessionState,
-  normalizeFocusedBrowserContext,
-  openSnapshotSession,
-  recomputeBrowserSearchState,
-} from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { normalizeFocusedBrowserContext, recomputeBrowserSearchState } from '../../browser-session/navigation-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 
 const snapshotSummary: SnapshotSummary = {

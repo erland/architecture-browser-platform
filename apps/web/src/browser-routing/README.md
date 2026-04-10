@@ -8,3 +8,6 @@ This folder is split by concern:
 - `routingPresentation.ts` converts point lists into SVG path and label metadata.
 - `geometry.ts` contains shared low-level geometry helpers.
 - `engine.ts` coordinates the above pieces and exposes the public route builder.
+
+
+Cross-stage contract: routing should consume projection shapes through the `browser-projection` entrypoint rather than importing projection implementation files directly.

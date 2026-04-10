@@ -7,7 +7,7 @@ import {
   UML_CLASS_ROW_HEIGHT,
 } from '../browser-graph/canvas';
 import type { BrowserViewpointPresentationPolicy } from '../browser-graph/presentation';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session/types';
 import { deriveBrowserClassRepresentation } from './classRepresentation';
 import { compareProjectionStrings, displayProjectionName, formatProjectionKindBadgeLabel, resolveProjectionSourceForCanvasNode } from './sourceMapping';
 import type {

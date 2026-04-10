@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { FullSnapshotPayload, SnapshotSummary } from '../../../app-model';
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../../../components/browser-graph-workspace/BrowserGraphWorkspace';
-import { createEmptyBrowserSessionState, openSnapshotSession, type BrowserSessionState } from '../../../browser-session';
+import { createEmptyBrowserSessionState } from '../../../browser-session/state';
+import { openSnapshotSession } from '../../../browser-session/lifecycle-api';
+import type { BrowserSessionState } from '../../../browser-session/types';
 import { buildBrowserSnapshotIndex } from '../../../browser-snapshot';
 
 const snapshotSummary: SnapshotSummary = {

@@ -1,6 +1,6 @@
 import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
-import type { BrowserSessionState } from '../../browser-session';
-import { isBrowserAutoLayoutDebugEnabled } from '../../browser-auto-layout/debug';
+import type { BrowserSessionState } from '../../browser-session/types';
+import { isBrowserAutoLayoutDebugEnabled } from '../../browser-auto-layout';
 
 type LayoutRect = {
   id: string;

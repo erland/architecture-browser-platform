@@ -1,7 +1,9 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { resolveBrowserStateViewpointPresentationPolicy, resolveBrowserViewpointPresentationPolicy } from '../../browser-graph';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import { createEmptyBrowserSessionState, openSnapshotSession, setSelectedViewpoint } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-viewpoint-presentation-1',

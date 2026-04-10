@@ -5,7 +5,7 @@ import {
   isClassLikeCanvasEntityKind,
   normalizeBrowserClassPresentationPolicy,
 } from '../browser-session/model/classPresentation';
-import type { BrowserCanvasNode, BrowserClassPresentationPolicy, BrowserSessionState } from '../browser-session';
+import type { BrowserCanvasNode, BrowserClassPresentationPolicy, BrowserSessionState } from '../browser-session/types';
 import { compareProjectionStrings, displayProjectionName } from './sourceMapping';
 import type { BrowserProjectionCompartment, BrowserProjectionCompartmentItem, BrowserProjectionNodeKind } from './types';
 

@@ -1,8 +1,6 @@
-import {
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-  type BrowserSessionState,
-} from '../../../browser-session';
+import { createEmptyBrowserSessionState } from '../../../browser-session/state';
+import { openSnapshotSession } from '../../../browser-session/lifecycle-api';
+import type { BrowserSessionState } from '../../../browser-session/types';
 import type {
   SavedCanvasBrowserSessionLifecyclePort,
   SavedCanvasBrowserSessionState,

@@ -1,22 +1,10 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  addScopeToCanvas,
-  createEmptyBrowserSessionState,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  openSnapshotSession,
-  reconcileCanvasNodePositions,
-  removeCanvasSelection,
-  removeEntityFromCanvas,
-  selectAllCanvasEntities,
-  selectCanvasEntity,
-  setSelectedViewpoint,
-  toggleCanvasNodePin,
-} from '../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, isolateCanvasSelection, moveCanvasNode, reconcileCanvasNodePositions, removeCanvasSelection, removeEntityFromCanvas, selectAllCanvasEntities, selectCanvasEntity, toggleCanvasNodePin } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import { clearCanvasSelection } from '../../browser-session/canvas/mutations';
+import { clearCanvasSelection } from '../../browser-session/canvas/mutations.selection';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-session-mutations',

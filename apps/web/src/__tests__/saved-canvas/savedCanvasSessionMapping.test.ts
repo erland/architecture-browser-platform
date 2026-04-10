@@ -1,17 +1,9 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { getOrBuildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  addScopeToCanvas,
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-  setCanvasViewport,
-  setSelectedViewpoint,
-  arrangeAllCanvasNodes,
-  setCanvasEntityClassPresentationMode,
-  toggleCanvasEntityClassPresentationMembers,
-} from '../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, setCanvasViewport, arrangeAllCanvasNodes, setCanvasEntityClassPresentationMode, toggleCanvasEntityClassPresentationMembers } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 import {
   createSavedCanvasDocumentFromBrowserSession,
   restoreSavedCanvasToBrowserSession,

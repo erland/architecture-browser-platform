@@ -5,7 +5,11 @@ import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../brow
 import { BrowserGraphWorkspace, buildEntitySelectionActions } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
 import { BrowserGraphWorkspaceEdgeLayer } from '../../components/browser-graph-workspace/BrowserGraphWorkspaceEdgeLayer';
 import { resolveRenderedEdgeGeometry } from '../../components/browser-graph-workspace/BrowserGraphWorkspace.sections';
-import { createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope } from '../../browser-session/navigation-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-canvas-toolbar-1',

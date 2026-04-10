@@ -4,7 +4,10 @@ import {
   applyPreparedSnapshotToBrowserSession,
   resetBrowserSessionForBootstrap,
 } from '../../hooks/useBrowserSessionBootstrap.application';
-import { createEmptyBrowserSessionState, openSnapshotSession, setBrowserSearch, type BrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setBrowserSearch } from '../../browser-session/navigation-api';
+import type { BrowserSessionState } from '../../browser-session/types';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-bootstrap-1',

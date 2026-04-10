@@ -1,11 +1,5 @@
-import type {
-  BrowserCanvasEdge,
-  BrowserCanvasNode,
-  BrowserCanvasLayoutMode,
-  BrowserFocusedElement,
-  BrowserSessionState,
-} from '../../browser-session';
-import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement';
+import type { BrowserCanvasEdge, BrowserCanvasNode, BrowserCanvasLayoutMode, BrowserFocusedElement, BrowserSessionState } from '../../browser-session/types';
+import type { BrowserCanvasPlacementOptions } from '../../browser-canvas-placement/stage';
 
 export type BrowserAutoLayoutMode = 'structure' | 'balanced' | 'flow' | 'hierarchy';
 

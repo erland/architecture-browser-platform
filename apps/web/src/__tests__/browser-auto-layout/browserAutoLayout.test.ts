@@ -1,5 +1,5 @@
 import { getProjectionAwareCanvasNodeSize } from '../../browser-graph';
-import { createEmptyBrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
 import { arrangeCanvasNodesInGrid, planEntityInsertion } from '../../browser-canvas-placement';
 import {
   attachBrowserAutoLayoutComponents,

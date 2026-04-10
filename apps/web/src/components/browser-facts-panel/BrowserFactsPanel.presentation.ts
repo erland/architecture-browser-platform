@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session/types';
 import { isClassLikeCanvasEntityKind, normalizeBrowserClassPresentationPolicy, resolveCanvasClassPresentationTargetEntityIds } from '../../browser-session/model/classPresentation';
 import { buildBrowserFactsPanelModel } from './BrowserFactsPanel.model';
 import type {

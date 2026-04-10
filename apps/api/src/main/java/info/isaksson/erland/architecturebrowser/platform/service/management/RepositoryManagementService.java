@@ -25,6 +25,12 @@ public class RepositoryManagementService {
     @Inject
     AuditService auditService;
 
+    @Inject
+    RepositoryResponseMapper repositoryResponseMapper;
+
+    @Inject
+    ManagementStringSupport managementStringSupport;
+
     @Transactional
     public RepositoryResponse create(String workspaceId, CreateRepositoryRequest request) {
         validator.validateForCreate(request);
@@ -42,30 +48,30 @@ public class RepositoryManagementService {
         entity.repositoryKey = normalizedKey;
         entity.name = request.name().trim();
         entity.sourceType = request.sourceType();
-        entity.localPath = normalizeNullable(request.localPath());
-        entity.remoteUrl = normalizeNullable(request.remoteUrl());
-        entity.defaultBranch = normalizeNullable(request.defaultBranch());
+        entity.localPath = managementStringSupport.normalizeNullable(request.localPath());
+        entity.remoteUrl = managementStringSupport.normalizeNullable(request.remoteUrl());
+        entity.defaultBranch = managementStringSupport.normalizeNullable(request.defaultBranch());
         entity.status = RepositoryStatus.ACTIVE;
-        entity.metadataJson = normalizeNullable(request.metadataJson());
+        entity.metadataJson = managementStringSupport.normalizeNullable(request.metadataJson());
         entity.createdAt = now;
         entity.updatedAt = now;
         entity.persist();
 
         auditService.recordRepositoryEvent(entity.workspaceId, entity.id, "repository.created",
-            "{\"repositoryKey\":\"" + escapeJson(entity.repositoryKey) + "\"}");
-        return toResponse(entity);
+            "{\"repositoryKey\":\"" + managementStringSupport.escapeJson(entity.repositoryKey) + "\"}");
+        return repositoryResponseMapper.toResponse(entity);
     }
 
     public List<RepositoryResponse> listByWorkspace(String workspaceId) {
         workspaceManagementService.requireWorkspace(workspaceId);
         return RepositoryRegistrationEntity.<RepositoryRegistrationEntity>list("workspaceId", workspaceId).stream()
             .sorted((left, right) -> left.createdAt.compareTo(right.createdAt))
-            .map(this::toResponse)
+            .map(repositoryResponseMapper::toResponse)
             .toList();
     }
 
     public RepositoryResponse get(String workspaceId, String repositoryId) {
-        return toResponse(requireRepository(workspaceId, repositoryId));
+        return repositoryResponseMapper.toResponse(requireRepository(workspaceId, repositoryId));
     }
 
     @Transactional
@@ -73,14 +79,14 @@ public class RepositoryManagementService {
         RepositoryRegistrationEntity entity = requireRepository(workspaceId, repositoryId);
         validator.validateForUpdate(request, entity.sourceType);
         entity.name = request.name().trim();
-        entity.localPath = normalizeNullable(request.localPath());
-        entity.remoteUrl = normalizeNullable(request.remoteUrl());
-        entity.defaultBranch = normalizeNullable(request.defaultBranch());
-        entity.metadataJson = normalizeNullable(request.metadataJson());
+        entity.localPath = managementStringSupport.normalizeNullable(request.localPath());
+        entity.remoteUrl = managementStringSupport.normalizeNullable(request.remoteUrl());
+        entity.defaultBranch = managementStringSupport.normalizeNullable(request.defaultBranch());
+        entity.metadataJson = managementStringSupport.normalizeNullable(request.metadataJson());
         entity.updatedAt = Instant.now();
         auditService.recordRepositoryEvent(entity.workspaceId, entity.id, "repository.updated",
-            "{\"name\":\"" + escapeJson(entity.name) + "\"}");
-        return toResponse(entity);
+            "{\"name\":\"" + managementStringSupport.escapeJson(entity.name) + "\"}");
+        return repositoryResponseMapper.toResponse(entity);
     }
 
     @Transactional
@@ -89,7 +95,7 @@ public class RepositoryManagementService {
         entity.status = RepositoryStatus.ARCHIVED;
         entity.updatedAt = Instant.now();
         auditService.recordRepositoryEvent(entity.workspaceId, entity.id, "repository.archived", "{}");
-        return toResponse(entity);
+        return repositoryResponseMapper.toResponse(entity);
     }
 
     public RepositoryRegistrationEntity requireRepository(String workspaceId, String repositoryId) {
@@ -101,32 +107,4 @@ public class RepositoryManagementService {
         return entity;
     }
 
-    public RepositoryResponse toResponse(RepositoryRegistrationEntity entity) {
-        return new RepositoryResponse(
-            entity.id,
-            entity.workspaceId,
-            entity.repositoryKey,
-            entity.name,
-            entity.sourceType,
-            entity.localPath,
-            entity.remoteUrl,
-            entity.defaultBranch,
-            entity.status,
-            entity.metadataJson,
-            entity.createdAt,
-            entity.updatedAt
-        );
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String escapeJson(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }

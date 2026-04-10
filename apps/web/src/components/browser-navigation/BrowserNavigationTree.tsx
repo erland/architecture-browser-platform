@@ -1,5 +1,5 @@
 import type { BrowserSearchResult, BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
-import type { BrowserNavigationTreeViewState } from '../../browser-session';
+import type { BrowserNavigationTreeViewState } from '../../browser-session/types';
 import { TREE_MODE_META } from './browserNavigationTree.shared';
 import { useBrowserNavigationTreeController } from './browserNavigationTree.controller';
 import { resolveBrowsableNavigationTreeMode } from './browserNavigationTree.rootPresentation';
@@ -187,7 +187,9 @@ export function BrowserNavigationTree({ index, selectedScopeId, selectedEntityId
 export {
   buildNavigationChildNodes,
   buildNavigationEntityChildNodes,
-  buildScopeCategoryGroups,
+} from './browserNavigationTree.nodes';
+export { buildScopeCategoryGroups } from './browserNavigationTree.expansion';
+export {
   collectAncestorScopeIds,
   computeCollapsedAutoExpandState,
   computeCollapsedScopeIds,
@@ -195,4 +197,4 @@ export {
   computeDefaultExpandedScopeIds,
   computeFocusExpandedState,
   computeSingleChildAutoExpandState,
-} from './browserNavigationTree.model';
+} from './browserNavigationTree.expansion';

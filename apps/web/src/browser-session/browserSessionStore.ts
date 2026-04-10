@@ -1,3 +1,10 @@
+/**
+ * Legacy broad compatibility facade for browser-session.
+ *
+ * New consumers should prefer the narrow category entrypoints in this folder
+ * rather than importing the entire session surface through one module.
+ */
+
 export type {
   BrowserCanvasEdge,
   BrowserCanvasLayoutMode,

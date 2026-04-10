@@ -2,9 +2,9 @@ import type { FullSnapshotEntity, FullSnapshotRelationship } from '../app-model'
 import {
   createBrowserAutoLayoutPipelineContext,
   type BrowserAutoLayoutGraph,
-} from '../browser-auto-layout';
+} from '../browser-auto-layout/stage';
 import type { BrowserSnapshotIndex } from '../browser-snapshot';
-import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session/types';
 import { syncMeaningfulCanvasEdges } from '../browser-session/canvas/relationships';
 import type { BrowserCanvasPlacementOptions } from './types';
 import type {

@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session';
+import type { BrowserCanvasNode, BrowserSessionState } from '../browser-session/types';
 
 export type BrowserCanvasPlacement = { x: number; y: number };
 

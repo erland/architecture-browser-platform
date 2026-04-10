@@ -1,5 +1,6 @@
 import type { SnapshotSummary } from '../../app-model';
-import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 import { computeBrowserSessionBootstrapPlan } from '../../hooks/useBrowserSessionBootstrap.planner';
 
 const snapshotSummary: SnapshotSummary = {

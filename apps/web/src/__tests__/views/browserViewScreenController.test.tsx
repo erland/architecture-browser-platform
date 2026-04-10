@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { SnapshotSummary } from '../../app-model';
 import type { SourceTreeLauncherItem } from '../../app-model/appModel.sourceTree';
-import { createEmptyBrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
 
 let mockSelection: any;
 let mockBrowserSession: any;
@@ -41,7 +41,7 @@ jest.mock('../../views/browser-view/useBrowserViewLayout', () => ({
   useBrowserViewLayout: () => mockBrowserLayout,
 }));
 
-jest.mock('../../api/snapshotCache', () => ({
+jest.mock('../../api/snapshot-cache', () => ({
   getBrowserSnapshotCache: () => mockSnapshotCache,
 }));
 

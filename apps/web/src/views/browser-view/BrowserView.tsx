@@ -4,10 +4,10 @@ import { BrowserViewFooter } from './BrowserViewFooter';
 import { BrowserInspectorPanel, BrowserRailPanel } from './BrowserViewPanels';
 import { BrowserViewTopBar } from './BrowserViewTopBar';
 import { type BrowserViewProps } from './browserView.shared';
-import { useBrowserViewScreenController } from './useBrowserViewScreenController';
+import { useBrowserViewApplicationController } from './application';
 
 export function BrowserView(props: BrowserViewProps) {
-  const controller = useBrowserViewScreenController(props);
+  const controller = useBrowserViewApplicationController(props);
   const { page } = controller;
 
   return (

@@ -1,12 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import {
-  addDependenciesToCanvas,
-  addEntitiesToCanvas,
-  addEntityToCanvas,
-  addScopeToCanvas,
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-} from '../../browser-session';
+import { addDependenciesToCanvas, addEntitiesToCanvas, addEntityToCanvas, addScopeToCanvas } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import {
   assembleDependencyCanvasExpansion,

@@ -8,19 +8,29 @@ export {
 
 export {
   focusBrowserElement,
-  isolateCanvasSelection,
-  moveCanvasNode,
-  reconcileCanvasNodePositions,
-  openFactsPanel,
-  removeCanvasSelection,
   clearCanvasSelection,
   selectAllCanvasEntities,
-  removeEntityFromCanvas,
   selectCanvasEntity,
+} from './mutations.selection';
+
+export {
+  isolateCanvasSelection,
+  removeCanvasSelection,
+  removeEntityFromCanvas,
+} from './mutations.graph';
+
+export {
+  moveCanvasNode,
+  reconcileCanvasNodePositions,
+  toggleCanvasNodePin,
+} from './mutations.nodes';
+
+export { openFactsPanel } from './mutations.factsPanel';
+
+export {
   setCanvasEntityClassPresentationMode,
   toggleCanvasEntityClassPresentationMembers,
-  toggleCanvasNodePin,
-} from './mutations';
+} from './mutations.presentation';
 
 export {
   arrangeAllCanvasNodes,

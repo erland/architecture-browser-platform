@@ -2,7 +2,9 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
 import { buildBrowserSnapshotIndex, buildViewpointGraph, clearBrowserSnapshotIndex, getViewpointById } from '../../browser-snapshot';
 import { resolveBrowserViewpointPresentationPolicy } from '../../browser-graph';
-import { applySelectedViewpoint, createEmptyBrowserSessionState, openSnapshotSession, setSelectedViewpoint, setViewpointApplyMode, setViewpointVariant } from '../../browser-session';
+import { applySelectedViewpoint, setSelectedViewpoint, setViewpointApplyMode, setViewpointVariant } from '../../browser-session/viewpoints-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-persistence-entity-relations-1',

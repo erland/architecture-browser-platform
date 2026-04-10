@@ -1,4 +1,4 @@
-import type { BrowserCanvasNode } from '../../browser-session';
+import type { BrowserCanvasNode } from '../../browser-session/types';
 import type { BrowserAutoLayoutNode } from './types';
 
 export function applyBrowserAutoLayoutNodes(

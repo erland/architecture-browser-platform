@@ -1,5 +1,5 @@
 import type { MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { BrowserCanvasNode, BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session';
+import type { BrowserCanvasNode, BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session/types';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type { BrowserWorkspaceNodeModel } from '../../browser-graph/workspace';
 

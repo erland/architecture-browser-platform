@@ -1,7 +1,9 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { bootstrapPreparedBrowserSession } from '../../hooks/useBrowserSessionBootstrap.bootstrapPrepared';
-import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshotCache';
-import { createEmptyBrowserSessionState, openSnapshotSession, setBrowserSearch } from '../../browser-session';
+import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshot-cache';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setBrowserSearch } from '../../browser-session/navigation-api';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 
 const snapshotSummary: SnapshotSummary = {

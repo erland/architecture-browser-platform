@@ -1,5 +1,6 @@
-import { createEmptyBrowserSessionState, createBoundBrowserSessionActionGroups } from '../../browser-session';
-import type { BrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { createBoundBrowserSessionActionGroups } from '../../browser-session/commands-api';
+import type { BrowserSessionState } from '../../browser-session/types';
 
 describe('browserSession action bindings', () => {
   test('binds pure browser-session mutations to a setState boundary', () => {

@@ -1,18 +1,11 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  addScopeToCanvas,
-  arrangeAllCanvasNodes,
-  arrangeCanvasAroundFocus,
-  createEmptyBrowserSessionState,
-  focusBrowserElement,
-  openSnapshotSession,
-  toggleCanvasNodePin,
-  setSelectedViewpoint,
-} from '../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, arrangeAllCanvasNodes, arrangeCanvasAroundFocus, toggleCanvasNodePin } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-graph-1',

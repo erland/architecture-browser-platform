@@ -1,4 +1,4 @@
-import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../../browser-graph/canvas';
+import { BROWSER_ENTITY_NODE_SIZE, BROWSER_SCOPE_NODE_SIZE, getProjectionAwareCanvasNodeSize } from '../../browser-graph/canvas/stage';
 import type { BrowserAutoLayoutEdge, BrowserAutoLayoutGraph, BrowserAutoLayoutNode, BrowserAutoLayoutRequest } from '../core/types';
 import { attachBrowserAutoLayoutComponents } from './components';
 import { getFocusedAutoLayoutNodeId } from '../core/types';

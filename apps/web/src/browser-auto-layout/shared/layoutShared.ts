@@ -1,5 +1,5 @@
-import { getBrowserCanvasBounds } from '../../browser-canvas-placement/collision';
-import type { BrowserCanvasNode } from '../../browser-session';
+import { getBrowserCanvasBounds } from '../../browser-canvas-placement/stage';
+import type { BrowserCanvasNode } from '../../browser-session/types';
 import type {
   BrowserAutoLayoutComponent,
   BrowserAutoLayoutGraph,

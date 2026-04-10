@@ -1,5 +1,5 @@
 import type { FullSnapshotRelationship } from '../app-model';
-import type { BrowserAutoLayoutNode } from '../browser-auto-layout';
+import type { BrowserAutoLayoutNode } from '../browser-auto-layout/stage';
 import type { InsertionDirection } from './incrementalPlacementPhases';
 
 export function resolveInsertionDirection(

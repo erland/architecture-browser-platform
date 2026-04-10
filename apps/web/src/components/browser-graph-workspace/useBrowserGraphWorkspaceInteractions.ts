@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session/types';
 import type { ViewportEventHandlers } from './BrowserGraphWorkspace.types';
 import { useBrowserGraphWorkspaceFitView } from './useBrowserGraphWorkspaceFitView';
 import { useBrowserGraphWorkspaceNodeDrag } from './useBrowserGraphWorkspaceNodeDrag';

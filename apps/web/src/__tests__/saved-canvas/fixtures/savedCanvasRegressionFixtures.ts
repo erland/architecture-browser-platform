@@ -4,12 +4,9 @@ import {
   rebindSavedCanvasToTargetSnapshot,
   restoreSavedCanvasToBrowserSession,
 } from '../../../saved-canvas';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-} from '../../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas } from '../../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../../browser-session/state';
+import { openSnapshotSession } from '../../../browser-session/lifecycle-api';
 
 const originSnapshot: SnapshotSummary = {
   id: 'snap-a',

@@ -1,4 +1,4 @@
-import type { BrowserProjectionEdge } from '../browser-projection/types';
+import type { BrowserProjectionEdge } from '../browser-projection';
 import type { BrowserEdgeRoutingInput, BrowserRoutingAnchorSide, BrowserRoutingNodeFrame, BrowserRoutingNodeObstacle, BrowserRoutingPoint, BrowserRoutingScene } from './types';
 
 function toObstacle(node: BrowserRoutingNodeFrame): BrowserRoutingNodeObstacle {

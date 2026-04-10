@@ -1,16 +1,12 @@
 import type { BrowserTopSearchResultAction } from '../../components/browser-search/BrowserTopSearch';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { clearBrowserSnapshotIndex, getPrimaryEntitiesForScope } from '../../browser-snapshot';
-import {
-  addEntityToCanvas,
-  createEmptyBrowserSessionState,
-  focusBrowserElement,
-  openFactsPanel,
-  openSnapshotSession,
-  selectBrowserScope,
-  setBrowserSearch,
-  type BrowserSessionState,
-} from '../../browser-session';
+import { addEntityToCanvas } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement, openFactsPanel } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope, setBrowserSearch } from '../../browser-session/navigation-api';
+import type { BrowserSessionState } from '../../browser-session/types';
 import { buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
 import { toBrowserTopSearchAction, toBrowserTopSearchAddAction } from '../../components/browser-search/BrowserTopSearch';
 

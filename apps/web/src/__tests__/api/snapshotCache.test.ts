@@ -1,5 +1,5 @@
 import type { FullSnapshotPayload, SnapshotSummary } from "../../app-model";
-import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../../api/snapshotCache";
+import { createSnapshotCache, InMemorySnapshotCacheStorage } from "../../api/snapshot-cache";
 
 const snapshotSummary: SnapshotSummary = {
   id: "snap-1",

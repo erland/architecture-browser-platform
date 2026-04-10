@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Repository, SnapshotSummary, Workspace } from '../../../../app-model';
 import { buildSourceTreeLauncherItems, type SourceTreeLauncherItem } from '../../../../app-model/appModel.sourceTree';
-import { findPreferredPreparedSnapshotId, getBrowserPreparedSnapshotCache } from '../../../../browser-snapshot';
+import { findPreferredPreparedSnapshotId } from '../../../../browser-snapshot';
+import { getBrowserSnapshotCache } from '../../../../api/snapshot-cache';
 
 type SelectionContextLike = {
   setSelectedWorkspaceId: (workspaceId: string | null) => void;
@@ -33,7 +34,7 @@ export function useBrowserViewSourceTreeController({
   }), [workspaceData.selectedWorkspace, workspaceData.repositories, workspaceData.snapshots]);
 
   const handleSelectSourceTree = useCallback(async (item: SourceTreeLauncherItem) => {
-    const cache = getBrowserPreparedSnapshotCache();
+    const cache = getBrowserSnapshotCache();
     selection.setSelectedWorkspaceId(item.workspaceId);
 
     const detail = workspaceData.selectedWorkspaceId === item.workspaceId

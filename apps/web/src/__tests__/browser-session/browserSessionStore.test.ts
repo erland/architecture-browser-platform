@@ -1,36 +1,10 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import {
-  addDependenciesToCanvas,
-  addEntityToCanvas,
-  addScopeToCanvas,
-  addPrimaryEntitiesForScope,
-  clearCanvas,
-  createEmptyBrowserSessionState,
-  createPersistedBrowserSessionState,
-  focusBrowserElement,
-  hydrateBrowserSessionState,
-  isolateCanvasSelection,
-  openSnapshotSession,
-  openFactsPanel,
-  arrangeAllCanvasNodes,
-  arrangeCanvasAroundFocus,
-  applySelectedViewpoint,
-  removeCanvasSelection,
-  removeEntityFromCanvas,
-  requestFitCanvasView,
-  moveCanvasNode,
-  setCanvasViewport,
-  selectBrowserScope,
-  selectCanvasEntity,
-  setBrowserSearch,
-  setCanvasEntityClassPresentationMode,
-  setSelectedViewpoint,
-  setViewpointApplyMode,
-  setViewpointPresentationPreference,
-  setViewpointScopeMode,
-  toggleCanvasEntityClassPresentationMembers,
-  toggleCanvasNodePin,
-} from '../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, addPrimaryEntitiesForScope, clearCanvas, isolateCanvasSelection, arrangeAllCanvasNodes, arrangeCanvasAroundFocus, removeCanvasSelection, removeEntityFromCanvas, requestFitCanvasView, moveCanvasNode, setCanvasViewport, selectCanvasEntity, setCanvasEntityClassPresentationMode, toggleCanvasEntityClassPresentationMembers, toggleCanvasNodePin } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState, createPersistedBrowserSessionState, hydrateBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement, openFactsPanel } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { applySelectedViewpoint, setSelectedViewpoint, setViewpointApplyMode, setViewpointPresentationPreference, setViewpointScopeMode } from '../../browser-session/viewpoints-api';
+import { selectBrowserScope, setBrowserSearch } from '../../browser-session/navigation-api';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 
 const snapshotSummary: SnapshotSummary = {

@@ -1,16 +1,7 @@
 import type { BrowserAutoLayoutMode } from '../browser-auto-layout';
 import type { BrowserDependencyDirection, BrowserTreeMode, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../browser-snapshot';
 import type { FullSnapshotPayload } from '../app-model';
-import type {
-  BrowserCanvasViewport,
-  BrowserClassPresentationMode,
-  BrowserFactsPanelLocation,
-  BrowserFactsPanelMode,
-  BrowserFocusedElement,
-  BrowserSessionState,
-  BrowserViewpointApplyMode,
-  BrowserViewpointPresentationPreference,
-} from '../browser-session';
+import type { BrowserCanvasViewport, BrowserClassPresentationMode, BrowserFactsPanelLocation, BrowserFactsPanelMode, BrowserFocusedElement, BrowserSessionState, BrowserViewpointApplyMode, BrowserViewpointPresentationPreference } from '../browser-session/types';
 
 export type OpenBrowserSessionOptions = {
   workspaceId: string;

@@ -1,6 +1,6 @@
 import type { FullSnapshotViewpoint } from '../../app-model';
 import type { BrowserResolvedViewpointGraph, BrowserSnapshotIndex, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browser-snapshot';
-import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browser-session';
+import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browser-session/types';
 import { getAvailableViewpoints } from '../../browser-snapshot';
 
 const VIEWPOINT_SCOPE_MODE_META: Record<BrowserViewpointScopeMode, { label: string; description: string }> = {

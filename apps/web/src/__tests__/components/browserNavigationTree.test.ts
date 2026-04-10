@@ -1,7 +1,7 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, canExpandEntityInNavigationTree, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
 import { buildNavigationChildNodes, buildNavigationEntityChildNodes, buildScopeCategoryGroups, collectAncestorScopeIds, computeCollapsedAutoExpandState, computeDefaultExpandedCategories, computeDefaultExpandedScopeIds, computeFocusExpandedState, computeSingleChildAutoExpandState } from '../../components/browser-navigation/BrowserNavigationTree';
-import { collectNavigationSearchVisibility } from '../../components/browser-navigation/browserNavigationTree.model';
+import { collectNavigationSearchVisibility } from '../../components/browser-navigation/browserNavigationTree.search';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-tree-1',

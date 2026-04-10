@@ -2,12 +2,10 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserProjectionModel } from '../../browser-projection';
 import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import {
-  arrangeAllCanvasNodes,
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-  setSelectedViewpoint,
-} from '../../browser-session';
+import { arrangeAllCanvasNodes } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-compact-uml-fixes-1',

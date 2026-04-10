@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Repository } from '../../app-model';
 import { useBrowserViewDerivedState } from '../../views/browser-view/controllers/internal/useBrowserViewDerivedState';
-import { createEmptyBrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
 
 function renderDerivedState(args: Parameters<typeof useBrowserViewDerivedState>[0]): ReturnType<typeof useBrowserViewDerivedState> {
   let captured: ReturnType<typeof useBrowserViewDerivedState> | null = null;

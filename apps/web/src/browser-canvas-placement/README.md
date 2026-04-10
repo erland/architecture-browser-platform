@@ -12,3 +12,12 @@
 - `collision.ts` owns sizing and overlap avoidance helpers.
 
 Prefer adding new layout behavior to a scenario-specific module instead of rebuilding a monolithic placement file.
+
+
+Cross-stage contract: adjacent graph stages should import placement-owned helpers needed by layout/workspace normalization through `stage.ts`. Keep scenario-specific placement logic private to this folder.
+
+
+## Step 6 graph-stage narrowing
+
+- `browser-canvas-placement` may consume auto-layout graph helpers only through `browser-auto-layout/stage.ts`.
+- `browser-canvas-placement` and `browser-auto-layout` may consume canvas sizing and placement-policy helpers only through `browser-graph/canvas/stage.ts`.

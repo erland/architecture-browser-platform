@@ -1,5 +1,5 @@
 import type { FullSnapshotEntity, FullSnapshotPayload, FullSnapshotRelationship, FullSnapshotScope, SnapshotSourceRef } from '../../app-model/appModel.snapshot';
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session/types';
 import type { SnapshotSourceFileReadRequest, SourceViewReadResponse } from '../../app-model';
 import { platformApi } from '../../api';
 

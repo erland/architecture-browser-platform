@@ -1,7 +1,7 @@
 import {
   APPEND_CLUSTER_GAP,
   PEER_SPACING_Y,
-} from '../browser-graph/canvas';
+} from '../browser-graph/canvas/stage';
 import type {
   BrowserCanvasNodeLike,
   BrowserCanvasNodeSizeLike,

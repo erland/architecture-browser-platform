@@ -18,6 +18,8 @@
     "test:stack": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml up -d",
     "test:stack:down": "docker compose --env-file deploy/env/platform-test.env -f deploy/docker-compose/docker-compose.test.yml down",
     "smoke:test": "./scripts/smoke-test.sh",
-    "clean:generated": "./scripts/clean-generated-artifacts.sh"
+    "clean:generated": "./scripts/clean-generated-artifacts.sh",
+    "check:boundaries": "node apps/web/scripts/check-boundaries.mjs",
+    "verify:frontend-consolidation:stabilization": "node apps/web/scripts/verify-frontend-consolidation-stabilization.mjs"
   }
 }

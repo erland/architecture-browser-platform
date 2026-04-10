@@ -1,7 +1,7 @@
 import { formatAssociationEdgeLabel, getAssociationEndpointLabels, getAssociationRoleLabel, isContainmentAssociation } from '../browser-graph/presentation';
 import { getCanonicalEntityAssociationContext, getCanonicalRelationshipEvidenceIds, isShadowedByCanonicalEntityAssociation } from '../browser-snapshot/support';
 import { isRelationshipMeaningfulForCanvas } from '../browser-session/canvas/relationships';
-import type { BrowserCanvasEdge, BrowserSessionState } from '../browser-session';
+import type { BrowserCanvasEdge, BrowserSessionState } from '../browser-session/types';
 import type { BrowserProjectionEdge, BrowserProjectionNode } from './types';
 
 export function buildProjectionSourceEntityNodeMap(nodes: BrowserProjectionNode[]): Map<string, BrowserProjectionNode> {

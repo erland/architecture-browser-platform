@@ -5,8 +5,9 @@ import {
 } from '../../hooks/useBrowserSessionBootstrap.execution';
 import type { BrowserSessionBootstrapPlan } from '../../hooks/useBrowserSessionBootstrap.planner';
 import type { SnapshotSummary } from '../../app-model';
-import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshotCache';
-import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browser-session';
+import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshot-cache';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-bootstrap-1',

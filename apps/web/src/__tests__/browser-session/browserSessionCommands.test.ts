@@ -1,10 +1,4 @@
-import {
-  browserSessionCanvasCommands,
-  browserSessionFactsPanelCommands,
-  browserSessionLifecycleCommands,
-  browserSessionNavigationCommands,
-  browserSessionViewpointCommands,
-} from '../../browser-session';
+import { browserSessionCanvasCommands, browserSessionFactsPanelCommands, browserSessionLifecycleCommands, browserSessionNavigationCommands, browserSessionViewpointCommands } from '../../browser-session/commands-api';
 
 describe('browserSessionStore command groups', () => {
   it('exposes lifecycle commands separately from state helpers', () => {

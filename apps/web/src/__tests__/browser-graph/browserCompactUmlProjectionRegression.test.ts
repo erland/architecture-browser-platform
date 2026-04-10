@@ -4,13 +4,10 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserProjectionModel } from '../../browser-projection';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { BrowserGraphWorkspace } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
-import {
-  addEntityToCanvas,
-  createEmptyBrowserSessionState,
-  openSnapshotSession,
-  setSelectedViewpoint,
-  setViewpointPresentationPreference,
-} from '../../browser-session';
+import { addEntityToCanvas } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint, setViewpointPresentationPreference } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-compact-uml-regression-1',

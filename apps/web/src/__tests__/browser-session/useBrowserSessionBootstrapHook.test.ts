@@ -64,7 +64,9 @@ jest.mock('../../api/platformApi', () => ({
 
 import type { BrowserSessionContextValue } from '../../contexts/BrowserSessionContext';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
-import { createEmptyBrowserSessionState, openSnapshotSession, type BrowserSessionState } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import type { BrowserSessionState } from '../../browser-session/types';
 import { useBrowserSessionBootstrap } from '../../hooks/useBrowserSessionBootstrap';
 
 const snapshotSummary: SnapshotSummary = {

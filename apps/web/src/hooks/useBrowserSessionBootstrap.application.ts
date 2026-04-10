@@ -1,4 +1,4 @@
-import { hydrateBrowserSessionState } from '../browser-session';
+import { hydrateBrowserSessionState } from '../browser-session/state';
 import type { BrowserSessionContextValue } from '../contexts/BrowserSessionContext';
 import type { PreparedSnapshotCacheRecord } from '../browser-snapshot';
 import type { SnapshotSummary } from '../app-model';

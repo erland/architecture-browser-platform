@@ -1,17 +1,17 @@
 export {
-  browserSessionCanvasCommands,
-  browserSessionFactsPanelCommands,
-  browserSessionLifecycleCommands,
-  browserSessionNavigationCommands,
-  browserSessionViewpointCommands,
-} from './bundles';
-
-export {
   browserSessionCanvasMutations,
   browserSessionFactsPanelMutations,
   browserSessionLifecycleMutations,
   browserSessionNavigationMutations,
   browserSessionViewpointMutations,
+} from './mutations';
+
+export {
+  browserSessionCanvasMutations as browserSessionCanvasCommands,
+  browserSessionFactsPanelMutations as browserSessionFactsPanelCommands,
+  browserSessionLifecycleMutations as browserSessionLifecycleCommands,
+  browserSessionNavigationMutations as browserSessionNavigationCommands,
+  browserSessionViewpointMutations as browserSessionViewpointCommands,
 } from './mutations';
 
 export { createBoundBrowserSessionActionGroups } from './bindings';

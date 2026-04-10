@@ -1,4 +1,10 @@
 import { useEffect, useMemo } from 'react';
+import {
+  resolveBrowserStartupGateMessage,
+  resolveBrowserStartupTargetWorkspaceId,
+  resolveImplicitBrowserWorkspace,
+  shouldShowBrowserStartupGate,
+} from './browserViewStartupPolicy';
 
 type WorkspaceLike = { id: string; status?: string | null };
 
@@ -38,75 +44,44 @@ export function useBrowserViewStartup({
   browserSession: BrowserSessionLike;
   selectedSnapshot: unknown;
 }) {
-  const startupTargetWorkspaceId = selection.selectedWorkspaceId
-    ?? workspaceData.selectedWorkspaceId
-    ?? workspaceData.workspaces[0]?.id
-    ?? null;
+  const startupTargetWorkspaceId = useMemo(() => resolveBrowserStartupTargetWorkspaceId({
+    selection,
+    workspaceData,
+  }), [selection.selectedWorkspaceId, workspaceData.selectedWorkspaceId, workspaceData.workspaces]);
 
   useEffect(() => {
     if (!selection.selectedWorkspaceId && workspaceData.workspaces.length > 0) {
-      const activeWorkspaces = workspaceData.workspaces.filter((workspace) => workspace.status !== 'ARCHIVED');
-      const implicitWorkspace = activeWorkspaces[0] ?? workspaceData.workspaces[0] ?? null;
+      const implicitWorkspace = resolveImplicitBrowserWorkspace(workspaceData.workspaces);
       if (implicitWorkspace) {
         selection.setSelectedWorkspaceId(implicitWorkspace.id);
       }
     }
   }, [selection, workspaceData.workspaces]);
 
-  const shouldShowGate = useMemo(() => {
-    if (!workspaceData.workspacesLoaded) {
-      return true;
-    }
-
-    if (workspaceData.workspaces.length === 0) {
-      return false;
-    }
-
-    if (!startupTargetWorkspaceId) {
-      return true;
-    }
-
-    if (workspaceData.workspaceDetailLoadedFor !== startupTargetWorkspaceId) {
-      return true;
-    }
-
-    if (selectedSnapshot && browserBootstrap.status === 'loading' && !browserSession.state.index) {
-      return true;
-    }
-
-    return false;
-  }, [
-    workspaceData.workspacesLoaded,
-    workspaceData.workspaces.length,
-    workspaceData.workspaceDetailLoadedFor,
+  const shouldShowGate = useMemo(() => shouldShowBrowserStartupGate({
+    workspaceData,
     startupTargetWorkspaceId,
     selectedSnapshot,
-    browserBootstrap.status,
-    browserSession.state.index,
+    browserBootstrap,
+    browserSession,
+  }), [
+    workspaceData,
+    startupTargetWorkspaceId,
+    selectedSnapshot,
+    browserBootstrap,
+    browserSession,
   ]);
 
-  const gateMessage = useMemo(() => {
-    if (!workspaceData.workspacesLoaded) {
-      return 'Loading source trees…';
-    }
-    if (workspaceData.workspaces.length > 0 && !startupTargetWorkspaceId) {
-      return 'Opening source tree catalog…';
-    }
-    if (startupTargetWorkspaceId && workspaceData.workspaceDetailLoadedFor !== startupTargetWorkspaceId) {
-      return 'Loading indexed versions…';
-    }
-    if (selectedSnapshot && browserBootstrap.status === 'loading') {
-      return browserBootstrap.message ?? 'Preparing Browser…';
-    }
-    return 'Opening Browser…';
-  }, [
-    workspaceData.workspacesLoaded,
-    workspaceData.workspaces.length,
+  const gateMessage = useMemo(() => resolveBrowserStartupGateMessage({
+    workspaceData,
     startupTargetWorkspaceId,
-    workspaceData.workspaceDetailLoadedFor,
     selectedSnapshot,
-    browserBootstrap.status,
-    browserBootstrap.message,
+    browserBootstrap,
+  }), [
+    workspaceData,
+    startupTargetWorkspaceId,
+    selectedSnapshot,
+    browserBootstrap,
   ]);
 
   return {

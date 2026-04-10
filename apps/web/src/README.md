@@ -8,9 +8,17 @@ This frontend is split into a few main subsystem boundaries. New code should nor
 - May orchestrate other subsystems, but should not reimplement domain rules from them.
 
 ## Browser session/domain state
-- `browserSessionStore*.ts`
+- `browser-session/types`
+- `browser-session/state`
+- `browser-session/lifecycle-api`
+- `browser-session/navigation-api`
+- `browser-session/canvas-api`
+- `browser-session/viewpoints-api`
+- `browser-session/facts-panel-api`
+- `browser-session/commands-api`
 - `contexts/`
-- Owns Browser session state wiring, grouped action surfaces, and persistence/hydration of the live Browser session.
+- `contexts/app-selection/`
+- Owns Browser session state wiring plus app-selection state wiring. Keep pure app-selection precedence rules and persistence helpers in `contexts/app-selection/` so the provider stays focused on exposing state.
 - `contexts/browserSession.types.ts` defines the public grouped session surface, and `contexts/browserSessionActions.ts` builds those action groups so the provider stays wiring-focused.
 - This is the main frontend domain layer for the Browser.
 
@@ -38,7 +46,7 @@ This frontend is split into a few main subsystem boundaries. New code should nor
 ## Data access and transport
 - `platformApi.ts`
 - `httpClient.ts`
-- `snapshotCache.ts`
+- `snapshot-cache/`
 - Own HTTP access, snapshot transport concerns, and cache access.
 - Keep transport details out of components and session-store reducers.
 
@@ -53,7 +61,7 @@ This frontend is split into a few main subsystem boundaries. New code should nor
 ## Dependency direction
 - `views/` may depend on everything below.
 - `components/` may depend on presentation models, session state, and command callbacks, but should avoid backend transport details.
-- `browserSessionStore*` may depend on snapshot index, layout/routing, and saved-canvas mapping helpers.
+- `browser-session/` internals may depend on snapshot index, layout/routing, and saved-canvas mapping helpers.
 - `saved-canvas/`, `browser-auto-layout/`, and `browser-routing/` should not depend on page components.
 
 
@@ -69,7 +77,7 @@ This frontend is split into a few main subsystem boundaries. New code should nor
 - `components/browser-graph-workspace/` owns React rendering only.
 
 ## Strict graph ownership notes
-- The strict graph ownership model is documented in `docs/refactoring/browser-graph-pipeline.md`.
+- The current enforceable graph ownership rules are documented in `docs/refactoring/frontend-boundary-rules.md`.
 - Prefer stage-specific imports when ownership matters.
 - Do not place generic routing engine logic in `browser-graph/routing/`; keep it in `browser-routing/`.
 - Do not place layout mode orchestration in `browser-canvas-placement/`; keep it in `browser-auto-layout/`.
@@ -86,7 +94,14 @@ This frontend is split into a few main subsystem boundaries. New code should nor
 - `browser-graph/workspace/`
 - `browser-projection/`
 - `browser-routing/`
-- `browser-session/`
+- `browser-session/types`
+- `browser-session/state`
+- `browser-session/lifecycle-api`
+- `browser-session/navigation-api`
+- `browser-session/canvas-api`
+- `browser-session/viewpoints-api`
+- `browser-session/facts-panel-api`
+- `browser-session/commands-api`
 - `browser-snapshot/`
 - `components/browser-graph-workspace/`
 - `saved-canvas/`
@@ -112,14 +127,15 @@ Prefer importing from these subsystem entrypoints rather than from transitional 
 - `browser-session/lifecycle/` is the preferred internal home for hydration/persistence/opening behavior.
 - `browser-session/facts-panel/` is the preferred internal home for facts-panel focus/open behavior.
 - `browser-session/commands/` is the preferred internal command-oriented surface over adding more flat `browserSessionStore.*` entrypoints.
+- Consumers outside the subsystem should prefer the narrow category entrypoints above instead of the broad root `browser-session` facade.
 
 ## BrowserView application-layer notes
 - `views/browser-view/application/` is the preferred internal home for Browser screen-level composition.
 - `views/browser-view/controllers/` should keep owning feature-specific orchestration beneath that application layer.
-- `useBrowserViewScreenController` remains the page-facing compatibility facade; new internal composition should prefer the application layer.
+- `BrowserView.tsx` should compose the Browser screen through `views/browser-view/application/`; `useBrowserViewScreenController` remains only as a temporary compatibility facade.
 
 ## Final stabilization notes
-- Keep `useBrowserViewScreenController` as a composition boundary and add new Browser page behavior through feature controllers under `views/browser-view/controllers/`.
+- Add new Browser page behavior through the `views/browser-view/application/` layer and feature controllers under `views/browser-view/controllers/`; do not route fresh page composition through `useBrowserViewScreenController`.
 - Prefer `saved-canvas/domain`, `saved-canvas/application`, and `saved-canvas/adapters` when choosing where new saved-canvas code belongs.
 - Keep React rendering concerns in `components/browser-graph-workspace/`; do not move layout, routing, or placement logic there.
 - Prefer canonical subsystem entrypoints for imports and avoid reintroducing root-level compatibility shims.
@@ -135,17 +151,34 @@ Prefer importing from these subsystem entrypoints rather than from transitional 
 
 
 ## Consolidation stabilization notes
-- The final consolidation review is documented in `docs/refactoring/platform-consolidation-review.md`.
+- The current consolidation baseline and stabilization checks are documented in `docs/refactoring/frontend-consolidation-baseline.md`, `docs/refactoring/frontend-duplication-retirement-map.md`, and `docs/refactoring/frontend-boundary-rules.md`.
 - Use `npm run verify:frontend-consolidation:stabilization` after structural cleanup to catch architecture-regression signals.
 - Do not reintroduce retired root shims or top-level saved-canvas facades.
-- Prefer the BrowserView application layer, browser-session category entrypoints, browser-snapshot model/query/support/viewpoints split, and saved-canvas layered entrypoints for new work.
+- Prefer the BrowserView application layer, browser-session category entrypoints (`types`, `state`, `lifecycle-api`, `navigation-api`, `canvas-api`, `viewpoints-api`, `facts-panel-api`, `commands-api`), browser-snapshot model/query/support/viewpoints split, and saved-canvas layered entrypoints for new work.
 
 
-- Graph algorithm and projection code should prefer stage-specific imports such as `browser-graph/canvas` and `browser-graph/presentation` instead of the broad `browser-graph` root when ownership matters. See `docs/refactoring/graph-complexity-reduction-step3.md`.
+- Graph algorithm and projection code should prefer stage-specific imports such as `browser-graph/canvas` and `browser-graph/presentation` instead of the broad `browser-graph` root when ownership matters.
 
 
-- BrowserView screen application layering was tightened further in `docs/refactoring/browser-view-application-consolidation-step4.md`.
+- BrowserView screen application layering should continue to move toward `views/browser-view/application` plus focused controller entrypoints as later refactoring steps retire compatibility facades.
 - auto-layout shared decision helpers live under `browser-auto-layout/shared/` and should be preferred over repeating mode-selection logic in each mode
 
 
 BrowserView orchestration helpers now live primarily under `views/browser-view/controllers/internal/`; top-level `useBrowserView*.ts` hooks are compatibility facades where they still exist.
+
+
+## Graph pipeline stage contracts
+
+Cross-stage graph imports should prefer the narrow stage entrypoints rather than neighboring implementation files:
+
+- `browser-projection/` -> import from `browser-projection`
+- `browser-canvas-placement/` -> import from `browser-canvas-placement/stage` for layout/workspace-stage consumers
+- `browser-auto-layout/` -> import from `browser-auto-layout`
+- `browser-routing/` -> import from `browser-routing`
+- `browser-graph/workspace/` -> import from `browser-graph/workspace`
+
+
+## Step 6 graph-stage narrowing
+
+- `browser-canvas-placement` may consume auto-layout graph helpers only through `browser-auto-layout/stage.ts`.
+- `browser-canvas-placement` and `browser-auto-layout` may consume canvas sizing and placement-policy helpers only through `browser-graph/canvas/stage.ts`.

@@ -1,7 +1,10 @@
 import { buildBrowserGraphWorkspaceModel } from '../../browser-graph';
 import { buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
 import { buildBrowserSnapshotIndex, buildViewpointGraph, clearBrowserSnapshotIndex, getViewpointById } from '../../browser-snapshot';
-import { applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, setSelectedViewpoint, setViewpointVariant } from '../../browser-session';
+import { applySelectedViewpoint, setSelectedViewpoint, setViewpointVariant } from '../../browser-session/viewpoints-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 import { jpaEntityRelationFixtures } from './fixtures/jpaEntityRelationsEndToEndFixtures';
 
 describe('JPA entity-relations end-to-end regression fixtures', () => {

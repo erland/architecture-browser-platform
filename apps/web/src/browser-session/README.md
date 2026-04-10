@@ -35,12 +35,8 @@ The preferred internal organization is:
 
 The grouped folders above now contain the primary implementation files. The old
 `browserSessionStore.*` compatibility wrappers have now been retired, so new
-imports should target either the root `browser-session` entrypoint or the
-owning grouped folder directly.
+imports should target the narrow category entrypoints (`browser-session/types`, `state`, `lifecycle-api`, `navigation-api`, `canvas-api`, `viewpoints-api`, `facts-panel-api`, `commands-api`) or the owning grouped folder directly when working inside the subsystem. The root `browser-session` entrypoint remains a broad compatibility facade only.
 
 ## Public API
 
-The root `browser-session` entrypoint is now limited to stable consumer-facing
-surfaces. Internal helpers such as low-level collection utilities, canvas helper
-functions, and saved-canvas port contracts should be imported from precise
-internal paths only when working inside the subsystem.
+Consumers outside `browser-session/` should prefer the narrow category entrypoints instead of the root `browser-session` or `browserSessionStore.ts` compatibility facades. Internal helpers such as low-level collection utilities, canvas helper functions, and saved-canvas port contracts should be imported from precise internal paths only when working inside the subsystem.

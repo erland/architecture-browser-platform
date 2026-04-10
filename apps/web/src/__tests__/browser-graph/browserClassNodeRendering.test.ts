@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
 import { BrowserGraphWorkspace } from '../../components/browser-graph-workspace/BrowserGraphWorkspace';
-import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-class-node-rendering-1',

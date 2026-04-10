@@ -1,4 +1,4 @@
-import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshotCache';
+import { createSnapshotCache, InMemorySnapshotCacheStorage } from '../../api/snapshot-cache';
 import { createSavedCanvasDocument, toSavedCanvasSnapshotRef } from '../../saved-canvas';
 import type { SnapshotSummary } from '../../app-model/appModel.api';
 import { buildSavedCanvasOfflineUnavailableMessage, getSavedCanvasOfflineAvailability } from '../../saved-canvas';

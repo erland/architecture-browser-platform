@@ -1,15 +1,4 @@
-import {
-  browserSessionCanvasCommands,
-  browserSessionCanvasMutations,
-  browserSessionFactsPanelCommands,
-  browserSessionFactsPanelMutations,
-  browserSessionLifecycleCommands,
-  browserSessionLifecycleMutations,
-  browserSessionNavigationCommands,
-  browserSessionNavigationMutations,
-  browserSessionViewpointCommands,
-  browserSessionViewpointMutations,
-} from '../../browser-session';
+import { browserSessionCanvasCommands, browserSessionCanvasMutations, browserSessionFactsPanelCommands, browserSessionFactsPanelMutations, browserSessionLifecycleCommands, browserSessionLifecycleMutations, browserSessionNavigationCommands, browserSessionNavigationMutations, browserSessionViewpointCommands, browserSessionViewpointMutations } from '../../browser-session/commands-api';
 
 describe('browser session command seams', () => {
   it('keeps command bundles as aliases of the canonical mutation groups', () => {

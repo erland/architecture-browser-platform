@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { BrowserSnapshotIndex } from '../../browser-snapshot';
 import type { BrowserResolvedViewpointGraph, BrowserViewpointScopeMode, BrowserViewpointVariant } from '../../browser-snapshot';
-import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browser-session';
+import type { BrowserViewpointApplyMode, BrowserViewpointPresentationPreference, BrowserViewpointSelection } from '../../browser-session/types';
 import { BrowserViewpointControls } from './BrowserViewpointControls';
 
 export type BrowserViewpointDialogProps = {

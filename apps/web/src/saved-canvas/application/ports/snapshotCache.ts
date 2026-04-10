@@ -1,4 +1,4 @@
-import type { SnapshotCachePutInput } from '../../../api/snapshotCache';
+import type { SnapshotCachePutInput } from '../../../api/snapshot-cache/types';
 import type { SnapshotSummary } from '../../../app-model';
 import type { PreparedSnapshotCacheReadPort, PreparedSnapshotCacheRecord } from '../../../browser-snapshot';
 

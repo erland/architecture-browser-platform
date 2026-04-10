@@ -4,7 +4,6 @@ import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotPayload
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotResponseDtos.SnapshotDetailResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotResponseDtos.SnapshotOverviewResponse;
 import info.isaksson.erland.architecturebrowser.platform.api.dto.SnapshotResponseDtos.SnapshotSummaryResponse;
-import info.isaksson.erland.architecturebrowser.platform.domain.SnapshotEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -21,7 +20,10 @@ public class SnapshotCatalogService {
     SnapshotCatalogQueryService queryService;
 
     @Inject
-    SnapshotCatalogPayloadLoader payloadLoader;
+    SnapshotCatalogRequestContextLoader requestContextLoader;
+
+    @Inject
+    SnapshotCatalogReadWorkflowService readWorkflowService;
 
     @Inject
     SnapshotCatalogResponseAssembler responseAssembler;
@@ -35,24 +37,18 @@ public class SnapshotCatalogService {
     }
 
     public SnapshotDetailResponse getDetail(String workspaceId, String snapshotId) {
-        return responseAssembler.toDetail(loadDocumentContext(workspaceId, snapshotId));
+        return readWorkflowService.loadDetail(requestContextLoader.load(workspaceId, snapshotId));
     }
 
     public FullSnapshotPayloadResponse getFullSnapshotPayload(String workspaceId, String snapshotId) {
-        return responseAssembler.toFullPayload(loadDocumentContext(workspaceId, snapshotId));
+        return readWorkflowService.loadFullPayload(requestContextLoader.load(workspaceId, snapshotId));
     }
 
     public SnapshotOverviewResponse getOverview(String workspaceId, String snapshotId) {
-        return responseAssembler.toOverview(loadDocumentContext(workspaceId, snapshotId));
+        return readWorkflowService.loadOverview(requestContextLoader.load(workspaceId, snapshotId));
     }
 
     public SnapshotSummaryResponse getSummary(String workspaceId, String snapshotId) {
         return responseAssembler.toSummary(queryService.requireSummary(workspaceId, snapshotId));
-    }
-
-    private SnapshotCatalogPayloadLoader.SnapshotCatalogDocumentContext loadDocumentContext(String workspaceId, String snapshotId) {
-        SnapshotEntity snapshot = queryService.requireSnapshot(workspaceId, snapshotId);
-        SnapshotCatalogSummaryProjection summary = queryService.requireSummary(workspaceId, snapshotId);
-        return payloadLoader.load(snapshot, summary);
     }
 }

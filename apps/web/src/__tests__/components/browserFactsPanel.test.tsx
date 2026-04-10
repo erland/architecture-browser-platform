@@ -2,7 +2,12 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { BrowserFactsPanel, buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
-import { addEntityToCanvas, applySelectedViewpoint, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
+import { addEntityToCanvas } from '../../browser-session/canvas-api';
+import { applySelectedViewpoint, setSelectedViewpoint } from '../../browser-session/viewpoints-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope } from '../../browser-session/navigation-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-facts-1',

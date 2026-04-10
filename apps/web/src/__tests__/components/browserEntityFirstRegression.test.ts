@@ -3,7 +3,11 @@ import { buildEntitySelectionActions } from '../../components/browser-graph-work
 import { toBrowserTopSearchAction, toBrowserTopSearchAddAction } from '../../components/browser-search/BrowserTopSearch';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserSnapshotIndex, clearBrowserSnapshotIndex, detectDefaultBrowserTreeMode, getScopeTreeNodesForMode } from '../../browser-snapshot';
-import { addPrimaryEntitiesForScope, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, selectBrowserScope, setBrowserSearch } from '../../browser-session';
+import { addPrimaryEntitiesForScope } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope, setBrowserSearch } from '../../browser-session/navigation-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-entity-first-regression-1',

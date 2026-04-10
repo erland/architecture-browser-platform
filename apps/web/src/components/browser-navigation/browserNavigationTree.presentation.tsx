@@ -1,53 +1,12 @@
 import type { BrowserSnapshotIndex, BrowserTreeMode } from '../../browser-snapshot';
 import { buildNavigationEntityChildNodes, buildNavigationChildNodes } from './browserNavigationTree.nodes';
-import { TREE_MODE_META, type BrowserNavigationChildNode, type BrowserNavigationEntityNode, type BrowserNavigationScopeNode } from './browserNavigationTree.shared';
+import { TREE_MODE_META, type BrowserNavigationChildNode, type BrowserNavigationScopeNode } from './browserNavigationTree.shared';
 import { BROWSABLE_TREE_MODES } from './browserNavigationTree.rootPresentation';
+import { BrowserNavigationChildList } from './browserNavigationTree.childList';
+import { BrowserNavigationScopeRow } from './browserNavigationTree.scopeRow';
+import { BrowserNavigationEntityRow } from './browserNavigationTree.entityRow';
 
 const DEFAULT_VISIBLE_CHILDREN_LIMIT = 25;
-const TREE_DRAG_MIME_TYPE = 'application/x-architecture-browser-entities';
-
-function getNodeKindLabel(node: BrowserNavigationChildNode) {
-  if (node.nodeType === 'scope') {
-    switch (node.kind) {
-      case 'REPOSITORY':
-        return 'Repo';
-      case 'DIRECTORY':
-        return 'Dir';
-      case 'FILE':
-        return 'File';
-      case 'PACKAGE':
-        return 'Pkg';
-      case 'MODULE':
-        return 'Mod';
-      default:
-        return 'Scope';
-    }
-  }
-  switch (node.kind) {
-    case 'CLASS':
-      return 'Cls';
-    case 'INTERFACE':
-      return 'Ifc';
-    case 'ENUM':
-      return 'Enum';
-    case 'SERVICE':
-      return 'Svc';
-    case 'REPOSITORY':
-      return 'Repo';
-    case 'ENDPOINT':
-      return 'API';
-    case 'COMPONENT':
-      return 'UI';
-    case 'HOOK':
-      return 'Hook';
-    case 'FUNCTION':
-      return 'Fn';
-    case 'MODULE':
-      return 'Mod';
-    default:
-      return 'Ent';
-  }
-}
 
 type RootScopeInput = {
   scopeId: string;
@@ -83,156 +42,6 @@ export function toRootNavigationScopeNode(node: RootScopeInput): BrowserNavigati
   };
 }
 
-function BrowserNavigationOverflowControls({
-  nodeId,
-  hiddenCount,
-  expanded,
-  onToggle,
-}: {
-  nodeId: string;
-  hiddenCount: number;
-  expanded: boolean;
-  onToggle: (nodeId: string) => void;
-}) {
-  if (hiddenCount <= 0) {
-    return null;
-  }
-  return (
-    <li className="browser-tree__item browser-tree__item--overflow">
-      <button
-        type="button"
-        className="browser-tree__show-more"
-        onClick={() => onToggle(nodeId)}
-        aria-expanded={expanded}
-      >
-        {expanded ? 'Show less' : `Show ${hiddenCount} more`}
-      </button>
-    </li>
-  );
-}
-
-function BrowserNavigationScopeRow({
-  node,
-  hasChildren,
-  isExpanded,
-  isSelected,
-  onToggle,
-  onSelectScope,
-  onAddScopeEntitiesToCanvas,
-}: {
-  node: BrowserNavigationScopeNode;
-  hasChildren: boolean;
-  isExpanded: boolean;
-  isSelected: boolean;
-  onToggle: (scopeId: string) => void;
-  onSelectScope: (scopeId: string) => void;
-  onAddScopeEntitiesToCanvas: (scopeId: string) => void;
-}) {
-  return (
-    <div className={isSelected ? 'browser-tree__row browser-tree__row--active' : 'browser-tree__row'} data-node-type="scope">
-      <button
-        type="button"
-        className={hasChildren ? 'browser-tree__toggle' : 'browser-tree__toggle browser-tree__toggle--empty'}
-        onClick={() => hasChildren && onToggle(node.scopeId)}
-        aria-label={hasChildren ? `${isExpanded ? 'Collapse' : 'Expand'} ${node.displayName}` : `${node.displayName} has no child nodes`}
-        aria-expanded={hasChildren ? isExpanded : undefined}
-        disabled={!hasChildren}
-      >
-        {hasChildren ? (isExpanded ? '▾' : '▸') : '•'}
-      </button>
-
-      <button
-        type="button"
-        className="browser-tree__node-button"
-        onClick={() => onSelectScope(node.scopeId)}
-        onDoubleClick={() => onAddScopeEntitiesToCanvas(node.scopeId)}
-        title={`${node.displayName} — double-click to add primary entities to canvas`}
-      >
-        <span className="browser-tree__node-heading">
-          <span className="browser-tree__node-title">{node.displayName}</span>
-          <span className="badge browser-tree__node-kind" aria-hidden="true">{getNodeKindLabel(node)}</span>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        className="browser-tree__canvas-button"
-        onClick={() => onAddScopeEntitiesToCanvas(node.scopeId)}
-        aria-label={`Add primary entities for ${node.displayName} to canvas`}
-        title={`Add primary entities for ${node.displayName} to canvas`}
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function BrowserNavigationEntityRow({
-  node,
-  hasChildren,
-  isExpanded,
-  onToggle,
-  isSelected,
-  onSelectEntity,
-  onAddEntityToCanvas,
-  selectedEntityIds,
-}: {
-  node: BrowserNavigationEntityNode;
-  hasChildren: boolean;
-  isExpanded: boolean;
-  onToggle: (entityId: string) => void;
-  isSelected: boolean;
-  onSelectEntity: (entityId: string, scopeId: string, additive?: boolean) => void;
-  onAddEntityToCanvas: (entityId: string, scopeId: string) => void;
-  selectedEntityIds: string[];
-}) {
-  return (
-    <div className={isSelected ? 'browser-tree__row browser-tree__row--entity browser-tree__row--active' : 'browser-tree__row browser-tree__row--entity'} data-node-type="entity">
-      <button
-        type="button"
-        className={hasChildren ? 'browser-tree__toggle browser-tree__toggle--entity' : 'browser-tree__toggle browser-tree__toggle--entity browser-tree__toggle--empty'}
-        onClick={() => hasChildren && onToggle(node.entityId)}
-        aria-label={hasChildren ? `${isExpanded ? 'Collapse' : 'Expand'} ${node.displayName}` : `${node.displayName} has no child nodes`}
-        aria-expanded={hasChildren ? isExpanded : undefined}
-        disabled={!hasChildren}
-      >
-        {hasChildren ? (isExpanded ? '▾' : '▸') : '•'}
-      </button>
-      <button
-        type="button"
-        className="browser-tree__node-button browser-tree__node-button--entity"
-        onClick={(event) => onSelectEntity(node.entityId, node.scopeId, event.metaKey || event.ctrlKey)}
-        onDoubleClick={() => onAddEntityToCanvas(node.entityId, node.scopeId)}
-        draggable
-        onDragStart={(event) => {
-          const dragEntityIds = isSelected && selectedEntityIds.length > 1 ? selectedEntityIds : [node.entityId];
-          event.dataTransfer.effectAllowed = 'copy';
-          event.dataTransfer.setData(TREE_DRAG_MIME_TYPE, JSON.stringify({ entityIds: dragEntityIds }));
-          event.dataTransfer.setData('text/plain', dragEntityIds.join(','));
-        }}
-        title={`${node.displayName} — select entity`}
-      >
-        <span className="browser-tree__node-heading">
-          <span className="browser-tree__node-title">{node.displayName}</span>
-          {node.isViewpointPreferred && node.viewpointBadgeLabel ? (
-            <span className="badge browser-tree__node-badge browser-tree__node-badge--viewpoint">{node.viewpointBadgeLabel}</span>
-          ) : null}
-          <span className="badge browser-tree__node-kind browser-tree__node-kind--entity" aria-hidden="true">{getNodeKindLabel(node)}</span>
-        </span>
-      </button>
-      <button
-        type="button"
-        className="browser-tree__canvas-button"
-        onClick={() => onAddEntityToCanvas(node.entityId, node.scopeId)}
-        aria-label={`Add ${node.displayName} to canvas`}
-        title={`Add ${node.displayName} to canvas`}
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
 type TreeNodeProps = {
   index: BrowserSnapshotIndex;
   node: BrowserNavigationChildNode;
@@ -254,6 +63,27 @@ type TreeNodeProps = {
   isSearchActive: boolean;
   selectedViewpointId: string | null;
 };
+
+function capVisibleChildren<T>({
+  allChildren,
+  nodeId,
+  expandedChildListIds,
+  isSearchActive,
+}: {
+  allChildren: T[];
+  nodeId: string;
+  expandedChildListIds: Set<string>;
+  isSearchActive: boolean;
+}) {
+  const isChildListExpanded = expandedChildListIds.has(nodeId);
+  const shouldCapChildren = !isSearchActive && allChildren.length > DEFAULT_VISIBLE_CHILDREN_LIMIT;
+  const visibleChildren = shouldCapChildren && !isChildListExpanded ? allChildren.slice(0, DEFAULT_VISIBLE_CHILDREN_LIMIT) : allChildren;
+  return {
+    isChildListExpanded,
+    visibleChildren,
+    hiddenChildrenCount: allChildren.length - visibleChildren.length,
+  };
+}
 
 export function BrowserNavigationTreeNode({
   index,
@@ -282,10 +112,12 @@ export function BrowserNavigationTreeNode({
       : [];
     const hasChildren = allChildren.length > 0;
     const isExpanded = expandedEntityIds.has(node.entityId);
-    const isChildListExpanded = expandedChildListIds.has(node.nodeId);
-    const shouldCapChildren = !isSearchActive && allChildren.length > DEFAULT_VISIBLE_CHILDREN_LIMIT;
-    const visibleChildren = shouldCapChildren && !isChildListExpanded ? allChildren.slice(0, DEFAULT_VISIBLE_CHILDREN_LIMIT) : allChildren;
-    const hiddenChildrenCount = allChildren.length - visibleChildren.length;
+    const { isChildListExpanded, visibleChildren, hiddenChildrenCount } = capVisibleChildren({
+      allChildren,
+      nodeId: node.nodeId,
+      expandedChildListIds,
+      isSearchActive,
+    });
 
     return (
       <li className="browser-tree__item" data-node-type="entity">
@@ -299,71 +131,14 @@ export function BrowserNavigationTreeNode({
           onAddEntityToCanvas={onAddEntityToCanvas}
           selectedEntityIds={selectedEntityIds}
         />
-        {hasChildren && isExpanded ? (
-          <ul className="browser-tree__children" role="group">
-            {visibleChildren.map((child) => (
-              <BrowserNavigationTreeNode
-                key={child.nodeId}
-                index={index}
-                node={child}
-                treeMode={treeMode}
-                selectedScopeId={selectedScopeId}
-                expandedScopeIds={expandedScopeIds}
-                expandedEntityIds={expandedEntityIds}
-                onToggle={onToggle}
-                onToggleEntity={onToggleEntity}
-                onToggleChildList={onToggleChildList}
-                onSelectScope={onSelectScope}
-                onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
-                selectedEntityIds={selectedEntityIds}
-                onSelectEntity={onSelectEntity}
-                onAddEntityToCanvas={onAddEntityToCanvas}
-                visibleScopeIds={visibleScopeIds}
-                visibleEntityIds={visibleEntityIds}
-                expandedChildListIds={expandedChildListIds}
-                isSearchActive={isSearchActive}
-                selectedViewpointId={selectedViewpointId}
-              />
-            ))}
-            <BrowserNavigationOverflowControls
-              nodeId={node.nodeId}
-              hiddenCount={hiddenChildrenCount}
-              expanded={isChildListExpanded}
-              onToggle={onToggleChildList}
-            />
-          </ul>
-        ) : null}
-      </li>
-    );
-  }
-
-  const allChildren = buildNavigationChildNodes(index, node.scopeId, treeMode, {
-    visibleScopeIds,
-    visibleEntityIds,
-    viewpointId: selectedViewpointId,
-  });
-  const isExpanded = expandedScopeIds.has(node.scopeId);
-  const isSelected = selectedScopeId === node.scopeId;
-  const hasChildren = allChildren.length > 0;
-  const isChildListExpanded = expandedChildListIds.has(node.nodeId);
-  const shouldCapChildren = !isSearchActive && allChildren.length > DEFAULT_VISIBLE_CHILDREN_LIMIT;
-  const visibleChildren = shouldCapChildren && !isChildListExpanded ? allChildren.slice(0, DEFAULT_VISIBLE_CHILDREN_LIMIT) : allChildren;
-  const hiddenChildrenCount = allChildren.length - visibleChildren.length;
-
-  return (
-    <li className="browser-tree__item" data-node-type="scope">
-      <BrowserNavigationScopeRow
-        node={node}
-        hasChildren={hasChildren}
-        isExpanded={isExpanded}
-        isSelected={isSelected}
-        onToggle={onToggle}
-        onSelectScope={onSelectScope}
-        onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
-      />
-
-      {hasChildren && isExpanded ? (
-        <ul className="browser-tree__children" role="group">
+        <BrowserNavigationChildList
+          hasChildren={hasChildren}
+          isExpanded={isExpanded}
+          hiddenChildrenCount={hiddenChildrenCount}
+          isChildListExpanded={isChildListExpanded}
+          nodeId={node.nodeId}
+          onToggleChildList={onToggleChildList}
+        >
           {visibleChildren.map((child) => (
             <BrowserNavigationTreeNode
               key={child.nodeId}
@@ -388,14 +163,71 @@ export function BrowserNavigationTreeNode({
               selectedViewpointId={selectedViewpointId}
             />
           ))}
-          <BrowserNavigationOverflowControls
-            nodeId={node.nodeId}
-            hiddenCount={hiddenChildrenCount}
-            expanded={isChildListExpanded}
-            onToggle={onToggleChildList}
+        </BrowserNavigationChildList>
+      </li>
+    );
+  }
+
+  const allChildren = buildNavigationChildNodes(index, node.scopeId, treeMode, {
+    visibleScopeIds,
+    visibleEntityIds,
+    viewpointId: selectedViewpointId,
+  });
+  const isExpanded = expandedScopeIds.has(node.scopeId);
+  const isSelected = selectedScopeId === node.scopeId;
+  const hasChildren = allChildren.length > 0;
+  const { isChildListExpanded, visibleChildren, hiddenChildrenCount } = capVisibleChildren({
+    allChildren,
+    nodeId: node.nodeId,
+    expandedChildListIds,
+    isSearchActive,
+  });
+
+  return (
+    <li className="browser-tree__item" data-node-type="scope">
+      <BrowserNavigationScopeRow
+        node={node}
+        hasChildren={hasChildren}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        onToggle={onToggle}
+        onSelectScope={onSelectScope}
+        onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
+      />
+
+      <BrowserNavigationChildList
+        hasChildren={hasChildren}
+        isExpanded={isExpanded}
+        hiddenChildrenCount={hiddenChildrenCount}
+        isChildListExpanded={isChildListExpanded}
+        nodeId={node.nodeId}
+        onToggleChildList={onToggleChildList}
+      >
+        {visibleChildren.map((child) => (
+          <BrowserNavigationTreeNode
+            key={child.nodeId}
+            index={index}
+            node={child}
+            treeMode={treeMode}
+            selectedScopeId={selectedScopeId}
+            expandedScopeIds={expandedScopeIds}
+            expandedEntityIds={expandedEntityIds}
+            onToggle={onToggle}
+            onToggleEntity={onToggleEntity}
+            onToggleChildList={onToggleChildList}
+            onSelectScope={onSelectScope}
+            onAddScopeEntitiesToCanvas={onAddScopeEntitiesToCanvas}
+            selectedEntityIds={selectedEntityIds}
+            onSelectEntity={onSelectEntity}
+            onAddEntityToCanvas={onAddEntityToCanvas}
+            visibleScopeIds={visibleScopeIds}
+            visibleEntityIds={visibleEntityIds}
+            expandedChildListIds={expandedChildListIds}
+            isSearchActive={isSearchActive}
+            selectedViewpointId={selectedViewpointId}
           />
-        </ul>
-      ) : null}
+        ))}
+      </BrowserNavigationChildList>
     </li>
   );
 }

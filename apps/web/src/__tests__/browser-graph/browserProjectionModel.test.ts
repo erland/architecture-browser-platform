@@ -1,7 +1,11 @@
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import { buildBrowserProjectionModel } from '../../browser-projection';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas, createEmptyBrowserSessionState, focusBrowserElement, openSnapshotSession, setSelectedViewpoint } from '../../browser-session';
+import { addDependenciesToCanvas, addEntityToCanvas, addScopeToCanvas } from '../../browser-session/canvas-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { focusBrowserElement } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setSelectedViewpoint } from '../../browser-session/viewpoints-api';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-projection-1',

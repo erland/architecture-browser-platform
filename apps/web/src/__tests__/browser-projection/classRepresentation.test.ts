@@ -2,8 +2,9 @@ import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 import type { BrowserViewpointPresentationPolicy } from '../../browser-graph/presentation';
 import { deriveBrowserClassRepresentation } from '../../browser-projection/classRepresentation';
 import { clearBrowserSnapshotIndex } from '../../browser-snapshot';
-import { createEmptyBrowserSessionState, openSnapshotSession } from '../../browser-session';
-import type { BrowserCanvasNode } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import type { BrowserCanvasNode } from '../../browser-session/types';
 
 const snapshotSummary: SnapshotSummary = {
   id: 'snap-class-representation-1',

@@ -4,8 +4,8 @@ import {
   PEER_SPACING_X,
   PEER_SPACING_Y,
   RADIAL_RADIUS,
-} from '../browser-graph/canvas';
-import type { BrowserCanvasNode } from '../browser-session';
+} from '../browser-graph/canvas/stage';
+import type { BrowserCanvasNode } from '../browser-session/types';
 import type {
   BrowserCanvasNodeLike,
   BrowserCanvasNodeSizeLike,

@@ -1,5 +1,9 @@
-import { createEmptyBrowserSessionState, addEntityToCanvas, openFactsPanel, openSnapshotSession, requestFitCanvasView, setBrowserNavigationTreeState } from '../../browser-session';
-import { persistBrowserSession, readPersistedBrowserSession } from '../../browser-session';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { addEntityToCanvas, requestFitCanvasView } from '../../browser-session/canvas-api';
+import { openFactsPanel } from '../../browser-session/facts-panel-api';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { setBrowserNavigationTreeState } from '../../browser-session/navigation-api';
+import { persistBrowserSession, readPersistedBrowserSession } from '../../browser-session/lifecycle-api';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../app-model';
 
 const snapshotSummary: SnapshotSummary = {

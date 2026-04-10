@@ -1,5 +1,5 @@
 import { buildBrowserEdgeRoute, buildBrowserRoutingScene, type BrowserRoutingNodeFrame } from '../../browser-routing';
-import type { BrowserSessionState } from '../../browser-session';
+import type { BrowserSessionState } from '../../browser-session/types';
 import type { BrowserProjectionEdge } from '../../browser-projection';
 import type {
   BrowserGraphWorkspaceModel,

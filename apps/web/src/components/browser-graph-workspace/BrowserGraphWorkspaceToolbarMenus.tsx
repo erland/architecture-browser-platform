@@ -1,6 +1,6 @@
 import type { FullSnapshotEntity } from '../../app-model';
 import type { BrowserGraphWorkspaceModel } from '../../browser-graph/workspace';
-import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session';
+import type { BrowserClassPresentationMode, BrowserSessionState } from '../../browser-session/types';
 import type { BrowserAutoLayoutMode } from '../../browser-auto-layout';
 import type { BrowserEntitySelectionAction, ScopeAnalysisMode } from './BrowserGraphWorkspace.types';
 import { BrowserGraphWorkspaceMenu, runMenuAction } from './BrowserGraphWorkspaceMenu';
@@ -188,21 +188,26 @@ export function BrowserGraphWorkspaceToolbarMenus({
 
       <button type="button" className="button-secondary" onClick={onClearCanvas} disabled={model.nodes.length === 0}>Clear</button>
 
-      <div className="browser-canvas__viewport-tools">
+      <div className="browser-canvas__viewport-controls browser-canvas__viewport-tools">
         <div className="browser-canvas__routing-mode" role="group" aria-label="Relationship routing mode">
-          <span className="browser-canvas__routing-mode-label">Routing</span>
-          <button
-            type="button"
-            className={state.routingLayoutConfig.features.orthogonalRouting ? 'button-secondary active' : 'button-secondary'}
-            aria-pressed={state.routingLayoutConfig.features.orthogonalRouting}
-            onClick={() => onSetRelationshipRoutingMode('orthogonal')}
-          >Orthogonal</button>
-          <button
-            type="button"
-            className={!state.routingLayoutConfig.features.orthogonalRouting ? 'button-secondary active' : 'button-secondary'}
-            aria-pressed={!state.routingLayoutConfig.features.orthogonalRouting}
-            onClick={() => onSetRelationshipRoutingMode('straight')}
-          >Straight</button>
+          <span className="sr-only">{state.routingLayoutConfig.features.orthogonalRouting ? 'Orthogonal' : 'Straight'}</span>
+          {state.routingLayoutConfig.features.orthogonalRouting ? (
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => onSetRelationshipRoutingMode('straight')}
+              aria-label="Switch relationship routing mode to Straight"
+              title="Switch routing to Straight"
+            >Straight</button>
+          ) : (
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => onSetRelationshipRoutingMode('orthogonal')}
+              aria-label="Switch relationship routing mode to Orthogonal"
+              title="Switch routing to Orthogonal"
+            >Orthogonal</button>
+          )}
         </div>
         <button type="button" className="button-secondary" onClick={onFitView} disabled={model.nodes.length === 0}>Fit view</button>
         <label className="browser-canvas__zoom browser-canvas__zoom--compact" aria-label={`Zoom ${Math.round(state.canvasViewport.zoom * 100)}%`}>

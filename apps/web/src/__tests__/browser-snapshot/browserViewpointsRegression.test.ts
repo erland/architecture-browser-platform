@@ -1,6 +1,9 @@
 import { buildBrowserSnapshotIndex, buildViewpointGraph, getAvailableViewpoints } from '../../browser-snapshot';
 import { buildBrowserFactsPanelModel } from '../../components/browser-facts-panel/BrowserFactsPanel';
-import { applySelectedViewpoint, createEmptyBrowserSessionState, openSnapshotSession, selectBrowserScope, setSelectedViewpoint } from '../../browser-session';
+import { applySelectedViewpoint, setSelectedViewpoint } from '../../browser-session/viewpoints-api';
+import { createEmptyBrowserSessionState } from '../../browser-session/state';
+import { openSnapshotSession } from '../../browser-session/lifecycle-api';
+import { selectBrowserScope } from '../../browser-session/navigation-api';
 import { createCuratedViewpointsPayload, curatedViewpointIds } from './fixtures/viewpointFixtures';
 
 const expectedByViewpoint: Record<string, { recommendedLayout: string; seedEntityIds: string[]; relationshipIds: string[] }> = {

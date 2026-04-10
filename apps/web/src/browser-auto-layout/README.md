@@ -22,3 +22,12 @@ Refactor note (platform_v3_step3): flow and structure modes were decomposed into
 
 
 Refactor note (platform_v3_step4): all four layout modes now share a common mode-engine shape through `modes/shared/modeEngine.ts`. Each mode exports a `*AutoLayoutModeEngine` alongside its strategy and public run function, so mode entrypoints are structurally consistent even when their internal placement policies differ.
+
+
+Stage-contract note (platform_step5): cross-stage placement dependencies now go through `browser-canvas-placement/stage.ts` instead of reaching into placement implementation files such as `collision.ts` or `postLayoutCleanup.ts`.
+
+
+## Step 6 graph-stage narrowing
+
+- `browser-canvas-placement` may consume auto-layout graph helpers only through `browser-auto-layout/stage.ts`.
+- `browser-canvas-placement` and `browser-auto-layout` may consume canvas sizing and placement-policy helpers only through `browser-graph/canvas/stage.ts`.

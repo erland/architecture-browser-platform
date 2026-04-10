@@ -1,4 +1,4 @@
-import type { SnapshotCachePutInput } from '../../../api/snapshotCache';
+import type { SnapshotCachePutInput } from '../../../api/snapshot-cache/types';
 import type { FullSnapshotPayload, SnapshotSummary } from '../../../app-model';
 
 export type PreparedSnapshotCacheRecord = {

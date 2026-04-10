@@ -1,4 +1,4 @@
-import type { BrowserSessionState } from '../browser-session';
+import type { BrowserSessionState } from '../browser-session/types';
 
 export type BrowserSessionBootstrapStatus = 'idle' | 'loading' | 'ready' | 'failed';
 

@@ -6,14 +6,15 @@ Browser screen-composition files, BrowserView shell sections, and Browser-specif
 
 - `application/useBrowserViewApplicationController.ts` is the preferred internal screen application layer.
 - It composes the BrowserView feature controllers and exposes one application-facing controller object for the page shell.
-- `useBrowserViewScreenController.ts` remains as a compatibility facade over the application layer for page-level composition.
+- `BrowserView.tsx` now imports the application layer directly for page composition.
+- `useBrowserViewScreenController.ts` remains only as a temporary compatibility facade for legacy imports and tests.
 
 ## Controller structure
 
 - `controllers/useBrowserViewWorkspaceController.ts` owns workspace, repository, snapshot, and startup orchestration.
 - `controllers/useBrowserViewCanvasController.ts` owns Browser canvas actions and top-search integration.
 - `controllers/useBrowserViewDialogController.ts` owns saved-canvas and dialog composition.
-- `useBrowserViewScreenController.ts` now delegates to the BrowserView application layer instead of composing feature controllers directly.
+- `useBrowserViewScreenController.ts` now delegates to the BrowserView application layer and should not be the primary path for new BrowserView composition.
 
 ## Screen application layer
 
@@ -28,5 +29,12 @@ assembly there instead of growing the page shell.
 
 Most screen-orchestration helper hooks now live under `controllers/internal/`.
 The top-level `useBrowserView*.ts` files remain only as compatibility facades for
-existing imports and test mocks. Prefer the internal controller helpers for new
-BrowserView composition work.
+existing imports and test mocks. Prefer the application layer plus the internal
+controller helpers for new BrowserView composition work.
+
+
+Policy modules:
+- `application/browserViewPageSectionPolicy.ts` owns the pure mapping from application controller state to page section props.
+- `controllers/internal/browserViewDerivedStatePolicy.ts` owns deterministic BrowserView label/selection derivation.
+- `controllers/internal/browserViewStartupPolicy.ts` owns startup gate and implicit-workspace decision rules.
+- Hook files in `application/` and `controllers/internal/` should stay focused on orchestration, memoization, effects, and wiring.
